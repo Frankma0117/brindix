@@ -1,6 +1,7 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MenuCategory, MenuProduct, WaiterOption } from '../../core/models';
+import { Auth } from '../../core/auth.service';
 import { MoneyPipe } from '../../core/ui';
 import { ProductArtComponent } from '../../shared/product-art.component';
 
@@ -57,7 +58,7 @@ export interface PickedLine { product: MenuProduct; quantity: number; note?: str
         @if (waiters().length) {
           <select class="input" [ngModel]="assignTo()" (ngModelChange)="assignTo.set($event)">
             <option [ngValue]="null">La lleva: el mesero de la mesa</option>
-            @for (w of waiters(); track w.id) { <option [ngValue]="w.id">La lleva: {{ w.name }}</option> }
+            @for (w of waiters(); track w.id) { <option [ngValue]="w.id">La lleva: {{ auth.staffLabel(w) }}</option> }
           </select>
         }
         <button class="btn primary lg block" [disabled]="busy()" (click)="submit.emit({ lines: lines(), assignedTo: assignTo() })">
@@ -91,6 +92,7 @@ export interface PickedLine { product: MenuProduct; quantity: number; note?: str
   `],
 })
 export class ProductPickerComponent {
+  auth = inject(Auth);
   menu = input.required<MenuCategory[]>();
   tableName = input('');
   /** Solo el administrador elige quién lleva la ronda. */

@@ -65,10 +65,13 @@
               @if (auth.isAdmin() && (r.status === 'PENDING' || r.status === 'CONFIRMED')) {
                 <select class="input sel" [ngModel]="r.assignedTo ?? null" (ngModelChange)="assign(r, $event)">
                   <option [ngValue]="null">{{ r.status === 'PENDING' ? 'Asignar a…' : 'Reasignar…' }}</option>
-                  @for (w of waiters(); track w.id) { <option [ngValue]="w.id">{{ w.name }}</option> }
+                  @for (w of waiters(); track w.id) { <option [ngValue]="w.id">{{ auth.staffLabel(w) }}</option> }
                 </select>
               }
-              @if (auth.isAdmin() && r.status === 'PENDING') { <button class="btn sm danger" (click)="reject(r)">Rechazar</button> }
+              @if (auth.isAdmin() && r.status === 'PENDING') {
+                <button class="btn sm primary" (click)="assign(r, auth.user()!.id)">🙋 Yo lo llevo</button>
+                <button class="btn sm danger" (click)="reject(r)">Rechazar</button>
+              }
               @if (r.status === 'CONFIRMED' && (auth.isAdmin() || isMine(r))) { <button class="btn sm" (click)="deliver(r)">Marcar entregada</button> }
               @if (t.canCharge && !r.paid && (r.status === 'CONFIRMED' || r.status === 'DELIVERED') && r.total > 0) {
                 <button class="btn sm success" (click)="openCharge(r)">Cobrar ronda</button>

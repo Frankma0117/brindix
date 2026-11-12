@@ -28,6 +28,8 @@ El súper administrador (`platform_users`) no pertenece a ningún bar.
 
 - **Mesero**: agrega rondas (quedan confirmadas, descuentan inventario y quedan asignadas a él),
   entrega las suyas y cobra solo si `waiter_can_charge`. No modifica nada ni da descuentos.
+- **Administrador que atiende** (bares pequeños): tiene también `ROLE_WAITER`; puede asignarse rondas
+  a sí mismo ("Yo lo llevo"), entregar y cobrar. Su cobro queda `settled=true` al instante.
 - **Pedido del cliente** (solo si `client_orders_enabled`): queda `PENDING`; el administrador lo
   **asigna** a un mesero (pasa a `CONFIRMED` y descuenta inventario) o lo rechaza.
 - **Modificar** (cambiar cantidad, anular, reasignar) es solo del administrador, con motivo, y

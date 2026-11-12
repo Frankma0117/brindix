@@ -73,6 +73,10 @@ export class AdminShellComponent {
   auth = inject(Auth);
   ctx = inject(VenueContext);
   menu = signal(false);
+
+  constructor() {
+    this.auth.rememberAdminHome('admin');
+  }
   groups = [
     { title: 'El día', links: [
       { path: '.', icon: '📊', label: 'Resumen' },

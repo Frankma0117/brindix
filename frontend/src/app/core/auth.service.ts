@@ -3,7 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
 import { Api } from './api.service';
-import { User } from './models';
+import { User, WaiterOption } from './models';
 import { store } from './ui';
 
 interface StaffSession { token: string; user: User; venue: string; venueName: string; }
@@ -11,6 +11,7 @@ interface PlatformSession { token: string; name: string; }
 
 const STAFF_KEY = 'brindix.session';
 const PLATFORM_KEY = 'brindix.platform';
+const ADMIN_HOME_KEY = 'brindix.adminHome';
 
 /** Sesión del personal de un bar (administrador o mesero). Una sesión a la vez por navegador. */
 @Injectable({ providedIn: 'root' })
@@ -45,7 +46,27 @@ export class Auth {
   home(): string {
     const s = this.session();
     if (!s) return '/';
-    return `/${s.venue}/${s.user.role === 'ADMIN' ? 'admin' : 'mesero'}`;
+    if (s.user.role !== 'ADMIN') return `/${s.venue}/mesero`;
+    return `/${s.venue}/${store.get<string>(ADMIN_HOME_KEY, 'admin') === 'mesero' ? 'mesero' : 'admin'}`;
+  }
+
+  /** En bares pequeños el administrador también atiende: al entrar vuelve a la vista que usó por última vez. */
+  rememberAdminHome(view: 'admin' | 'mesero'): void {
+    if (this.isAdmin()) store.set(ADMIN_HOME_KEY, view);
+  }
+
+  isMe(id: number | null | undefined): boolean {
+    return id != null && id === this.user()?.id;
+  }
+
+  /** Nombre para listas de "quién la lleva": el propio usuario aparece como "Yo". */
+  staffLabel(w: WaiterOption): string {
+    return this.isMe(w.id) ? `Yo (${w.name})` : w.name;
+  }
+
+  /** ¿El administrador atiende solo? (no hay otro mesero activo) */
+  alone(waiters: WaiterOption[]): boolean {
+    return waiters.every(w => this.isMe(w.id));
   }
 }
 

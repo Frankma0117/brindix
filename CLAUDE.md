@@ -17,6 +17,9 @@ inventario con costos, música (Spotify/YouTube/manual), pantalla. Repo
 - Brindix es el servicio general; cada bar entra en `brindix.cania.app/<bar>` con su propio acceso.
 - Solo el administrador modifica productos, precios, inventario, entradas de mercancía, caja y pedidos.
 - El mesero solo ve la carta y carga productos a sus mesas; entrega y (opcional) cobra.
+- En bares pequeños el administrador también es mesero: aparece como "Yo" en la lista de quién lleva,
+  tiene "🙋 Yo lo llevo" en los pedidos del cliente, sus cobros entran directo a caja y al ingresar
+  vuelve a la vista que usó por última vez (panel o mesas).
 - Pedidos del cliente desde el QR son opcionales (los activa el administrador) y él los asigna a un mesero.
 - Cobro por ronda o total; lo puede hacer el mesero (queda pendiente de entregar en caja) o el administrador.
 - Toda configuración de integraciones (Spotify, YouTube) va en Configuración del administrador, no en el .env.

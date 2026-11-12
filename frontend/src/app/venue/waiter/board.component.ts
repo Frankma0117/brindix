@@ -46,11 +46,14 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
             @if (auth.isAdmin()) {
               <div class="row wrap">
                 <span class="strong num grow">{{ r.total | money }}</span>
-                <select class="input sel" [(ngModel)]="assignTo[r.id]">
-                  <option [ngValue]="undefined">Asignar a…</option>
-                  @for (w of waiters(); track w.id) { <option [ngValue]="w.id">{{ w.name }}</option> }
-                </select>
-                <button class="btn sm primary" [disabled]="!assignTo[r.id]" (click)="assign(r)">Asignar</button>
+                @if (!auth.alone(waiters())) {
+                  <select class="input sel" [(ngModel)]="assignTo[r.id]">
+                    <option [ngValue]="undefined">Asignar a…</option>
+                    @for (w of waiters(); track w.id) { <option [ngValue]="w.id">{{ auth.staffLabel(w) }}</option> }
+                  </select>
+                  <button class="btn sm" [disabled]="!assignTo[r.id]" (click)="assign(r)">Asignar</button>
+                }
+                <button class="btn sm primary" (click)="takeIt(r)">🙋 Yo lo llevo</button>
                 <button class="btn sm danger" (click)="reject(r)">Rechazar</button>
               </div>
             } @else {
@@ -67,7 +70,7 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
         @for (r of board()!.inProgress; track r.id) {
           <div class="card alert deliver">
             <div class="grow">
-              <p class="strong">{{ r.tableName }} @if (auth.isAdmin()) { <span class="muted small">· {{ r.assignedToName }}</span> }</p>
+              <p class="strong">{{ r.tableName }} @if (auth.isAdmin()) { <span class="small" [class.muted]="!auth.isMe(r.assignedTo)" [class.strong]="auth.isMe(r.assignedTo)">· {{ auth.isMe(r.assignedTo) ? 'Tú' : r.assignedToName }}</span> }</p>
               <p class="small">@for (i of r.items; track i.id; let last = $last) { @if (!i.voided) { {{ i.quantity }}× {{ i.productName }}@if (!last) {, } } }</p>
             </div>
             <button class="btn sm success" (click)="deliver(r)">Entregada</button>
@@ -157,6 +160,7 @@ export class BoardComponent implements OnInit {
   busyCount = computed(() => (this.board()?.tables ?? []).filter(t => t.tabId).length);
 
   ngOnInit(): void {
+    this.auth.rememberAdminHome('mesero');
     if (this.auth.isAdmin()) this.api.get<WaiterOption[]>('/staff/waiters').subscribe(w => this.waiters.set(w));
     timer(0, 5000).pipe(
       switchMap(() => this.api.get<Board>('/staff/board').pipe(catchError(() => of(null)))),
@@ -179,6 +183,11 @@ export class BoardComponent implements OnInit {
 
   async assign(r: RoundView): Promise<void> {
     await this.act(`/admin/rounds/${r.id}/assign`, { waiterId: this.assignTo[r.id] }, `Pedido de ${r.tableName} asignado`);
+  }
+
+  /** El administrador también atiende: se asigna el pedido a sí mismo con un toque. */
+  async takeIt(r: RoundView): Promise<void> {
+    await this.act(`/admin/rounds/${r.id}/assign`, { waiterId: this.auth.user()!.id }, `Pedido de ${r.tableName}: lo llevas tú`);
   }
 
   async reject(r: RoundView): Promise<void> {
