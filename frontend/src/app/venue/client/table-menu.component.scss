@@ -104,7 +104,7 @@
 .track img, .queue img, .ph, .sk-img { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex: none; background: var(--surface-2); display: grid; place-items: center; color: var(--faint); }
 .t-title { font-weight: 750; font-size: 15px; }
 .xs-b { height: 18px; margin-left: 6px; padding: 0 5px; font-size: 10px; vertical-align: 2px; }
-.ask { height: 44px; padding: 0 14px; border-radius: 12px; flex: none; }
+.ask { height: 44px; padding: 0 14px; border-radius: 12px; flex: none; background: rgba(255,178,56,.14); border-color: rgba(255,178,56,.45); color: var(--c-amber); font-weight: 800; }
 .in-list { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: 13px; font-weight: 750; color: var(--c-green); }
 .track.done { opacity: .75; }
 .skel .sk-img, .sk-l, .sk-s { background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%); background-size: 200% 100%; animation: shimmer 1.2s infinite; }

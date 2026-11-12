@@ -166,7 +166,7 @@
                 @if (inQueue(t)) {
                   <span class="in-list"><bx-icon name="check" /> En la lista</span>
                 } @else {
-                  <button class="btn primary ask" [disabled]="requesting() === t.ref || songsLeft() === 0" (click)="requestTrack(t)">
+                  <button class="btn ask" [disabled]="requesting() === t.ref || songsLeft() === 0" (click)="requestTrack(t)">
                     @if (requesting() === t.ref) { Pidiendo… } @else { <bx-icon name="plus" /> Pedir }
                   </button>
                 }
