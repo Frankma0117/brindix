@@ -1,0 +1,98 @@
+<div class="screen" (dblclick)="fullscreen()">
+  <div class="bg-glow"></div>
+
+  <!-- Publicidad -->
+  <section class="ads">
+    @if (banner(); as b) {
+      @for (x of [b]; track x.id) {
+        <div class="ad" [attr.data-theme]="x.theme">
+          @if (x.imageUrl) { <img class="ad-img" [src]="x.imageUrl" alt=""> }
+          @else if (x.productId) { <bx-art class="ad-art" [art]="'food'" [imageUrl]="x.productImage" [name]="x.productName ?? ''" /> }
+          <div class="ad-shade"></div>
+          <div class="ad-text">
+            <span class="ad-kicker">{{ data()?.venue?.name }}</span>
+            <h1>{{ x.title }}</h1>
+            @if (x.subtitle) { <p>{{ x.subtitle }}</p> }
+            @if (x.productPrice) { <div class="ad-price">{{ x.productPrice | money }}</div> }
+          </div>
+        </div>
+      }
+      <div class="ad-dots">
+        @for (b2 of data()?.banners ?? []; track b2.id; let i = $index) { <span [class.on]="i === bannerIndex() % (data()?.banners?.length || 1)"></span> }
+      </div>
+    } @else {
+      <div class="ad idle">
+        <bx-mascot [size]="220" mood="party" />
+        <h1>{{ data()?.venue?.name ?? 'Brindix' }}</h1>
+        <p>{{ data()?.venue?.tagline }}</p>
+      </div>
+    }
+  </section>
+
+  <!-- Música -->
+  <aside class="music">
+    <header class="row between">
+      <div class="row"><bx-mascot [size]="44" [animate]="false" /><span class="brand">{{ data()?.venue?.name }}</span></div>
+      <span class="clock num">{{ clock().toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' }) }}</span>
+    </header>
+
+    <div class="now">
+      <p class="label"><span class="eq"><i></i><i></i><i></i><i></i></span> Sonando ahora</p>
+      @if (now(); as np) {
+        <div class="now-main">
+          <div class="cover">
+            @if (np.image) { <img [src]="np.image" alt=""> } @else { <bx-mascot [size]="90" mood="party" /> }
+          </div>
+          <div class="grow">
+            <h2 class="title">{{ np.title }}</h2>
+            <p class="artist">{{ np.artist }}</p>
+          </div>
+        </div>
+        @if (np.durationMs) {
+          <div class="bar"><div class="fill" [style.width.%]="percent()"></div></div>
+          <div class="row between times num"><span>{{ duration(progress()) || '0:00' }}</span><span>{{ duration(np.durationMs) }}</span></div>
+        }
+        @if (np.fromRequest && (np.requestedBy || np.tableName)) {
+          <p class="by">🎤 Pedida por <strong>{{ np.requestedBy || np.tableName }}</strong>@if (np.requestedBy && np.tableName) { · {{ np.tableName }} }</p>
+        }
+      } @else {
+        <div class="now-main">
+          <div class="cover"><bx-mascot [size]="90" /></div>
+          <div class="grow">
+            <h2 class="title">La música está por empezar</h2>
+            <p class="artist">Pide la tuya desde tu mesa</p>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="next">
+      <p class="label">Lo que sigue</p>
+      <ol>
+        @for (s of upNext(); track s.id; let i = $index) {
+          <li>
+            <span class="pos">{{ i + 1 }}</span>
+            @if (s.albumImage) { <img [src]="s.albumImage" alt=""> } @else { <span class="ph">♪</span> }
+            <div class="grow">
+              <p class="t ellipsis">{{ s.title }}</p>
+              <p class="a ellipsis">{{ s.artist }}@if (s.tableName) { · {{ s.tableName }} }</p>
+            </div>
+          </li>
+        } @empty {
+          <li class="free">¡La lista está libre! Escanea el QR de tu mesa y pide tu canción 🎶</li>
+        }
+      </ol>
+    </div>
+
+    <footer class="cta">
+      <span class="qr-ico">▦</span>
+      <div>
+        <p class="strong">Escanea el QR de tu mesa</p>
+        <p class="small">Mira la carta, pide y pon tu canción</p>
+      </div>
+      @if (data()?.venue?.wifiName) { <div class="wifi">📶 {{ data()!.venue.wifiName }}<br><span>{{ data()!.venue.wifiPassword }}</span></div> }
+    </footer>
+  </aside>
+
+  @if (offline()) { <div class="offline">Reconectando…</div> }
+</div>

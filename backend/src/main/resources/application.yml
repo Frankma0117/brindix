@@ -1,0 +1,94 @@
+# Brindix — configuración. Todo lo sensible llega por variables de entorno (ver .env.example).
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
+  compression:
+    enabled: true
+
+spring:
+  application:
+    name: brindix
+  config:
+    # Lee el .env (formato CLAVE=valor) de la carpeta backend o de la raíz del proyecto si existe.
+    import: "optional:file:.env[.properties],optional:file:../.env[.properties]"
+  profiles:
+    # dev = H2 en archivo, modo MySQL (no hay que instalar nada). prod = MySQL.
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 12MB
+      max-request-size: 14MB
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+brindix:
+  # Dirección pública del frontend (QR de las mesas, regreso de Spotify).
+  public-url: ${BRINDIX_PUBLIC_URL:http://localhost:4200}
+  # Dirección pública del backend: la Redirect URI de Spotify es {api-url}/api/spotify/callback
+  api-url: ${BRINDIX_API_URL:http://127.0.0.1:8080}
+  cors-origins: ${BRINDIX_CORS_ORIGINS:http://localhost:4200,http://127.0.0.1:4200}
+  timezone: ${BRINDIX_TIMEZONE:America/Bogota}
+  uploads-dir: ${BRINDIX_UPLOADS_DIR:./data/uploads}
+  whatsapp: ${BRINDIX_WHATSAPP:573229457553}
+  jwt:
+    # En producción SIEMPRE un secreto largo (mínimo 32 caracteres).
+    secret: ${BRINDIX_JWT_SECRET:dev-only-secret-change-me-please-0123456789abcdef}
+    hours: ${BRINDIX_JWT_HOURS:14}
+  # Cifra las claves que cada bar guarda en su configuración (Spotify, YouTube).
+  secret-key: ${BRINDIX_SECRET_KEY:dev-only-encryption-key-change-me-0123456789}
+  seed:
+    enabled: ${BRINDIX_SEED:true}
+    # Súper administrador de la plataforma (crea bares).
+    super-username: ${BRINDIX_SUPER_USER:brindix}
+    super-password: ${BRINDIX_SUPER_PASSWORD:brindix12345}
+    # Bar de demostración con carta de ejemplo (slug "demo").
+    demo-venue: ${BRINDIX_DEMO_VENUE:true}
+    admin-password: ${BRINDIX_ADMIN_PASSWORD:admin12345}
+    waiter-password: ${BRINDIX_WAITER_PASSWORD:mesero12345}
+  storage:
+    # Sin key/secret los archivos quedan en uploads-dir (modo local).
+    endpoint: ${SPACES_ENDPOINT:}
+    region: ${SPACES_REGION:sfo3}
+    bucket: ${SPACES_BUCKET:}
+    prefix: ${SPACES_PREFIX:brindix}
+    key: ${SPACES_KEY:}
+    secret: ${SPACES_SECRET:}
+    cdn-url: ${SPACES_CDN_URL:}
+  ai:
+    # Proveedor compatible con OpenAI (DeepSeek por defecto) para redactar descripciones.
+    base-url: ${AI_BASE_URL:https://api.deepseek.com}
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:deepseek-chat}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:h2:file:./data/brindix;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;AUTO_SERVER=TRUE
+    username: sa
+    password:
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/brindix?connectionTimeZone=UTC&characterEncoding=UTF-8&useUnicode=true}
+    username: ${DATABASE_USER:brindix}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 10

@@ -1,0 +1,130 @@
+<div class="page-head">
+  <div><h1>Carta y productos</h1><p>Lo que ven los clientes y lo que cargan los meseros.</p></div>
+  <div class="row">
+    <button class="btn" (click)="showCats.set(true)">Categorías</button>
+    <button class="btn primary" (click)="newProduct()">＋ Nuevo producto</button>
+  </div>
+</div>
+
+<div class="toolbar">
+  <label class="search"><input class="input" placeholder="Buscar" [ngModel]="q()" (ngModelChange)="q.set($event)"></label>
+</div>
+<div class="cats">
+  <button class="chip" [class.active]="cat() === null" (click)="cat.set(null)">Todos ({{ products().length }})</button>
+  @for (c of categories(); track c.id) {
+    @if (c.active) { <button class="chip" [class.active]="cat() === c.id" (click)="cat.set(c.id)">{{ c.icon }} {{ c.name }} ({{ c.products }})</button> }
+  }
+</div>
+
+<div class="plist">
+  @for (p of visible(); track p.id) {
+    <div class="card p" [class.off]="!p.available" (click)="edit(p)">
+      <bx-art class="thumb" [art]="p.art" [imageUrl]="p.imageUrl" [name]="p.name" />
+      <div class="grow col" style="gap: 3px">
+        <p class="strong ellipsis">{{ p.name }} @if (p.featured) { ⭐ }</p>
+        <p class="price num">{{ p.price | money }}</p>
+        <div class="row wrap" style="gap: 6px">
+          @if (p.trackStock) { <span class="badge" [class.red]="p.stock <= 0" [class.amber]="p.lowStock && p.stock > 0">{{ p.stock }} {{ p.unit }}</span> }
+          @else { <span class="badge">Preparado</span> }
+          @if (!p.available) { <span class="badge red">Oculto</span> }
+        </div>
+      </div>
+      <button class="btn xs" (click)="toggle(p, $event)">{{ p.available ? 'Ocultar' : 'Mostrar' }}</button>
+    </div>
+  } @empty {
+    <div class="empty"><h3>Sin productos</h3><p>Crea el primero con «Nuevo producto».</p></div>
+  }
+</div>
+
+<!-- Formulario de producto -->
+@if (form(); as f) {
+  <div class="backdrop" (click)="form.set(null)">
+    <div class="modal wide" (click)="$event.stopPropagation()">
+      <div class="modal-head"><h2>{{ f.id ? 'Editar producto' : 'Nuevo producto' }}</h2><button class="btn icon sm" (click)="form.set(null)">✕</button></div>
+      <div class="form-grid">
+        <div class="full row top gap-lg" style="flex-wrap: wrap">
+          <div style="flex: 0 0 220px" class="col">
+            <bx-art class="preview" [art]="artOf(f.categoryId)" [imageUrl]="f.imageUrl" [name]="f.name" />
+            <label class="btn sm block">{{ uploading() ? 'Subiendo…' : (f.imageUrl ? 'Cambiar foto' : 'Subir foto') }}
+              <input class="file" type="file" accept="image/*" (change)="upload($event, 'product')">
+            </label>
+            @if (f.imageUrl) { <button class="btn ghost xs" (click)="patch('imageUrl', '')">Quitar foto (usar ilustración)</button> }
+          </div>
+          <div class="grow col" style="min-width: 240px">
+            <label class="field"><span>Nombre</span><input class="input" [ngModel]="f.name" (ngModelChange)="patch('name', $event)" maxlength="120"></label>
+            <label class="field"><span>Categoría</span>
+              <select class="input" [ngModel]="f.categoryId" (ngModelChange)="patch('categoryId', +$event)">
+                @for (c of categories(); track c.id) { <option [ngValue]="c.id">{{ c.icon }} {{ c.name }}</option> }
+              </select>
+            </label>
+            <label class="field"><span>Descripción (la ve el cliente)</span><textarea class="input" rows="3" [ngModel]="f.description" (ngModelChange)="patch('description', $event)" maxlength="600"></textarea></label>
+          </div>
+        </div>
+        <label class="field"><span>Precio de venta</span><input class="input" type="number" min="0" step="500" [ngModel]="f.price" (ngModelChange)="patch('price', $event)"></label>
+        <label class="field"><span>Costo (opcional, para el margen)</span><input class="input" type="number" min="0" step="100" [ngModel]="f.cost" (ngModelChange)="patch('cost', $event)"></label>
+        <label class="field"><span>Etiquetas (separadas por coma)</span><input class="input" [ngModel]="f.tags" (ngModelChange)="patch('tags', $event)" placeholder="nacional, para compartir"></label>
+        <label class="field"><span>Orden en la carta</span><input class="input" type="number" [ngModel]="f.sortOrder" (ngModelChange)="patch('sortOrder', +$event)"></label>
+
+        <div class="full card flat col">
+          <label class="check"><input type="checkbox" [ngModel]="f.trackStock" (ngModelChange)="patch('trackStock', $event)"> Llevar inventario (botellas, latas…). Desactívalo en cócteles y comida preparada.</label>
+          @if (f.trackStock) {
+            <div class="form-grid">
+              <label class="field"><span>Unidad</span><input class="input" [ngModel]="f.unit" (ngModelChange)="patch('unit', $event)" placeholder="und, botella, lata"></label>
+              <label class="field"><span>Avisar cuando queden</span><input class="input" type="number" min="0" [ngModel]="f.minStock" (ngModelChange)="patch('minStock', +$event)"></label>
+              @if (!f.id) { <label class="field"><span>Existencias iniciales</span><input class="input" type="number" min="0" [ngModel]="f.initialStock" (ngModelChange)="patch('initialStock', +$event)"></label> }
+            </div>
+            @if (f.id) { <p class="tiny muted">Para sumar unidades usa «Inventario → Entrada de mercancía».</p> }
+          }
+        </div>
+        <label class="check"><input type="checkbox" [ngModel]="f.available" (ngModelChange)="patch('available', $event)"> Visible en la carta</label>
+        <label class="check"><input type="checkbox" [ngModel]="f.featured" (ngModelChange)="patch('featured', $event)"> ⭐ Recomendado de la casa</label>
+      </div>
+      <div class="modal-foot">
+        @if (f.id) { <button class="btn danger" (click)="archive()" style="margin-right: auto">Quitar de la carta</button> }
+        <button class="btn" (click)="form.set(null)">Cancelar</button>
+        <button class="btn primary" [disabled]="saving() || !f.name.trim() || f.price === null || !f.categoryId" (click)="save()">Guardar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Categorías -->
+@if (showCats()) {
+  <div class="backdrop" (click)="showCats.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-head"><h2>Categorías</h2><button class="btn icon sm" (click)="showCats.set(false)">✕</button></div>
+      @for (c of categories(); track c.id) {
+        <div class="catrow" [class.faint]="!c.active">
+          <span style="font-size: 22px">{{ c.icon }}</span>
+          <div class="grow"><p class="strong">{{ c.name }}</p><p class="tiny muted">{{ c.products }} productos · orden {{ c.sortOrder }}</p></div>
+          <button class="btn xs" (click)="editCat(c)">Editar</button>
+        </div>
+      }
+      <div class="modal-foot"><button class="btn primary" (click)="editCat()">＋ Nueva categoría</button></div>
+    </div>
+  </div>
+}
+
+@if (catForm(); as cf) {
+  <div class="backdrop" (click)="catForm.set(null)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-head"><h2>{{ cf.id ? 'Editar categoría' : 'Nueva categoría' }}</h2><button class="btn icon sm" (click)="catForm.set(null)">✕</button></div>
+      <div class="form-grid">
+        <label class="field full"><span>Nombre</span><input class="input" [(ngModel)]="cf.name" maxlength="80"></label>
+        <label class="field"><span>Emoji</span><input class="input" [(ngModel)]="cf.icon" maxlength="8"></label>
+        <label class="field"><span>Orden</span><input class="input" type="number" [(ngModel)]="cf.sortOrder"></label>
+        <div class="field full"><span>Ilustración para productos sin foto</span>
+          <div class="art-pick">
+            @for (a of arts; track a.key) { <button class="chip" [class.active]="cf.art === a.key" (click)="cf.art = a.key">{{ a.label }}</button> }
+          </div>
+        </div>
+        <label class="check full"><input type="checkbox" [(ngModel)]="cf.active"> Visible en la carta</label>
+      </div>
+      <div class="modal-foot">
+        @if (cf.id) { <button class="btn danger" style="margin-right: auto" (click)="deleteCat()">Eliminar</button> }
+        <button class="btn" (click)="catForm.set(null)">Cancelar</button>
+        <button class="btn primary" [disabled]="!cf.name.trim()" (click)="saveCat()">Guardar</button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,43 @@
+# Brindix en un servidor: PostgreSQL + backend + frontend (nginx).
+# Uso: cp .env.example .env  (editar)  &&  docker compose up -d --build
+# Delante va el HTTPS del servidor (nginx/certbot o Caddy) apuntando al puerto 8081.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: brindix
+      POSTGRES_USER: ${DATABASE_USER:-brindix}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?pon DATABASE_PASSWORD en .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-brindix}"]
+      interval: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://db:5432/brindix
+      BRINDIX_UPLOADS_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  uploads:
