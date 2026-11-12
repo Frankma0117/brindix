@@ -26,3 +26,5 @@ backups/
 frontend/public/__shot*
 ACCESOS-DEMO.txt
 demo-seed/
+__pycache__/
+*.pyc

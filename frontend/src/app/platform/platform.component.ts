@@ -7,9 +7,11 @@ import { Auth, PlatformAuth, StaffSession } from '../core/auth.service';
 import { PlatformVenue } from '../core/models';
 import { Toasts } from '../core/ui';
 import { MascotComponent } from '../shared/mascot.component';
+import { IconComponent } from '../shared/icon.component';
 import { ResetRequestsComponent } from '../shared/reset-requests.component';
 import { ThemeToggleComponent } from '../core/theme';
 import { Dialogs } from '../shared/dialogs';
+import { PlatformVideosComponent } from './videos.component';
 
 interface VenueForm {
   id?: number; name: string; slug: string; contactName: string; contactPhone: string; active: boolean;
@@ -20,7 +22,7 @@ interface VenueForm {
 @Component({
   selector: 'bx-platform',
   standalone: true,
-  imports: [FormsModule, DatePipe, MascotComponent, ThemeToggleComponent, ResetRequestsComponent],
+  imports: [FormsModule, DatePipe, MascotComponent, ThemeToggleComponent, ResetRequestsComponent, PlatformVideosComponent, IconComponent],
   template: `
   @if (!auth.session() || auth.session()!.mustChangePassword || changing()) { <bx-theme-toggle class="theme-corner" /> }
   @if (!auth.session() && recovering()) {
@@ -84,10 +86,17 @@ interface VenueForm {
     <header class="top">
       <div class="container row between">
         <div class="row"><bx-mascot [size]="38" [animate]="false" /><b class="brand">Brindix · Plataforma</b></div>
-        <div class="row"><span class="muted small">{{ auth.session()!.name }}</span><bx-theme-toggle /><button class="btn ghost sm" (click)="changing.set(true)">Mi contraseña</button><button class="btn ghost sm" (click)="auth.logout()">Salir</button></div>
+        <div class="row"><span class="muted small who">{{ auth.session()!.name }}</span><bx-theme-toggle /><button class="btn ghost sm" (click)="changing.set(true)">Mi contraseña</button><button class="btn ghost sm" (click)="auth.logout()">Salir</button></div>
       </div>
     </header>
     <main class="container wrap-p">
+      <nav class="seg" role="tablist" aria-label="Secciones de la plataforma">
+        <button type="button" role="tab" [attr.aria-selected]="tab() === 'bares'" [class.on]="tab() === 'bares'" (click)="tab.set('bares')"><bx-icon name="store" [size]="16" /> Bares</button>
+        <button type="button" role="tab" [attr.aria-selected]="tab() === 'videos'" [class.on]="tab() === 'videos'" (click)="tab.set('videos')"><bx-icon name="megaphone" [size]="16" /> Videos y publicidad</button>
+      </nav>
+      @if (tab() === 'videos') {
+        <bx-platform-videos />
+      } @else {
       <div class="page-head">
         <div><h1>Bares</h1><p>Cada bar tiene su dirección, su administrador y sus datos separados.</p></div>
         <button class="btn primary" (click)="newVenue()">＋ Nuevo bar</button>
@@ -121,6 +130,7 @@ interface VenueForm {
           </tbody>
         </table>
       </div>
+      }
     </main>
 
     @if (form(); as f) {
@@ -165,8 +175,13 @@ interface VenueForm {
     .code { letter-spacing: .14em; text-transform: uppercase; font-weight: 800; }
     .ok-msg { color: var(--ink-green); font-weight: 650; }
     .top { border-bottom: 1px solid var(--line); padding: 12px 0; background: var(--bg-2); }
-    .brand { font-size: 18px; }
-    .wrap-p { padding-top: 26px; padding-bottom: 60px; }
+    .brand { font-size: 18px; white-space: nowrap; }
+    .top .container { flex-wrap: wrap; row-gap: 8px; }
+    @media (max-width: 640px) { .who { display: none; } .brand { font-size: 16px; } }
+    .wrap-p { padding-top: 22px; padding-bottom: 60px; }
+    .seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--bg-2); margin-bottom: 22px; }
+    .seg button { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: 700 14px var(--font); cursor: pointer; transition: background-color 150ms ease, color 150ms ease; }
+    .seg button.on { background: var(--surface-3); color: var(--text); }
     .sec { margin-top: 6px; font-size: 15px; color: var(--c-amber); }
     .slug { display: flex; align-items: center; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg-2); }
     .slug span { padding-left: 14px; color: var(--faint); font-size: 14px; white-space: nowrap; }
@@ -195,6 +210,7 @@ export class PlatformComponent implements OnInit {
   error = signal('');
   venues = signal<PlatformVenue[]>([]);
   form = signal<VenueForm | null>(null);
+  tab = signal<'bares' | 'videos'>('bares');
 
   ngOnInit(): void {
     if (this.auth.session() && !this.auth.session()!.mustChangePassword) this.load();

@@ -29,11 +29,27 @@ services:
       DATABASE_URL: jdbc:mysql://db:3306/brindix?connectionTimeZone=UTC&characterEncoding=UTF-8&useUnicode=true&allowPublicKeyRetrieval=true&useSSL=false
       BRINDIX_UPLOADS_DIR: /data/uploads
       JAVA_OPTS: -Xms128m -Xmx512m -Djava.net.preferIPv4Stack=true
+      BRINDIX_STUDIO_URL: http://studio:8000
     volumes:
       - uploads:/data/uploads
     depends_on:
       db:
         condition: service_healthy
+
+  # Estudio de videos (tutoriales y publicidad desde /plataforma). Graba la demo real con Chromium y arma el MP4.
+  # Va con prioridad baja y límites: el bar y el panel siempre responden primero.
+  studio:
+    build: ./studio
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      BRINDIX_INTERNAL_URL: http://frontend
+      STUDIO_VENUE: ${STUDIO_VENUE:-demo}
+    cpus: "1.5"
+    mem_limit: 2g
+    shm_size: 512m
+    depends_on:
+      - frontend
 
   frontend:
     build: ./frontend

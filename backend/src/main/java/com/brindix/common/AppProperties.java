@@ -24,7 +24,8 @@ public record AppProperties(
         Seed seed,
         Storage storage,
         Ai ai,
-        Mail mail) {
+        Mail mail,
+        Studio studio) {
 
     public record Jwt(String secret, int hours) {}
 
@@ -42,6 +43,13 @@ public record AppProperties(
     public record Mail(String host, String from, String fromName, String adminEmail) {
         public boolean enabled() {
             return notBlank(host);
+        }
+    }
+
+    /** Estudio de videos (contenedor interno). Sin url o token, la pestaña de videos avisa que no está configurado. */
+    public record Studio(String url, String token) {
+        public boolean enabled() {
+            return notBlank(url) && notBlank(token);
         }
     }
 

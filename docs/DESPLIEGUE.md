@@ -31,6 +31,18 @@ python3 scripts/seed-images.py --venue demo --user admin --password '<clave del 
 
 Genera una foto por producto y por banner con fal.ai y las sube a Spaces por la API de Brindix.
 
+## Estudio de videos (una sola vez)
+
+Los videos de `/plataforma → Videos y publicidad` los arma el contenedor `studio`. Para activarlo:
+
+```bash
+cd /opt/brindix && bash scripts/set-studio.sh
+```
+
+Genera `STUDIO_TOKEN`, copia `FISH_API_KEY` (voz) y `FAL_KEY` (música) de Aula Interactiva si están en el servidor, toma los
+accesos del bar demo de `ACCESOS-DEMO.txt` (con ellos graba las pantallas reales) y construye el contenedor (la primera vez
+descarga Chromium). Cada video tarda de 2 a 6 minutos y queda en Spaces (`brindix/studio/`). Logs: `docker compose logs --tail 80 studio`.
+
 ## Útil
 
 | Qué | Cómo |

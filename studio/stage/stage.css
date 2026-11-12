@@ -1,0 +1,65 @@
+/* Escenario de los videos de Brindix. Tamaño en px reales del video; --u = 1 % del lado corto. */
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0f0d0b; }
+#stage { position: relative; width: 100vw; height: 100vh; overflow: hidden; color: #f7f1ea; font-family: Manrope, sans-serif;
+  --u: 1vmin; --amber: #ffb238; --coral: #ff5c6c; --muted: #b5a99b; }
+
+.bg { position: absolute; inset: 0; background: #0f0d0b; }
+.bg i { position: absolute; border-radius: 50%; filter: blur(calc(var(--u) * 9)); opacity: .55; }
+.bg .g1 { width: 70vmax; height: 70vmax; background: radial-gradient(circle, rgba(255,178,56,.45), transparent 65%); left: -20vmax; top: -25vmax; }
+.bg .g2 { width: 60vmax; height: 60vmax; background: radial-gradient(circle, rgba(255,92,108,.38), transparent 65%); right: -22vmax; bottom: -20vmax; }
+.bg .g3 { width: 40vmax; height: 40vmax; background: radial-gradient(circle, rgba(255,138,61,.22), transparent 65%); left: 30%; top: 40%; }
+
+.brandbar { position: absolute; z-index: 5; top: calc(var(--u) * 4); left: calc(var(--u) * 5); right: calc(var(--u) * 5); display: flex; align-items: center;
+  gap: calc(var(--u) * 1.4); font-weight: 800; font-size: calc(var(--u) * 3.2); }
+.brandbar b { font-family: 'Bricolage Grotesque', sans-serif; letter-spacing: -.02em; }
+.brandbar .url { margin-left: auto; font-size: calc(var(--u) * 2.4); color: var(--muted); font-weight: 700; }
+.mini-logo { width: calc(var(--u) * 5); height: calc(var(--u) * 5); }
+.mini-logo svg { width: 100%; height: 100%; }
+
+#scenes { position: absolute; inset: 0; }
+.scene { position: absolute; inset: 0; opacity: 0; will-change: opacity, transform; }
+
+/* Titular */
+.head { position: absolute; z-index: 4; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; letter-spacing: -.035em; line-height: .98; }
+.head .w { display: inline-block; margin-right: .03em; will-change: transform, opacity; }
+.head .w.hl { color: var(--amber); }
+
+/* Dispositivos con la pantalla real */
+.device { position: absolute; z-index: 3; will-change: transform, opacity; filter: drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 5) rgba(0,0,0,.6)); }
+.device .screen { position: absolute; overflow: hidden; background: #000; }
+.device .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top center; will-change: transform; }
+.device.phone .frame { position: absolute; inset: 0; border-radius: 13% / 6.2%; background: #1a1612; border: calc(var(--u) * .5) solid #2c2620; }
+.device.phone .screen { inset: 3.2% 4.2%; border-radius: 10.5% / 5%; }
+.device.phone .notch { position: absolute; top: 3.8%; left: 50%; width: 28%; height: 2.6%; transform: translateX(-50%); border-radius: 99px; background: #0b0908; z-index: 2; }
+.device.laptop .lid { position: absolute; left: 0; right: 0; top: 0; bottom: 6%; border-radius: 2.4% / 3.6%; background: #1a1612; border: calc(var(--u) * .45) solid #2c2620; }
+.device.laptop .screen { left: 2.2%; right: 2.2%; top: 3.4%; bottom: 9%; border-radius: .6%; }
+.device.laptop .base { position: absolute; left: -6%; right: -6%; bottom: 0; height: 6.5%; background: linear-gradient(#3a332c, #221d18); border-radius: 0 0 18% 18% / 0 0 100% 100%; }
+.device.tv .panel { position: absolute; left: 0; right: 0; top: 0; bottom: 8%; border-radius: 1.6%; background: #0b0908; border: calc(var(--u) * .6) solid #221d18; }
+.device.tv .screen { left: 1.8%; right: 1.8%; top: 2.6%; bottom: 10.6%; border-radius: .6%; }
+.device.tv .stand { position: absolute; left: 42%; width: 16%; bottom: 0; height: 8%; background: #221d18; border-radius: 0 0 20% 20%; }
+
+/* Etiqueta de la pantalla */
+.tag { position: absolute; z-index: 4; padding: calc(var(--u) * .8) calc(var(--u) * 2); border-radius: 99px; background: rgba(255,178,56,.16);
+  border: 1px solid rgba(255,178,56,.45); color: var(--amber); font-weight: 800; font-size: calc(var(--u) * 2.2); white-space: nowrap; }
+
+/* Intro y cierre */
+.hero { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: calc(var(--u) * 3); padding: 0 8%; }
+.hero .big { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; letter-spacing: -.04em; line-height: .95; }
+.hero .big .w { display: inline-block; margin: 0 .06em; }
+.hero .big .hl { color: var(--amber); }
+.hero .sub { color: var(--muted); font-weight: 700; }
+.cta-card { display: flex; align-items: center; gap: calc(var(--u) * 3); padding: calc(var(--u) * 2.4) calc(var(--u) * 3); border-radius: calc(var(--u) * 3);
+  background: linear-gradient(135deg, var(--amber), var(--coral)); color: #1c0f08; text-align: left; }
+.cta-card img { width: calc(var(--u) * 16); height: calc(var(--u) * 16); border-radius: calc(var(--u) * 1.6); background: #fff; }
+.cta-card b { display: block; font-family: 'Bricolage Grotesque', sans-serif; font-size: calc(var(--u) * 5.2); letter-spacing: -.03em; }
+.cta-card span { font-weight: 800; font-size: calc(var(--u) * 2.6); }
+
+/* Mascota */
+.mascot { position: absolute; z-index: 6; will-change: transform; transform-origin: 50% 92%; }
+.mascot svg { width: 100%; height: 100%; overflow: visible; }
+
+/* Subtítulos */
+.subs { position: absolute; z-index: 7; text-align: center; font-weight: 800; line-height: 1.22; text-wrap: balance; }
+.subs > span { display: inline; padding: .12em .42em; border-radius: .35em; background: rgba(15,13,11,.82); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.subs .now { color: var(--amber); }

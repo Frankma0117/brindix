@@ -23,6 +23,7 @@ El súper administrador (`platform_users`) no pertenece a ningún bar.
 | `audit` | Bitácora de todo lo delicado. |
 | `uploads` | Imágenes a Spaces (`brindix/<bar>/<carpeta>/`) o disco; reduce a 1600 px. |
 | `ai` | Descripción de producto con IA (DeepSeek, API compatible con OpenAI). |
+| `videos` | Videos de tutoriales y publicidad del súper administrador: `PromoVideo` (estado, guion, URLs), `StudioClient` (habla con el contenedor `studio`), `PromoVideoService.poll()` pregunta el avance cada 8 s. |
 
 ### Reglas importantes
 
@@ -63,9 +64,19 @@ Migraciones Flyway en `db/migration`, SQL compatible con MySQL 8 y H2 (modo MySQ
 | Carpeta | Contenido |
 |---|---|
 | `landing/` | Página de ventas de Brindix (`/`). |
-| `platform/` | Panel del súper administrador (`/plataforma`). |
+| `platform/` | Panel del súper administrador (`/plataforma`): bares y pestaña «Videos y publicidad» (`videos.component.ts`). |
 | `core/` | API, sesiones (`Auth` por bar, `PlatformAuth`), `VenueContext` + `VenueShellComponent` (carga el bar de `/:slug`), modelos. |
 | `venue/client` | Carta del cliente. `venue/waiter`: tablero, cuenta, selector por tandas. `venue/admin`: panel. `venue/screen`: TV. |
 | `shared/` | `bx-mascot` (Brindix animado), `bx-art` (foto o ilustración), `bx-qr`. |
 
 Estilos globales en `src/styles.scss`. Tiempo real por consultas periódicas (5 s mesero, 4 s pantalla).
+
+## Estudio de videos (`studio/`)
+
+Servicio aparte en Python (FastAPI) dentro del contenedor `studio`, solo accesible desde el backend con `X-Studio-Token`.
+Arma un video así: guion por IA (`script.py`, plantilla si no hay IA) → voz por escena con Fish Audio (`media.voice`) →
+capturas de las pantallas reales del bar demo con Playwright (`media.capture`: celular, computador y TV) → escenario HTML
+determinista (`stage/stage.js`: `window.stageAt(t)` pinta el cuadro exacto, la copa mueve la boca con el volumen de la voz)
+grabado cuadro a cuadro a 25 fps → ffmpeg mezcla voz y música (fal.ai, una pista por estilo guardada en Spaces) → MP4 y
+portada en Spaces bajo `brindix/studio/<id>/`. Un solo video a la vez, con `nice` y límites de CPU/memoria en el compose.
+El catálogo de tipos, pantallas, voces y formatos está en `catalog.py`.

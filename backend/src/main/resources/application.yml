@@ -91,6 +91,10 @@ brindix:
     base-url: ${AI_BASE_URL:https://api.deepseek.com}
     api-key: ${AI_API_KEY:}
     model: ${AI_MODEL:deepseek-chat}
+  studio:
+    # Estudio de videos de tutoriales y publicidad (contenedor "studio"). El token debe ser el mismo STUDIO_TOKEN del estudio.
+    url: ${BRINDIX_STUDIO_URL:}
+    token: ${STUDIO_TOKEN:}
 
 ---
 spring:
