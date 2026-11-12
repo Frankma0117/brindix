@@ -108,60 +108,97 @@
   @if (view() === 'music') {
     <main class="container music">
       <h1>Pon tu canción</h1>
+
       @if (queue()?.nowPlaying; as np) {
-        <div class="now card glow">
-          <div class="cover">@if (np.image) { <img [src]="np.image" alt=""> } @else { <bx-mascot [size]="56" mood="party" /> }</div>
+        <div class="now">
+          <div class="cover">@if (np.image) { <img [src]="np.image" alt=""> } @else { <bx-icon name="music" /> }</div>
           <div class="grow">
-            <span class="badge pink"><span class="eq"><i></i><i></i><i></i></span> Sonando</span>
-            <h3 class="ellipsis">{{ np.title }}</h3>
-            <p class="muted ellipsis">{{ np.artist }}</p>
+            <span class="badge pink"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span> Sonando</span>
+            <p class="np-title ellipsis">{{ np.title }}</p>
+            <p class="muted small ellipsis">{{ np.artist }}@if (np.tableName) { · {{ np.tableName }} }</p>
           </div>
         </div>
       }
 
       @if (ctx.venue()?.musicEnabled === false) {
-        <div class="card">La música de hoy la pone el bar. ¡Disfruta!</div>
+        <p class="note">La música de hoy la pone el bar. ¡Disfruta!</p>
       } @else {
-        <div class="card">
-          <label class="field"><span>Tu nombre (opcional)</span>
-            <input class="input" [(ngModel)]="clientName" placeholder="Así te verán en la pantalla" maxlength="40">
-          </label>
-          <div class="spacer"></div>
-          @if (queue()?.searchEnabled) {
-            <label class="search"><input class="input" [placeholder]="queue()?.provider === 'YOUTUBE' ? 'Busca en YouTube: canción o artista' : 'Busca canción o artista'" [ngModel]="songQuery" (ngModelChange)="onSongQuery($event)"></label>
-            @if (searching()) { <p class="muted small pad">Buscando…</p> }
-            <div class="tracks">
-              @for (t of tracks(); track t.ref) {
-                <div class="track">
-                  @if (t.image) { <img [src]="t.image" alt=""> } @else { <div class="ph"></div> }
-                  <div class="grow">
-                    <p class="strong ellipsis">{{ t.title }} @if (t.explicit) { <span class="badge">E</span> }</p>
-                    <p class="muted small ellipsis">{{ t.artist }}@if (t.durationMs) { · {{ duration(t.durationMs) }} }</p>
-                  </div>
-                  <button class="btn primary sm" [disabled]="requesting() === t.ref" (click)="requestTrack(t)">Pedir</button>
-                </div>
-              }
-            </div>
+        <div class="me">
+          @if (editingName()) {
+            <input class="input name-in" [(ngModel)]="clientName" placeholder="Tu nombre" maxlength="40" (keydown.enter)="saveName()" (blur)="saveName()" autocomplete="given-name">
           } @else {
-            <div class="form-grid">
-              <label class="field"><span>Canción</span><input class="input" [(ngModel)]="manualTitle" placeholder="Ej: La Bicicleta" maxlength="120"></label>
-              <label class="field"><span>Artista</span><input class="input" [(ngModel)]="manualArtist" placeholder="Ej: Carlos Vives" maxlength="120"></label>
-              <button class="btn primary full" [disabled]="!manualTitle.trim() || requesting() === 'manual'" (click)="requestManual()">Pedir canción</button>
-            </div>
+            <span class="muted small">Apareces en la pantalla como <b>{{ clientName.trim() || tab()?.tableName || 'tu mesa' }}</b></span>
+            <button class="btn ghost xs" (click)="editingName.set(true)">{{ clientName.trim() ? 'Cambiar' : 'Poner mi nombre' }}</button>
           }
-          <p class="tiny faint pad">Cada mesa puede tener hasta {{ ctx.venue()?.maxSongsPerTable ?? 3 }} canciones en la lista.</p>
+          <span class="left" [class.none]="songsLeft() === 0">{{ songsLeft() === 0 ? 'Sin cupo por ahora' : 'Te quedan ' + songsLeft() + ' de ' + maxSongs() }}</span>
         </div>
+
+        @if (queue()?.searchEnabled) {
+          <div class="search-bar">
+            <bx-icon name="search" class="s-ico" />
+            <input class="input s-in" type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false"
+                   [placeholder]="queue()?.provider === 'YOUTUBE' ? 'Busca en YouTube: canción o artista' : 'Busca una canción o artista'"
+                   [ngModel]="songQuery" (ngModelChange)="onSongQuery($event)" (keydown.enter)="searchNow()" aria-label="Buscar canción">
+            @if (songQuery) { <button class="s-clear" (click)="clearSearch()" aria-label="Borrar búsqueda"><bx-icon name="x" /></button> }
+          </div>
+
+          @if (searchError()) {
+            <div class="s-state err">
+              <bx-icon name="triangle-alert" /><p class="grow">{{ searchError() }}</p>
+              <button class="btn sm" (click)="searchNow()">Reintentar</button>
+            </div>
+          } @else if (searching()) {
+            <div class="tracks" aria-busy="true">@for (i of [1, 2, 3, 4]; track i) { <div class="track skel"><div class="sk-img"></div><div class="grow"><div class="sk-l"></div><div class="sk-s"></div></div></div> }</div>
+          } @else if (songQuery.trim().length >= 2 && !tracks().length && searched()) {
+            <p class="s-state muted">No encontramos «{{ songQuery.trim() }}». Prueba solo con el nombre de la canción o del artista.</p>
+          } @else if (!songQuery.trim()) {
+            <p class="s-state muted small">Escribe al menos 2 letras. Ej: «Karol G», «La Bicicleta», «vallenato».</p>
+          }
+
+          <div class="tracks">
+            @for (t of tracks(); track t.ref) {
+              <div class="track" [class.done]="inQueue(t)">
+                @if (t.image) { <img [src]="t.image" alt="" loading="lazy"> } @else { <div class="ph"><bx-icon name="music" /></div> }
+                <div class="grow">
+                  <p class="t-title ellipsis">{{ t.title }}@if (t.explicit) { <span class="badge xs-b">E</span> }</p>
+                  <p class="muted small ellipsis">{{ t.artist }}@if (t.durationMs) { · {{ duration(t.durationMs) }} }</p>
+                </div>
+                @if (inQueue(t)) {
+                  <span class="in-list"><bx-icon name="check" /> En la lista</span>
+                } @else {
+                  <button class="btn primary ask" [disabled]="requesting() === t.ref || songsLeft() === 0" (click)="requestTrack(t)">
+                    @if (requesting() === t.ref) { Pidiendo… } @else { <bx-icon name="plus" /> Pedir }
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <form class="manual" (ngSubmit)="requestManual()">
+            <label class="field"><span>Canción</span><input class="input" name="mt" [(ngModel)]="manualTitle" placeholder="Ej: La Bicicleta" maxlength="120" enterkeyhint="next"></label>
+            <label class="field"><span>Artista (opcional)</span><input class="input" name="ma" [(ngModel)]="manualArtist" placeholder="Ej: Carlos Vives" maxlength="120" enterkeyhint="send"></label>
+            <button class="btn primary lg block" [disabled]="!manualTitle.trim() || requesting() === 'manual' || songsLeft() === 0">Pedir canción</button>
+          </form>
+        }
       }
 
       <h2 class="sec-title">Lo que sigue</h2>
       <ol class="queue">
         @for (s of queue()?.upNext ?? []; track s.id; let i = $index) {
-          <li>
+          <li [class.mine]="isMine(s)">
             <span class="pos">{{ i + 1 }}</span>
-            @if (s.albumImage) { <img [src]="s.albumImage" alt=""> } @else { <div class="ph">♪</div> }
-            <div class="grow"><p class="strong ellipsis">{{ s.title }}</p><p class="muted small ellipsis">{{ s.artist }}@if (s.tableName) { · {{ s.tableName }} }</p></div>
+            @if (s.albumImage) { <img [src]="s.albumImage" alt="" loading="lazy"> } @else { <div class="ph"><bx-icon name="music" /></div> }
+            <div class="grow"><p class="t-title ellipsis">{{ s.title }}</p><p class="muted small ellipsis">{{ s.artist }}@if (s.tableName) { · {{ s.tableName }} }</p></div>
+            @if (isMine(s)) { <span class="badge amber">Tu mesa</span> }
           </li>
-        } @empty { <li class="muted">La lista está libre. ¡Pide la primera!</li> }
+        } @empty { <li class="empty-q muted">La lista está libre. ¡Pide la primera!</li> }
+        @for (s of myPending(); track s.id) {
+          <li class="mine pend">
+            <span class="pos"><bx-icon name="clock" /></span>
+            @if (s.albumImage) { <img [src]="s.albumImage" alt="" loading="lazy"> } @else { <div class="ph"><bx-icon name="music" /></div> }
+            <div class="grow"><p class="t-title ellipsis">{{ s.title }}</p><p class="muted small ellipsis">Esperando que el bar la apruebe</p></div>
+          </li>
+        }
       </ol>
     </main>
   }

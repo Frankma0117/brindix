@@ -2,7 +2,7 @@ import { ThemeToggleComponent } from '../../core/theme';
 import { IconComponent } from '../../shared/icon.component';
 import { Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap, timer } from 'rxjs';
+import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap, timer, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Api, errorMessage } from '../../core/api.service';
 import { Banner, MenuCategory, MenuProduct, PublicTab, Queue, RoundStatus, Track } from '../../core/models';
@@ -58,6 +58,21 @@ export class TableMenuComponent implements OnInit {
   manualTitle = '';
   manualArtist = '';
   requesting = signal<string | null>(null);
+  searchError = signal('');
+  searched = signal(false);
+  editingName = signal(!store.get<string>('brindix.name', ''));
+  /** Canciones pedidas en esta visita (para marcar «En la lista» al instante). */
+  private requested = signal<Set<string>>(new Set());
+  private searchCache = new Map<string, Track[]>();
+  maxSongs = computed(() => this.ctx.venue()?.maxSongsPerTable ?? 3);
+  /** Canciones de esta mesa en la lista o esperando aprobación. */
+  mineCount = computed(() => {
+    const q = this.queue(); const name = this.tab()?.tableName;
+    if (!q || !name) return 0;
+    return [...q.upNext, ...q.pending].filter(s => s.tableName === name).length;
+  });
+  songsLeft = computed(() => Math.max(0, this.maxSongs() - this.mineCount()));
+  myPending = computed(() => (this.queue()?.pending ?? []).filter(s => this.isMine(s)));
 
   duration = duration;
   Math = Math;
@@ -88,11 +103,18 @@ export class TableMenuComponent implements OnInit {
       if (this.view() === 'music') this.refreshQueue();
     });
     this.songSearch$.pipe(
-      debounceTime(400), distinctUntilChanged(),
-      switchMap(q => {
-        if (q.trim().length < 2) { this.searching.set(false); return of([] as Track[]); }
+      debounceTime(320), distinctUntilChanged(),
+      switchMap(raw => {
+        const q = raw.trim().toLowerCase();
+        this.searchError.set('');
+        if (q.length < 2) { this.searching.set(false); this.searched.set(false); return of([] as Track[]); }
+        const hit = this.searchCache.get(q);
+        if (hit) { this.searching.set(false); this.searched.set(true); return of(hit); }
         this.searching.set(true);
-        return this.api.get<Track[]>(this.ctx.pub('/music/search'), { q }).pipe(catchError(e => { this.toasts.error(errorMessage(e)); return of([] as Track[]); }));
+        return this.api.get<Track[]>(this.ctx.pub('/music/search'), { q: raw.trim() }).pipe(
+          tap(list => { this.searchCache.set(q, list); this.searched.set(true); }),
+          catchError(e => { this.searchError.set(this.musicError(e)); return of([] as Track[]); }),
+        );
       }),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(t => { this.tracks.set(t); this.searching.set(false); });
@@ -190,6 +212,46 @@ export class TableMenuComponent implements OnInit {
     this.songSearch$.next(q);
   }
 
+  /** Enter o «Reintentar»: busca ya, sin esperar. */
+  searchNow(): void {
+    const q = this.songQuery.trim().toLowerCase();
+    this.searchCache.delete(q);
+    this.songSearch$.next(this.songQuery + ' ');
+    this.songSearch$.next(this.songQuery);
+    (document.activeElement as HTMLElement | null)?.blur();
+  }
+
+  clearSearch(): void {
+    this.songQuery = '';
+    this.tracks.set([]);
+    this.searchError.set('');
+    this.songSearch$.next('');
+  }
+
+  saveName(): void {
+    store.set('brindix.name', this.clientName.trim());
+    this.editingName.set(false);
+  }
+
+  inQueue(t: Track): boolean {
+    if (this.requested().has(t.ref)) return true;
+    const q = this.queue();
+    return !!q && [...q.upNext, ...q.pending].some(s => s.ref === t.ref);
+  }
+
+  isMine(s: { tableName?: string }): boolean {
+    return !!s.tableName && s.tableName === this.tab()?.tableName;
+  }
+
+  /** Mensaje claro para el cliente; el detalle técnico lo ve el administrador. */
+  private musicError(e: unknown): string {
+    const m = errorMessage(e);
+    if (/conexi/i.test(m)) return 'Sin conexión con el servidor de música. Revisa tu internet e intenta de nuevo.';
+    if (/esperar|429/i.test(m)) return 'Muchas búsquedas seguidas. Espera unos segundos e intenta de nuevo.';
+    if (/Spotify|YouTube/i.test(m)) return 'La búsqueda no está disponible en este momento. Avísale al mesero o intenta en un rato.';
+    return m;
+  }
+
   async requestTrack(t: Track): Promise<void> {
     await this.request({ title: t.title, artist: t.artist, ref: t.ref, albumImage: t.image, durationMs: t.durationMs }, t.ref);
   }
@@ -206,9 +268,8 @@ export class TableMenuComponent implements OnInit {
     store.set('brindix.name', this.clientName.trim());
     try {
       await this.api.run(this.api.post(this.ctx.pub(`/tables/${this.code()}/songs`), { ...body, requestedBy: this.clientName.trim() || null }));
-      this.toasts.ok('¡Listo! Tu canción quedó pedida');
-      this.songQuery = '';
-      this.tracks.set([]);
+      if (body['ref']) this.requested.update(s => new Set(s).add(String(body['ref'])));
+      this.toasts.ok('¡Listo! Tu canción quedó en la lista');
       this.refreshQueue();
     } catch (e) {
       this.toasts.error(errorMessage(e));

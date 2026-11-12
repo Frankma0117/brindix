@@ -85,7 +85,7 @@ public class SpotifyClient {
         String token = userToken != null ? userToken : appToken(c);
         String url = UriComponentsBuilder.fromUriString(API + "/search")
                 .queryParam("q", query.trim()).queryParam("type", "track")
-                .queryParam("limit", Math.max(1, Math.min(20, limit))).queryParam("market", "CO")
+                .queryParam("limit", Math.max(1, Math.min(10, limit))).queryParam("market", "CO") // Spotify acepta hasta 10
                 .encode().build().toUriString();
         List<MusicDtos.Track> out = new ArrayList<>();
         get(token, url).path("tracks").path("items").forEach(n -> out.add(track(n)));
