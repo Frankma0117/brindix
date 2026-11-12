@@ -12,6 +12,19 @@ MAIL_FROM="${MAIL_FROM:-no-responder@cania.app}"
 read -r -p "Correo del súper administrador [franmacagu@gmail.com]: " ADMIN_EMAIL
 ADMIN_EMAIL="${ADMIN_EMAIL:-franmacagu@gmail.com}"
 
+# El usuario SMTP de Brevo siempre termina en @smtp-brevo.com (en el panel a veces se copia sin esa parte).
+MAIL_USER="$(echo "$MAIL_USER" | tr -d '[:space:]')"
+case "$MAIL_USER" in *@*) ;; *) MAIL_USER="$MAIL_USER@smtp-brevo.com"; echo "Usuario completado: ${MAIL_USER:0:4}…@smtp-brevo.com";; esac
+
+# Verifica con Brevo antes de guardar.
+AUTH=$(printf '\0%s\0%s' "$MAIL_USER" "$MAIL_PASS" | base64 -w0)
+RES=$( { sleep 2; echo "EHLO cania.app"; sleep 1; echo "AUTH PLAIN $AUTH"; sleep 2; echo "QUIT"; } \
+  | timeout 20 openssl s_client -starttls smtp -crlf -quiet -connect smtp-relay.brevo.com:587 2>/dev/null | grep -E "^(235|535)" | head -1 || true)
+case "$RES" in
+  235*) echo "Brevo aceptó el usuario y la clave." ;;
+  *) echo "Brevo rechazó el usuario o la clave (${RES:-sin respuesta}). Revisa que sea una clave SMTP (empieza por xsmtpsib-)."; exit 1 ;;
+esac
+
 set_var() {
   local k="$1" v="$2"
   if grep -q "^$k=" .env; then

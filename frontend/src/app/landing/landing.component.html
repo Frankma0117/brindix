@@ -13,7 +13,7 @@
         @if (auth.session()) {
           <a class="btn sm" [href]="auth.home()">Mi panel</a>
         } @else {
-          <button class="btn sm" (click)="loginOpen.set(true)">Ingresar</button>
+          <a class="btn sm" routerLink="/ingresar">Ingresar</a>
         }
         <a class="btn primary sm hide-sm" [href]="waLink()" target="_blank" rel="noopener">Pedir una demo</a>
         <button class="btn icon sm burger" (click)="menuOpen.set(!menuOpen())" [attr.aria-expanded]="menuOpen()" aria-label="Menú"><bx-icon [name]="menuOpen() ? 'x' : 'menu'" /></button>
@@ -199,17 +199,3 @@
     </div>
   </footer>
 </div>
-
-<!-- Ingresar a un bar -->
-@if (loginOpen()) {
-  <div class="backdrop" (click)="loginOpen.set(false)">
-    <form class="modal" (click)="$event.stopPropagation()" (ngSubmit)="goToBar()">
-      <div class="modal-head"><h2>Ingresar a tu bar</h2><button type="button" class="btn icon sm" (click)="loginOpen.set(false)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
-      <label class="field"><span>Dirección de tu bar</span>
-        <div class="slug-input"><span>brindix.cania.app/</span><input class="input" name="slug" [(ngModel)]="slug" placeholder="tu-bar" autocapitalize="none" autofocus></div>
-      </label>
-      <p class="tiny muted" style="margin-top: 8px">Te la dimos al crear tu bar. Administradores y meseros entran por la misma dirección.</p>
-      <div class="modal-foot"><button class="btn primary" [disabled]="!slug.trim()">Continuar</button></div>
-    </form>
-  </div>
-}

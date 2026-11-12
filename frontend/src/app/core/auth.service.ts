@@ -13,6 +13,9 @@ interface PlatformSession { token: string; name: string; mustChangePassword?: bo
 const STAFF_KEY = 'brindix.session';
 const PLATFORM_KEY = 'brindix.platform';
 const ADMIN_HOME_KEY = 'brindix.adminHome';
+/** Último bar donde se entró: el ingreso lo deja elegido. */
+export const LAST_VENUE_KEY = 'brindix.lastVenue';
+export interface LastVenue { slug: string; name: string; logoUrl?: string; }
 
 /** Sesión del personal de un bar (administrador o mesero). Una sesión a la vez por navegador. */
 @Injectable({ providedIn: 'root' })
@@ -43,6 +46,8 @@ export class Auth {
   use(s: StaffSession): void {
     this.session.set(s);
     store.set(STAFF_KEY, s);
+    const last = store.get<LastVenue | null>(LAST_VENUE_KEY, null);
+    if (!s.support && last?.slug !== s.venue) store.set(LAST_VENUE_KEY, { slug: s.venue, name: s.venueName });
   }
 
   /** Cambia la contraseña; el servidor cierra las demás sesiones y entrega un token nuevo para esta. */
