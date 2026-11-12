@@ -23,4 +23,6 @@ public class PlatformUser {
     private boolean active = true;
     private Instant createdAt = Instant.now();
     private Instant lastLoginAt;
+    /** Clave inicial o puesta por otra persona: debe cambiarla al entrar. */
+    private boolean mustChangePassword;
 }

@@ -22,6 +22,10 @@ inventario con costos, música (Spotify/YouTube/manual), pantalla. Repo
   vuelve a la vista que usó por última vez (panel o mesas).
 - Pedidos del cliente desde el QR son opcionales (los activa el administrador) y él los asigna a un mesero.
 - Cobro por ronda o total; lo puede hacer el mesero (queda pendiente de entregar en caja) o el administrador.
+- Toda cuenta con clave inicial (o puesta por otro) debe cambiarla al entrar: `must_change_password`,
+  el filtro JWT responde 403 `PASSWORD_CHANGE_REQUIRED` a todo menos `/api/auth/me|password` y `/api/platform/password`.
+- Modo soporte: el súper administrador entra a cualquier bar activo como su administrador
+  (`POST /api/platform/venues/{id}/enter`, token `support` de 4 h, nombre "Soporte Brindix (…)" en la bitácora).
 - Toda configuración de integraciones (Spotify, YouTube) va en Configuración del administrador, no en el .env.
 - Imágenes en DigitalOcean Spaces (mismo bucket de Aula Interactiva, prefijo `brindix/`); imágenes de
   prueba generadas una sola vez con fal.ai (`scripts/seed-images.py`).

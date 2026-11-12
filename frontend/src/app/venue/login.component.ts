@@ -61,6 +61,7 @@ export class LoginComponent {
     if (this.auth.inVenue(this.ctx.slug())) this.router.navigateByUrl(this.auth.home());
   }
 
+
   async submit(): Promise<void> {
     this.busy.set(true);
     this.error.set('');

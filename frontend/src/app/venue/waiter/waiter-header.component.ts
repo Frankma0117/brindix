@@ -1,5 +1,5 @@
 import { Component, inject, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Auth } from '../../core/auth.service';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
@@ -9,6 +9,10 @@ import { MascotComponent } from '../../shared/mascot.component';
   standalone: true,
   imports: [RouterLink, MascotComponent],
   template: `
+  @if (auth.isSupport()) {
+    <div class="support-bar">🛟 Modo soporte: estás dentro de <b>{{ ctx.name() }}</b> como administrador. Todo queda en la bitácora.
+      <button class="btn xs" (click)="leaveSupport()">Volver a la plataforma</button></div>
+  }
   <header class="wh">
     <div class="container row between">
       <div class="row">
@@ -35,6 +39,12 @@ export class WaiterHeaderComponent {
   ctx = inject(VenueContext);
   title = input('Mesas');
   back = input<string | null>(null);
+  private router = inject(Router);
+
+  leaveSupport(): void {
+    this.auth.logout(false);
+    this.router.navigateByUrl('/plataforma');
+  }
 }
 
 /** Pitido corto y vibración cuando llega algo nuevo. */

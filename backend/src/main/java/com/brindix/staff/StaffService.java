@@ -48,7 +48,7 @@ public class StaffService {
         guard.ok(key);
         u.setLastLoginAt(Instant.now());
         return new StaffDtos.LoginResponse(jwt.issue(JwtService.Kind.STAFF, u.getId()), StaffDtos.UserView.of(u),
-                venue.getSlug(), venue.getName());
+                venue.getSlug(), venue.getName(), false);
     }
 
     @Transactional(readOnly = true)
@@ -88,6 +88,7 @@ public class StaffService {
         u.setUsername(username.trim().toLowerCase());
         u.setPasswordHash(encoder.encode(password));
         u.setRole(role);
+        u.setMustChangePassword(true);
         return users.save(u);
     }
 
@@ -105,6 +106,7 @@ public class StaffService {
         u.setActive(in.active());
         if (in.password() != null && !in.password().isBlank()) {
             u.setPasswordHash(encoder.encode(in.password()));
+            u.setMustChangePassword(true);
         }
         audit.log(me, me.venueId(), "Editó usuario", "user", u.getId(),
                 u.getName() + " · " + u.getRole() + (u.isActive() ? "" : " · desactivado") + (in.password() != null && !in.password().isBlank() ? " · nueva contraseña" : ""));
@@ -113,10 +115,13 @@ public class StaffService {
 
     @Transactional
     public void changePassword(StaffPrincipal me, StaffDtos.PasswordChange in) {
+        if (me.support()) throw ApiException.forbidden("En modo soporte no se cambia la contraseña del administrador");
         StaffUser u = get(me.id());
         if (!encoder.matches(in.current(), u.getPasswordHash())) {
             throw ApiException.badRequest("La contraseña actual no coincide");
         }
+        if (in.current().equals(in.next())) throw ApiException.badRequest("La nueva contraseña debe ser distinta a la actual");
         u.setPasswordHash(encoder.encode(in.next()));
+        u.setMustChangePassword(false);
     }
 }

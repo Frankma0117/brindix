@@ -9,7 +9,7 @@ Su personaje es **Brindix**: una copa de cóctel con audífonos.
 
 | Perfil | Qué hace | Dónde |
 |---|---|---|
-| Súper administrador (dueño de Brindix) | Crea bares, los suspende, recupera la clave de su administrador | `/plataforma` |
+| Súper administrador (dueño de Brindix) | Crea bares, los suspende, recupera la clave de su administrador, entra a cualquier bar en modo soporte | `/plataforma` |
 | Administrador del bar | Carta, precios y costos, inventario, caja y cierres, cobros y descuentos, asignar y modificar pedidos, música, pantalla, equipo, configuración. También atiende mesas. | `/<bar>/admin` |
 | Mesero | Ve mesas y carta, carga rondas por tandas, entrega lo asignado y (si el bar lo permite) cobra | `/<bar>/mesero` |
 | Cliente (sin registro) | Carta con fotos, pedir (si el bar lo activa), pedir canciones, llamar al mesero, ver su cuenta | `/<bar>/m/<código QR>` |
@@ -36,7 +36,11 @@ El primer arranque crea:
 - súper administrador: `brindix` / `brindix12345` en <http://localhost:4200/plataforma>
 - bar de demostración en <http://localhost:4200/demo>: `admin` / `admin12345` y `mesero` / `mesero12345`
 
-Para empezar de cero: `scripts\reset-dev-db.cmd`.
+Al primer ingreso cada cuenta pide cambiar su contraseña (también cuando un administrador o la
+plataforma le pone una nueva). Para empezar de cero: 
+
+**Modo soporte:** desde `/plataforma` el súper administrador pulsa **Entrar** en cualquier bar y queda
+dentro como su administrador (banda morada arriba, 4 horas, todo queda en la bitácora del bar).`scripts\reset-dev-db.cmd`.
 
 ## Música
 

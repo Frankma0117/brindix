@@ -26,6 +26,11 @@ El súper administrador (`platform_users`) no pertenece a ningún bar.
 
 ### Reglas importantes
 
+- **Clave temporal**: las cuentas nuevas, las claves puestas por otro y las sembradas tienen
+  `must_change_password`; mientras no la cambien, el backend solo deja cambiarla (403 `PASSWORD_CHANGE_REQUIRED`).
+- **Modo soporte**: token `support` (4 h) que firma el súper administrador; el bar lo ve como su
+  administrador pero con nombre "Soporte Brindix (…)", no puede cambiar la clave del administrador y la entrada queda en la bitácora.
+
 - **Mesero**: agrega rondas (quedan confirmadas, descuentan inventario y quedan asignadas a él),
   entrega las suyas y cobra solo si `waiter_can_charge`. No modifica nada ni da descuentos.
 - **Administrador que atiende** (bares pequeños): tiene también `ROLE_WAITER`; puede asignarse rondas

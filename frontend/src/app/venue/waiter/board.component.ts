@@ -160,7 +160,7 @@ export class BoardComponent implements OnInit {
   busyCount = computed(() => (this.board()?.tables ?? []).filter(t => t.tabId).length);
 
   ngOnInit(): void {
-    this.auth.rememberAdminHome('mesero');
+    if (!this.auth.isSupport()) this.auth.rememberAdminHome('mesero');
     if (this.auth.isAdmin()) this.api.get<WaiterOption[]>('/staff/waiters').subscribe(w => this.waiters.set(w));
     timer(0, 5000).pipe(
       switchMap(() => this.api.get<Board>('/staff/board').pipe(catchError(() => of(null)))),

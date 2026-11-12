@@ -1,6 +1,8 @@
 package com.brindix.platform;
 
 import com.brindix.common.AppProperties;
+import com.brindix.security.CurrentUser;
+import com.brindix.staff.StaffDtos;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,6 +38,17 @@ public class PlatformController {
     @PutMapping("/api/platform/venues/{id}")
     public PlatformService.VenueRow update(@PathVariable Long id, @Valid @RequestBody PlatformService.VenueUpdate in) {
         return service.update(id, in);
+    }
+
+    @PostMapping("/api/platform/password")
+    public void changePassword(@Valid @RequestBody StaffDtos.PasswordChange in) {
+        service.changePassword(CurrentUser.get(), in);
+    }
+
+    /** Modo soporte: entrar al bar como su administrador. */
+    @PostMapping("/api/platform/venues/{id}/enter")
+    public StaffDtos.LoginResponse enter(@PathVariable Long id) {
+        return service.enter(CurrentUser.get(), id);
     }
 
     @PostMapping("/api/platform/venues/{id}/reset-admin")

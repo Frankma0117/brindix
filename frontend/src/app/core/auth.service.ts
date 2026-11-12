@@ -6,8 +6,9 @@ import { Api } from './api.service';
 import { User, WaiterOption } from './models';
 import { store } from './ui';
 
-interface StaffSession { token: string; user: User; venue: string; venueName: string; }
-interface PlatformSession { token: string; name: string; }
+/** support = el súper administrador entró al bar desde la plataforma (modo soporte). */
+export interface StaffSession { token: string; user: User; venue: string; venueName: string; support?: boolean; }
+interface PlatformSession { token: string; name: string; mustChangePassword?: boolean; }
 
 const STAFF_KEY = 'brindix.session';
 const PLATFORM_KEY = 'brindix.platform';
@@ -23,6 +24,9 @@ export class Auth {
   readonly user = computed(() => this.session()?.user ?? null);
   readonly venue = computed(() => this.session()?.venue ?? null);
   readonly isAdmin = computed(() => this.user()?.role === 'ADMIN');
+  readonly isSupport = computed(() => !!this.session()?.support);
+  /** Clave temporal: debe cambiarla antes de usar el bar (no aplica en modo soporte). */
+  readonly mustChange = computed(() => !!this.user()?.mustChangePassword && !this.isSupport());
 
   /** ¿Hay sesión para este bar? */
   inVenue(slug: string): boolean {
@@ -31,9 +35,20 @@ export class Auth {
 
   async login(venue: string, username: string, password: string): Promise<StaffSession> {
     const res = await firstValueFrom(this.api.post<StaffSession>('/auth/login', { venue, username, password }));
-    this.session.set(res);
-    store.set(STAFF_KEY, res);
+    this.use(res);
     return res;
+  }
+
+  /** Guarda la sesión (login normal o entrada en modo soporte desde la plataforma). */
+  use(s: StaffSession): void {
+    this.session.set(s);
+    store.set(STAFF_KEY, s);
+  }
+
+  async changePassword(current: string, next: string): Promise<void> {
+    await firstValueFrom(this.api.post('/auth/password', { current, next }));
+    const s = this.session();
+    if (s) this.use({ ...s, user: { ...s.user, mustChangePassword: false } });
   }
 
   logout(redirect = true): void {
@@ -46,6 +61,7 @@ export class Auth {
   home(): string {
     const s = this.session();
     if (!s) return '/';
+    if (this.mustChange()) return `/${s.venue}/clave`;
     if (s.user.role !== 'ADMIN') return `/${s.venue}/mesero`;
     return `/${s.venue}/${store.get<string>(ADMIN_HOME_KEY, 'admin') === 'mesero' ? 'mesero' : 'admin'}`;
   }
@@ -86,11 +102,22 @@ export class PlatformAuth {
     this.session.set(null);
     try { localStorage.removeItem(PLATFORM_KEY); } catch { /* */ }
   }
+
+  async changePassword(current: string, next: string): Promise<void> {
+    await firstValueFrom(this.api.post('/platform/password', { current, next }));
+    const s = this.session();
+    if (s) {
+      const updated = { ...s, mustChangePassword: false };
+      this.session.set(updated);
+      store.set(PLATFORM_KEY, updated);
+    }
+  }
 }
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(Auth);
   const platform = inject(PlatformAuth);
+  const router = inject(Router);
   const isPlatform = req.url.startsWith('/api/platform') && !req.url.endsWith('/login');
   const isStaff = /^\/api\/(staff|admin|auth\/(me|password))/.test(req.url);
   const token = isPlatform ? platform.session()?.token : isStaff ? auth.session()?.token : null;
@@ -98,6 +125,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(r).pipe(catchError(err => {
     if (err?.status === 401 && token) {
       if (isPlatform) platform.logout(); else auth.logout();
+    }
+    if (err?.status === 403 && err.error?.code === 'PASSWORD_CHANGE_REQUIRED' && isStaff && auth.venue()) {
+      const s = auth.session()!;
+      auth.use({ ...s, user: { ...s.user, mustChangePassword: true } });
+      router.navigateByUrl(`/${s.venue}/clave`);
     }
     return throwError(() => err);
   }));
@@ -112,12 +144,20 @@ function slugOf(route: ActivatedRouteSnapshot): string {
 export const staffGuard: CanActivateFn = route => {
   const auth = inject(Auth);
   const slug = slugOf(route);
-  return auth.inVenue(slug) ? true : inject(Router).parseUrl(`/${slug}/ingresar`);
+  if (!auth.inVenue(slug)) return inject(Router).parseUrl(`/${slug}/ingresar`);
+  return auth.mustChange() ? inject(Router).parseUrl(`/${slug}/clave`) : true;
 };
 
 export const adminGuard: CanActivateFn = route => {
   const auth = inject(Auth);
   const slug = slugOf(route);
   if (!auth.inVenue(slug)) return inject(Router).parseUrl(`/${slug}/ingresar`);
+  if (auth.mustChange()) return inject(Router).parseUrl(`/${slug}/clave`);
   return auth.isAdmin() ? true : inject(Router).parseUrl(`/${slug}/mesero`);
+};
+
+/** Pantalla de cambio de clave: solo con sesión en el bar. */
+export const passwordGuard: CanActivateFn = route => {
+  const slug = slugOf(route);
+  return inject(Auth).inVenue(slug) ? true : inject(Router).parseUrl(`/${slug}/ingresar`);
 };

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard, staffGuard } from './core/auth.service';
+import { adminGuard, passwordGuard, staffGuard } from './core/auth.service';
 import { VenueShellComponent } from './core/venue-context';
 
 export const routes: Routes = [
@@ -14,6 +14,8 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'ingresar' },
       { path: 'ingresar', loadComponent: () => import('./venue/login.component').then(m => m.LoginComponent), title: 'Ingresar' },
+      // Primer ingreso: cambiar la clave temporal.
+      { path: 'clave', canActivate: [passwordGuard], loadComponent: () => import('./venue/change-password.component').then(m => m.ChangePasswordComponent), title: 'Crea tu contraseña' },
       // Cliente: llega escaneando el QR de su mesa.
       { path: 'm/:code', loadComponent: () => import('./venue/client/table-menu.component').then(m => m.TableMenuComponent), title: 'Carta' },
       // Pantalla del bar (TV). Con ?k=<llave> también reproduce YouTube.

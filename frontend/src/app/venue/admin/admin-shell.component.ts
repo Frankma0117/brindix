@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Auth } from '../../core/auth.service';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
@@ -9,6 +9,10 @@ import { MascotComponent } from '../../shared/mascot.component';
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, MascotComponent],
   template: `
+  @if (auth.isSupport()) {
+    <div class="support-bar">🛟 Modo soporte: estás dentro de <b>{{ ctx.name() }}</b> como administrador. Todo queda en la bitácora.
+      <button class="btn xs" (click)="leaveSupport()">Volver a la plataforma</button></div>
+  }
   <div class="shell">
     <aside class="side" [class.open]="menu()">
       <a routerLink="." class="logo" (click)="menu.set(false)">
@@ -29,7 +33,7 @@ import { MascotComponent } from '../../shared/mascot.component';
         <a [routerLink]="'/' + ctx.slug() + '/mesero'" class="btn block sm">🍸 Atender mesas</a>
         <a [href]="'/' + ctx.slug() + '/pantalla'" target="_blank" class="btn block sm">📺 Ver pantalla</a>
         <div class="me">
-          <div class="grow"><p class="strong small ellipsis">{{ auth.user()?.name }}</p><p class="tiny muted">Administrador</p></div>
+          <div class="grow"><p class="strong small ellipsis">{{ auth.user()?.name }}</p><p class="tiny muted">{{ auth.isSupport() ? 'Soporte Brindix' : 'Administrador' }}</p></div>
           <button class="btn ghost xs" (click)="auth.logout()">Salir</button>
         </div>
       </div>
@@ -73,9 +77,16 @@ export class AdminShellComponent {
   auth = inject(Auth);
   ctx = inject(VenueContext);
   menu = signal(false);
+  private router = inject(Router);
 
   constructor() {
-    this.auth.rememberAdminHome('admin');
+    if (!this.auth.isSupport()) this.auth.rememberAdminHome('admin');
+  }
+
+  /** Sale del bar y vuelve al panel de la plataforma (la sesión de la plataforma sigue abierta). */
+  leaveSupport(): void {
+    this.auth.logout(false);
+    this.router.navigateByUrl('/plataforma');
   }
   groups = [
     { title: 'El día', links: [

@@ -219,3 +219,8 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
   body { background: #fff; color: #000; }
   .no-print { display: none !important; }
 }
+
+/* Modo soporte: el súper administrador dentro de un bar */
+.support-bar { position: sticky; top: 0; z-index: 70; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px;
+  padding: 8px 16px; background: linear-gradient(90deg, #7c3aed, #ff4f8b); color: #fff; font-size: 13.5px; font-weight: 600; text-align: center; }
+.support-bar .btn { background: rgba(255,255,255,.18); color: #fff; border-color: rgba(255,255,255,.35); }

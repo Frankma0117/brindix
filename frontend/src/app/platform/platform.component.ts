@@ -2,7 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Api, errorMessage } from '../core/api.service';
-import { PlatformAuth } from '../core/auth.service';
+import { Router } from '@angular/router';
+import { Auth, PlatformAuth, StaffSession } from '../core/auth.service';
 import { PlatformVenue } from '../core/models';
 import { Toasts } from '../core/ui';
 import { MascotComponent } from '../shared/mascot.component';
@@ -28,11 +29,25 @@ interface VenueForm {
         <button class="btn primary lg block" [disabled]="busy() || !username || !password">Entrar</button>
       </form>
     </main>
+  } @else if (auth.session()!.mustChangePassword || changing()) {
+    <main class="login-wrap">
+      <form class="card pad-lg box" (ngSubmit)="changePassword()">
+        <div class="row"><bx-mascot [size]="70" mood="wink" /><div><h2>{{ auth.session()!.mustChangePassword ? 'Crea tu contraseña' : 'Cambiar contraseña' }}</h2>
+          <p class="muted small">@if (auth.session()!.mustChangePassword) { Entraste con la clave inicial: cámbiala por una que solo tú conozcas. } @else { Mínimo 8 caracteres. }</p></div></div>
+        <label class="field"><span>Contraseña actual</span><input class="input" name="c" type="password" [(ngModel)]="current" autocomplete="current-password"></label>
+        <label class="field"><span>Nueva contraseña (mínimo 8)</span><input class="input" name="n" type="password" [(ngModel)]="next" autocomplete="new-password"></label>
+        <label class="field"><span>Repite la nueva</span><input class="input" name="r" type="password" [(ngModel)]="repeat" autocomplete="new-password"></label>
+        @if (error()) { <p class="err">{{ error() }}</p> }
+        <button class="btn primary lg block" [disabled]="busy() || !current || next.length < 8 || !repeat">Guardar</button>
+        @if (!auth.session()!.mustChangePassword) { <button type="button" class="btn ghost sm" (click)="changing.set(false)">Cancelar</button> }
+        @else { <button type="button" class="btn ghost sm" (click)="auth.logout()">Salir</button> }
+      </form>
+    </main>
   } @else {
     <header class="top">
       <div class="container row between">
         <div class="row"><bx-mascot [size]="38" [animate]="false" /><b class="brand">Brindix · Plataforma</b></div>
-        <div class="row"><span class="muted small">{{ auth.session()!.name }}</span><button class="btn ghost sm" (click)="auth.logout()">Salir</button></div>
+        <div class="row"><span class="muted small">{{ auth.session()!.name }}</span><button class="btn ghost sm" (click)="changing.set(true)">Mi contraseña</button><button class="btn ghost sm" (click)="auth.logout()">Salir</button></div>
       </div>
     </header>
     <main class="container wrap-p">
@@ -54,6 +69,7 @@ interface VenueForm {
                 <td><span class="badge" [class.green]="v.active" [class.red]="!v.active">{{ v.active ? 'Activo' : 'Suspendido' }}</span></td>
                 <td class="muted small">{{ v.createdAt | date: 'd MMM y' }}</td>
                 <td class="right nowrap">
+                  <button class="btn xs primary" [disabled]="!v.active" (click)="enter(v)" title="Entrar al bar como su administrador para revisar">Entrar</button>
                   <button class="btn xs" (click)="edit(v)">Editar</button>
                   <button class="btn xs" (click)="resetAdmin(v)">Clave admin</button>
                 </td>
@@ -110,17 +126,23 @@ interface VenueForm {
 })
 export class PlatformComponent implements OnInit {
   auth = inject(PlatformAuth);
+  private staffAuth = inject(Auth);
+  private router = inject(Router);
   private api = inject(Api);
   private toasts = inject(Toasts);
   username = '';
   password = '';
+  current = '';
+  next = '';
+  repeat = '';
+  changing = signal(false);
   busy = signal(false);
   error = signal('');
   venues = signal<PlatformVenue[]>([]);
   form = signal<VenueForm | null>(null);
 
   ngOnInit(): void {
-    if (this.auth.session()) this.load();
+    if (this.auth.session() && !this.auth.session()!.mustChangePassword) this.load();
   }
 
   async login(): Promise<void> {
@@ -128,11 +150,39 @@ export class PlatformComponent implements OnInit {
     this.error.set('');
     try {
       await this.auth.login(this.username.trim(), this.password);
+      if (!this.auth.session()!.mustChangePassword) this.load();
+    } catch (e) {
+      this.error.set(errorMessage(e));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async changePassword(): Promise<void> {
+    if (this.next !== this.repeat) { this.error.set('Las dos contraseñas nuevas no coinciden'); return; }
+    this.busy.set(true);
+    this.error.set('');
+    try {
+      await this.auth.changePassword(this.current, this.next);
+      this.current = this.next = this.repeat = '';
+      this.changing.set(false);
+      this.toasts.ok('Contraseña cambiada');
       this.load();
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  /** Modo soporte: entra al bar como su administrador (queda en la bitácora del bar). */
+  async enter(v: PlatformVenue): Promise<void> {
+    try {
+      const s = await this.api.run(this.api.post<StaffSession>(`/platform/venues/${v.id}/enter`, {}));
+      this.staffAuth.use(s);
+      this.router.navigateByUrl(`/${s.venue}/admin`);
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
     }
   }
 

@@ -49,6 +49,7 @@ public class DataSeeder implements CommandLineRunner {
             u.setName("Brindix");
             u.setUsername(seed.superUsername().toLowerCase());
             u.setPasswordHash(encoder.encode(seed.superPassword()));
+            u.setMustChangePassword(true);
             platformUsers.save(u);
             log.info("Súper administrador creado: {} (entra en /plataforma)", u.getUsername());
         }

@@ -19,10 +19,13 @@ import java.util.Optional;
 @Service
 public class JwtService {
 
-    /** staff = usuario de un bar. platform = súper administrador. */
-    public enum Kind { STAFF, PLATFORM }
+    /** staff = usuario de un bar. platform = súper administrador. support = súper administrador dentro de un bar. */
+    public enum Kind { STAFF, PLATFORM, SUPPORT }
 
-    public record Subject(Kind kind, Long id) {}
+    /** En SUPPORT, id es el administrador del bar y supportBy el súper administrador. */
+    public record Subject(Kind kind, Long id, Long supportBy) {}
+
+    private static final Duration SUPPORT_TTL = Duration.ofHours(4);
 
     private final SecretKey key;
     private final Duration ttl;
@@ -43,11 +46,26 @@ public class JwtService {
                 .compact();
     }
 
+    /** Sesión corta para que el súper administrador revise un bar como su administrador. */
+    public String issueSupport(Long staffId, Long platformUserId) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .subject(String.valueOf(staffId))
+                .claim("typ", "support")
+                .claim("sup", platformUserId)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(SUPPORT_TTL)))
+                .signWith(key)
+                .compact();
+    }
+
     public Optional<Subject> parse(String token) {
         return claims(token).flatMap(c -> {
             String typ = c.get("typ", String.class);
-            if ("staff".equals(typ)) return Optional.of(new Subject(Kind.STAFF, Long.valueOf(c.getSubject())));
-            if ("platform".equals(typ)) return Optional.of(new Subject(Kind.PLATFORM, Long.valueOf(c.getSubject())));
+            Long id = Long.valueOf(c.getSubject());
+            if ("staff".equals(typ)) return Optional.of(new Subject(Kind.STAFF, id, null));
+            if ("platform".equals(typ)) return Optional.of(new Subject(Kind.PLATFORM, id, null));
+            if ("support".equals(typ)) return Optional.of(new Subject(Kind.SUPPORT, id, c.get("sup", Long.class)));
             return Optional.empty();
         });
     }

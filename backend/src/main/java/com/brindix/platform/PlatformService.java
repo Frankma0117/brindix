@@ -1,9 +1,12 @@
 package com.brindix.platform;
 
+import com.brindix.audit.AuditService;
 import com.brindix.common.ApiException;
 import com.brindix.common.Codes;
 import com.brindix.security.JwtService;
 import com.brindix.security.LoginGuard;
+import com.brindix.security.StaffPrincipal;
+import com.brindix.staff.StaffDtos;
 import com.brindix.staff.Role;
 import com.brindix.staff.StaffUser;
 import com.brindix.staff.StaffUserRepository;
@@ -36,9 +39,10 @@ public class PlatformService {
     private final JwtService jwt;
     private final LoginGuard guard;
     private final VenueStarter starter;
+    private final AuditService audit;
 
     public PlatformService(PlatformUserRepository platformUsers, VenueRepository venues, StaffUserRepository staff,
-                           PasswordEncoder encoder, JwtService jwt, LoginGuard guard, VenueStarter starter) {
+                           PasswordEncoder encoder, JwtService jwt, LoginGuard guard, VenueStarter starter, AuditService audit) {
         this.platformUsers = platformUsers;
         this.venues = venues;
         this.staff = staff;
@@ -46,11 +50,12 @@ public class PlatformService {
         this.jwt = jwt;
         this.guard = guard;
         this.starter = starter;
+        this.audit = audit;
     }
 
     public record LoginRequest(@NotBlank String username, @NotBlank String password) {}
 
-    public record LoginResponse(String token, String name) {}
+    public record LoginResponse(String token, String name, boolean mustChangePassword) {}
 
     public record VenueRow(Long id, String name, String slug, boolean active, String contactName, String contactPhone,
                            long users, String admin, Instant createdAt) {}
@@ -79,7 +84,34 @@ public class PlatformService {
         }
         guard.ok(key);
         u.setLastLoginAt(Instant.now());
-        return new LoginResponse(jwt.issue(JwtService.Kind.PLATFORM, u.getId()), u.getName());
+        return new LoginResponse(jwt.issue(JwtService.Kind.PLATFORM, u.getId()), u.getName(), u.isMustChangePassword());
+    }
+
+    @Transactional
+    public void changePassword(StaffPrincipal me, StaffDtos.PasswordChange in) {
+        PlatformUser u = platformUsers.findById(me.id()).orElseThrow(() -> ApiException.notFound("Usuario no encontrado"));
+        if (!encoder.matches(in.current(), u.getPasswordHash())) throw ApiException.badRequest("La contraseña actual no coincide");
+        if (in.current().equals(in.next())) throw ApiException.badRequest("La nueva contraseña debe ser distinta a la actual");
+        u.setPasswordHash(encoder.encode(in.next()));
+        u.setMustChangePassword(false);
+    }
+
+    /**
+     * Modo soporte: el súper administrador entra a cualquier bar como su administrador para revisar algo.
+     * Lo que haga queda en la bitácora del bar a nombre de "Soporte Brindix".
+     */
+    @Transactional
+    public StaffDtos.LoginResponse enter(StaffPrincipal me, Long venueId) {
+        Venue v = venues.findById(venueId).orElseThrow(() -> ApiException.notFound("Bar no encontrado"));
+        if (!v.isActive()) throw ApiException.badRequest("El bar está suspendido: actívalo para entrar");
+        StaffUser admin = staff.findByVenueIdAndRoleOrderByIdAsc(venueId, Role.ADMIN).stream().filter(StaffUser::isActive).findFirst()
+                .orElseThrow(() -> ApiException.notFound("El bar no tiene un administrador activo"));
+        String name = "Soporte Brindix (" + me.name() + ")";
+        audit.log(new StaffPrincipal(admin.getId(), venueId, me.username(), name, Role.ADMIN, true), venueId,
+                "Entró en modo soporte", "venue", venueId, "Como " + admin.getUsername());
+        var user = new StaffDtos.UserView(admin.getId(), name, admin.getUsername(), Role.ADMIN, true,
+                admin.getCreatedAt(), admin.getLastLoginAt(), false);
+        return new StaffDtos.LoginResponse(jwt.issueSupport(admin.getId(), me.id()), user, v.getSlug(), v.getName(), true);
     }
 
     @Transactional(readOnly = true)
@@ -115,6 +147,7 @@ public class PlatformService {
                 .orElseThrow(() -> ApiException.notFound("El bar no tiene administrador"));
         admin.setPasswordHash(encoder.encode(in.password()));
         admin.setActive(true);
+        admin.setMustChangePassword(true);
     }
 
     private VenueRow row(Venue v) {

@@ -14,13 +14,14 @@ public final class StaffDtos {
     /** venue = dirección del bar (slug). */
     public record LoginRequest(@NotBlank String venue, @NotBlank String username, @NotBlank String password) {}
 
-    public record LoginResponse(String token, UserView user, String venue, String venueName) {}
+    /** support = sesión del súper administrador dentro del bar. */
+    public record LoginResponse(String token, UserView user, String venue, String venueName, boolean support) {}
 
     public record UserView(Long id, String name, String username, Role role, boolean active,
-                           Instant createdAt, Instant lastLoginAt) {
+                           Instant createdAt, Instant lastLoginAt, boolean mustChangePassword) {
         public static UserView of(StaffUser u) {
             return new UserView(u.getId(), u.getName(), u.getUsername(), u.getRole(), u.isActive(),
-                    u.getCreatedAt(), u.getLastLoginAt());
+                    u.getCreatedAt(), u.getLastLoginAt(), u.isMustChangePassword());
         }
     }
 
