@@ -6,6 +6,7 @@ import { CASH_LABELS, CashCategory, PAYMENT_LABELS, PaymentMethod, PaymentView, 
 import { HourPipe, MoneyPipe, Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { IconComponent } from '../../shared/icon.component';
+import { Dialogs } from '../../shared/dialogs';
 
 interface CashState { open: boolean; shift: ShiftStatus | Record<string, never>; unsettled: PaymentView[]; }
 
@@ -42,6 +43,7 @@ interface CashState { open: boolean; shift: ShiftStatus | Record<string, never>;
   `],
 })
 export class CashComponent implements OnInit {
+  private dialogs = inject(Dialogs);
   private api = inject(Api);
   private toasts = inject(Toasts);
   ctx = inject(VenueContext);
@@ -89,7 +91,7 @@ export class CashComponent implements OnInit {
   }
 
   async deleteMovement(id: number): Promise<void> {
-    if (!confirm('¿Borrar este movimiento? Queda registrado en la bitácora.')) return;
+    if (!(await this.dialogs.confirm({ title: '¿Borrar este movimiento?', message: 'Deja de contar en el efectivo esperado. Queda registrado en la bitácora.', tone: 'danger', confirm: 'Borrar movimiento' }))) return;
     await this.run(() => this.api.run(this.api.delete(`/admin/cash/movements/${id}`)), 'Movimiento borrado');
   }
 
@@ -98,8 +100,9 @@ export class CashComponent implements OnInit {
   }
 
   async voidPayment(p: PaymentView): Promise<void> {
-    const reason = prompt(`¿Por qué se anula el cobro de ${p.tableName} (${p.total})? Las rondas vuelven a quedar por cobrar.`);
-    if (!reason?.trim()) return;
+    const reason = await this.dialogs.prompt({ title: `¿Anular el cobro de ${p.tableName}?`, tone: 'danger', message: 'Las rondas vuelven a quedar por cobrar y el dinero sale de la caja. Queda en la bitácora.',
+      confirm: 'Anular cobro', input: { label: 'Motivo', placeholder: 'Ej: se cobró a la mesa equivocada', required: true } });
+    if (!reason) return;
     await this.run(() => this.api.run(this.api.post(`/admin/payments/${p.id}/void`, { reason })), 'Cobro anulado');
   }
 

@@ -9,6 +9,7 @@ import { Toasts } from '../core/ui';
 import { MascotComponent } from '../shared/mascot.component';
 import { ResetRequestsComponent } from '../shared/reset-requests.component';
 import { ThemeToggleComponent } from '../core/theme';
+import { Dialogs } from '../shared/dialogs';
 
 interface VenueForm {
   id?: number; name: string; slug: string; contactName: string; contactPhone: string; active: boolean;
@@ -173,6 +174,7 @@ interface VenueForm {
   `],
 })
 export class PlatformComponent implements OnInit {
+  private dialogs = inject(Dialogs);
   auth = inject(PlatformAuth);
   private staffAuth = inject(Auth);
   private router = inject(Router);
@@ -313,7 +315,9 @@ export class PlatformComponent implements OnInit {
   }
 
   async resetAdmin(v: PlatformVenue): Promise<void> {
-    const password = prompt(`Nueva contraseña para el administrador de ${v.name} (mínimo 8):`);
+    const password = await this.dialogs.prompt({ title: `Contraseña temporal para ${v.name}`, icon: 'lock',
+      message: 'El administrador del bar deberá cambiarla al entrar. Se cierran sus sesiones abiertas.', confirm: 'Guardar contraseña',
+      input: { label: 'Contraseña temporal', type: 'password', minLength: 8, hint: 'Mínimo 8 caracteres.' } });
     if (!password) return;
     try {
       await this.api.run(this.api.post(`/platform/venues/${v.id}/reset-admin`, { password }));

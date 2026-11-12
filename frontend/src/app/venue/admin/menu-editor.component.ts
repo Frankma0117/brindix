@@ -6,6 +6,7 @@ import { ART_OPTIONS, Category, Product } from '../../core/models';
 import { MoneyPipe, Toasts } from '../../core/ui';
 import { ProductArtComponent } from '../../shared/product-art.component';
 import { IconComponent } from '../../shared/icon.component';
+import { Dialogs } from '../../shared/dialogs';
 
 interface ProductForm {
   id?: number; categoryId: number | null; name: string; description: string; price: number | null; cost: number | null;
@@ -27,6 +28,7 @@ interface Section { category: Category; products: Product[]; }
   styleUrl: './menu-editor.component.scss',
 })
 export class MenuEditorComponent implements OnInit {
+  private dialogs = inject(Dialogs);
   private api = inject(Api);
   private toasts = inject(Toasts);
 
@@ -237,7 +239,7 @@ export class MenuEditorComponent implements OnInit {
 
   async archive(): Promise<void> {
     const f = this.form();
-    if (!f?.id || !confirm(`¿Quitar «${f.name}» de la carta? Se conserva en el historial de ventas.`)) return;
+    if (!f?.id || !(await this.dialogs.confirm({ title: `¿Quitar «${f.name}» de la carta?`, message: 'Deja de verse en la carta y en el celular de los meseros. Se conserva en el historial de ventas.', tone: 'danger', confirm: 'Quitar de la carta' }))) return;
     try {
       await this.api.run(this.api.delete(`/admin/products/${f.id}`));
       this.form.set(null);
@@ -269,7 +271,7 @@ export class MenuEditorComponent implements OnInit {
 
   async deleteCat(): Promise<void> {
     const f = this.catForm();
-    if (!f?.id || !confirm(`¿Eliminar la categoría «${f.name}»?`)) return;
+    if (!f?.id || !(await this.dialogs.confirm({ title: `¿Eliminar la categoría «${f.name}»?`, message: 'Solo se puede si ya no tiene productos.', tone: 'danger', confirm: 'Eliminar categoría' }))) return;
     try {
       await this.api.run(this.api.delete(`/admin/categories/${f.id}`));
       this.catForm.set(null);

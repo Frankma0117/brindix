@@ -10,6 +10,7 @@ import { AgoPipe, MoneyPipe, Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
 import { IconComponent } from '../../shared/icon.component';
+import { Dialogs } from '../../shared/dialogs';
 
 /** Tablero de mesas: lo usan meseros y administrador. */
 @Component({
@@ -151,6 +152,7 @@ import { IconComponent } from '../../shared/icon.component';
   `],
 })
 export class BoardComponent implements OnInit {
+  private dialogs = inject(Dialogs);
   private api = inject(Api);
   private router = inject(Router);
   private toasts = inject(Toasts);
@@ -206,7 +208,8 @@ export class BoardComponent implements OnInit {
   }
 
   async reject(r: RoundView): Promise<void> {
-    const reason = prompt('¿Por qué se rechaza? (lo verá el cliente)', 'No disponible');
+    const reason = await this.dialogs.prompt({ title: `¿Rechazar el pedido de ${r.tableName ?? 'la mesa'}?`, tone: 'danger', confirm: 'Rechazar pedido',
+      input: { label: 'Motivo (lo verá el cliente)', value: 'No disponible', required: true } });
     if (reason === null) return;
     await this.act(`/admin/rounds/${r.id}/reject`, { reason }, 'Pedido rechazado');
   }

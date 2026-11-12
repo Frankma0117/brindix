@@ -7,6 +7,7 @@ import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
 import { QrComponent } from '../../shared/qr.component';
 import { IconComponent } from '../../shared/icon.component';
+import { Dialogs } from '../../shared/dialogs';
 
 interface TableForm { id?: number; name: string; zone: string; seats: number; sortOrder: number; active: boolean; }
 
@@ -85,6 +86,7 @@ interface TableForm { id?: number; name: string; zone: string; seats: number; so
   `],
 })
 export class TablesComponent implements OnInit {
+  private dialogs = inject(Dialogs);
   private api = inject(Api);
   private toasts = inject(Toasts);
   ctx = inject(VenueContext);
@@ -123,7 +125,7 @@ export class TablesComponent implements OnInit {
   }
 
   async regen(t: BarTable): Promise<void> {
-    if (!confirm(`¿Generar un QR nuevo para ${t.name}? El QR impreso actual dejará de funcionar.`)) return;
+    if (!(await this.dialogs.confirm({ title: `¿Generar un QR nuevo para ${t.name}?`, message: 'El QR impreso que está en la mesa dejará de funcionar. Tendrás que imprimir el nuevo.', tone: 'danger', confirm: 'Generar QR nuevo', icon: 'qr-code' }))) return;
     try {
       await this.api.run(this.api.post(`/admin/tables/${t.id}/regenerate-code`));
       this.toasts.ok('Código nuevo. Imprime el QR otra vez.');

@@ -7,6 +7,7 @@ import { AdminVenue, MusicProvider } from '../../core/models';
 import { Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { IconComponent } from '../../shared/icon.component';
+import { Dialogs } from '../../shared/dialogs';
 
 /**
  * Configuración del bar (solo administrador). Aquí se conecta la música:
@@ -48,6 +49,7 @@ import { IconComponent } from '../../shared/icon.component';
   `],
 })
 export class SettingsComponent implements OnInit {
+  private dialogs = inject(Dialogs);
   private auth = inject(Auth);
   private api = inject(Api);
   private toasts = inject(Toasts);
@@ -135,7 +137,9 @@ export class SettingsComponent implements OnInit {
   }
 
   async clear(kind: 'spotify' | 'youtube'): Promise<void> {
-    if (!confirm(kind === 'spotify' ? '¿Borrar los datos de Spotify y desconectar la cuenta?' : '¿Borrar la API key de YouTube?')) return;
+    if (!(await this.dialogs.confirm(kind === 'spotify'
+      ? { title: '¿Borrar los datos de Spotify?', message: 'Se desconecta la cuenta y la música pasa a modo manual.', tone: 'danger', confirm: 'Borrar datos de Spotify' }
+      : { title: '¿Borrar la API key de YouTube?', message: 'La pantalla del TV deja de reproducir y la música pasa a modo manual.', tone: 'danger', confirm: 'Borrar API key' }))) return;
     await this.run(() => this.api.run(this.api.put<AdminVenue>('/admin/venue/music', {
       provider: this.v()?.musicProvider === (kind === 'spotify' ? 'SPOTIFY' : 'YOUTUBE') ? 'MANUAL' : null,
       clearSpotify: kind === 'spotify', clearYoutube: kind === 'youtube',
@@ -152,12 +156,12 @@ export class SettingsComponent implements OnInit {
   }
 
   async disconnectSpotify(): Promise<void> {
-    if (!confirm('¿Desconectar la cuenta de Spotify?')) return;
+    if (!(await this.dialogs.confirm({ title: '¿Desconectar Spotify?', message: 'Las canciones dejan de llegar a tu Spotify hasta que la conectes otra vez.', tone: 'danger', confirm: 'Desconectar' }))) return;
     await this.run(() => this.api.run(this.api.post('/admin/spotify/disconnect')).then(() => this.api.run(this.api.get<AdminVenue>('/admin/venue'))), 'Spotify desconectado');
   }
 
   async newScreenKey(): Promise<void> {
-    if (!confirm('¿Generar un enlace nuevo? El TV con el enlace anterior ya no podrá controlar la música.')) return;
+    if (!(await this.dialogs.confirm({ title: '¿Generar un enlace nuevo para el TV?', message: 'El TV que usa el enlace actual deja de controlar la música hasta que abras el nuevo.', confirm: 'Generar enlace', icon: 'tv' }))) return;
     await this.run(() => this.api.run(this.api.post<AdminVenue>('/admin/venue/screen-key')), 'Enlace nuevo listo');
   }
 

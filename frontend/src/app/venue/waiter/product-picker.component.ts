@@ -5,6 +5,7 @@ import { Auth } from '../../core/auth.service';
 import { MoneyPipe } from '../../core/ui';
 import { ProductArtComponent } from '../../shared/product-art.component';
 import { IconComponent } from '../../shared/icon.component';
+import { Dialogs } from '../../shared/dialogs';
 
 export interface PickedLine { product: MenuProduct; quantity: number; note?: string; }
 
@@ -155,6 +156,7 @@ const norm = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCas
   `],
 })
 export class ProductPickerComponent {
+  private dialogs = inject(Dialogs);
   auth = inject(Auth);
   menu = input.required<MenuCategory[]>();
   tableName = input('');
@@ -227,8 +229,8 @@ export class ProductPickerComponent {
     this.lines.update(ls => ls.map(l => l.product.id === p.id ? { ...l, note } : l));
   }
 
-  clear(): void {
-    if (this.count() > 2 && !confirm('¿Vaciar el pedido?')) return;
+  async clear(): Promise<void> {
+    if (this.count() > 2 && !(await this.dialogs.confirm({ title: '¿Vaciar el pedido?', message: `Se quitan los ${this.count()} productos que llevas.`, tone: 'danger', confirm: 'Vaciar pedido' }))) return;
     this.lines.set([]);
     this.reviewing.set(false);
   }

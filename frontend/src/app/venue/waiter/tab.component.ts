@@ -11,6 +11,7 @@ import { VenueContext } from '../../core/venue-context';
 import { PickedLine, ProductPickerComponent } from './product-picker.component';
 import { WaiterHeaderComponent } from './waiter-header.component';
 import { IconComponent } from '../../shared/icon.component';
+import { Dialogs } from '../../shared/dialogs';
 
 @Component({
   selector: 'bx-tab',
@@ -20,6 +21,7 @@ import { IconComponent } from '../../shared/icon.component';
   styleUrl: './tab.component.scss',
 })
 export class TabComponent implements OnInit {
+  private dialogs = inject(Dialogs);
   private api = inject(Api);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -122,24 +124,28 @@ export class TabComponent implements OnInit {
   }
 
   async reject(r: RoundView): Promise<void> {
-    const reason = prompt('¿Por qué se rechaza? (lo verá el cliente)', 'No disponible');
+    const reason = await this.dialogs.prompt({ title: `¿Rechazar el pedido de ${r.tableName ?? 'la mesa'}?`, tone: 'danger', confirm: 'Rechazar pedido',
+      input: { label: 'Motivo (lo verá el cliente)', value: 'No disponible', required: true } });
     if (reason === null) return;
     await this.run(`/admin/rounds/${r.id}/reject`, { reason });
   }
 
   async changeQty(i: Item): Promise<void> {
-    const v = prompt(`Nueva cantidad para «${i.productName}» (ahora ${i.quantity}):`, String(i.quantity));
+    const v = await this.dialogs.prompt({ title: `Cambiar la cantidad de «${i.productName}»`, message: `Ahora hay ${i.quantity}. El cambio queda en la bitácora.`, confirm: 'Siguiente',
+      input: { label: 'Nueva cantidad', type: 'number', value: String(i.quantity), min: 1, max: 99, required: true } });
     if (v === null) return;
     const quantity = Number(v);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) { this.toasts.error('Cantidad no válida'); return; }
-    const reason = prompt('Motivo del cambio:');
-    if (!reason?.trim()) return;
+    const reason = await this.dialogs.prompt({ title: `${i.quantity} → ${quantity} · «${i.productName}»`, confirm: 'Cambiar cantidad',
+      input: { label: 'Motivo del cambio', placeholder: 'Ej: el cliente pidió menos', required: true } });
+    if (!reason) return;
     await this.run(`/admin/items/${i.id}/quantity`, { quantity, reason }, 'Cantidad cambiada');
   }
 
   async voidItem(i: Item): Promise<void> {
-    const reason = prompt(`¿Por qué se anula «${i.quantity} × ${i.productName}»?`);
-    if (!reason?.trim()) return;
+    const reason = await this.dialogs.prompt({ title: `¿Anular ${i.quantity} × ${i.productName}?`, tone: 'danger', message: 'Deja de contar en la cuenta y vuelve al inventario. Queda en la bitácora.',
+      confirm: 'Anular producto', input: { label: 'Motivo', placeholder: 'Ej: se derramó, pedido equivocado', required: true } });
+    if (!reason) return;
     await this.run(`/admin/items/${i.id}/void`, { reason }, 'Producto anulado');
   }
 
@@ -195,7 +201,7 @@ export class TabComponent implements OnInit {
   }
 
   async releaseTable(): Promise<void> {
-    if (!confirm('¿Liberar la mesa? La cuenta queda cerrada.')) return;
+    if (!(await this.dialogs.confirm({ title: '¿Liberar la mesa?', message: 'La cuenta se cierra y la mesa queda libre para otros clientes.', confirm: 'Liberar mesa', icon: 'check' }))) return;
     try {
       await this.api.run(this.api.post(`/staff/tabs/${this.id()}/release`));
       this.router.navigateByUrl(this.backUrl());
@@ -219,7 +225,8 @@ export class TabComponent implements OnInit {
   async saveCustomer(): Promise<void> {
     const t = this.tab();
     if (!t) return;
-    const name = prompt('Nombre o referencia de la cuenta', t.customerName ?? '');
+    const name = await this.dialogs.prompt({ title: 'Nombre de la cuenta', message: 'Ayuda a reconocerla: el nombre del cliente o algo como «Cumpleaños de Sofía».', confirm: 'Guardar',
+      input: { label: 'Nombre o referencia', value: t.customerName ?? '', placeholder: 'Ej: Mesa de Andrés' } });
     if (name === null) return;
     await this.run(`/staff/tables/${t.tableId}/open`, { customerName: name });
   }

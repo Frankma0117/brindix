@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Api, errorMessage } from '../../core/api.service';
 import { Banner, Product } from '../../core/models';
 import { MoneyPipe, Toasts } from '../../core/ui';
+import { Dialogs } from '../../shared/dialogs';
 
 interface BannerForm {
   id?: number; title: string; subtitle: string; imageUrl: string; theme: string; durationSeconds: number;
@@ -83,6 +84,7 @@ interface BannerForm {
   `],
 })
 export class BannersComponent implements OnInit {
+  private dialogs = inject(Dialogs);
   private api = inject(Api);
   private toasts = inject(Toasts);
   banners = signal<Banner[]>([]);
@@ -137,7 +139,7 @@ export class BannersComponent implements OnInit {
 
   async remove(): Promise<void> {
     const f = this.form();
-    if (!f?.id || !confirm('¿Eliminar este banner?')) return;
+    if (!f?.id || !(await this.dialogs.confirm({ title: '¿Eliminar este banner?', message: 'Deja de mostrarse en el TV y en la carta.', tone: 'danger', confirm: 'Eliminar banner' }))) return;
     await this.api.run(this.api.delete(`/admin/banners/${f.id}`));
     this.form.set(null);
     this.load();

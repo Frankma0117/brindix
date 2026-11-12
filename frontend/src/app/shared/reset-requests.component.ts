@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { Api, errorMessage } from '../core/api.service';
 import { Toasts } from '../core/ui';
 import { IconComponent } from './icon.component';
+import { Dialogs } from '../shared/dialogs';
 
 export interface ResetRequest {
   id: number; venueId: number; venueName: string; userName: string; username: string; role: 'ADMIN' | 'WAITER';
@@ -61,6 +62,7 @@ interface ApprovedCode { code: string; expiresAt: string; userName: string; user
   `],
 })
 export class ResetRequestsComponent implements OnInit {
+  private dialogs = inject(Dialogs);
   private api = inject(Api);
   private toasts = inject(Toasts);
   /** '/admin' (bar) o '/platform'. */
@@ -83,12 +85,14 @@ export class ResetRequestsComponent implements OnInit {
   }
 
   async approve(r: ResetRequest): Promise<void> {
-    if (!confirm(`¿Confirmaste que ${r.userName} es quien pide recuperar su cuenta?`)) return;
+    if (!(await this.dialogs.confirm({ title: `¿Aprobar la recuperación de ${r.userName}?`, icon: 'shield-check',
+      message: 'Hazlo solo si confirmaste que es esa persona. Verás un código de un solo uso que vence en 30 minutos para dárselo.', confirm: 'Aprobar y ver código' }))) return;
     await this.act(async () => this.code.set(await this.api.run(this.api.post<ApprovedCode>(`${this.base()}/password-requests/${r.id}/approve`, {}))));
   }
 
   async reject(r: ResetRequest): Promise<void> {
-    if (!confirm(`¿Rechazar la solicitud de ${r.userName}?`)) return;
+    if (!(await this.dialogs.confirm({ title: `¿Rechazar la solicitud de ${r.userName}?`, tone: 'danger',
+      message: 'No podrá usar ningún código de esta solicitud. Si de verdad la necesita, puede pedir otra.', confirm: 'Rechazar solicitud' }))) return;
     await this.act(async () => { await this.api.run(this.api.post(`${this.base()}/password-requests/${r.id}/reject`, {})); this.toasts.ok('Solicitud rechazada'); });
   }
 
