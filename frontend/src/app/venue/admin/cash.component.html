@@ -20,7 +20,7 @@
 
 @if (shift(); as s) {
   <section class="grid cols-4 no-print">
-    <div class="card stat glow"><span class="label">Efectivo esperado</span><span class="value grad-text">{{ s.expectedCash | money }}</span><span class="hint">en el cajón ahora</span></div>
+    <div class="card stat glow"><span class="label">Efectivo esperado</span><span class="value">{{ s.expectedCash | money }}</span><span class="hint">en el cajón ahora</span></div>
     <div class="card stat"><span class="label">Ventas del turno</span><span class="value">{{ s.salesTotal | money }}</span><span class="hint">{{ s.payments }} cobros · todos los medios</span></div>
     <div class="card stat"><span class="label">Propinas</span><span class="value">{{ s.tips | money }}</span></div>
     <div class="card stat" [style.border-color]="s.unsettledCount ? 'rgba(255,178,56,.5)' : ''"><span class="label">Con meseros</span><span class="value">{{ s.unsettledTotal | money }}</span><span class="hint">{{ s.unsettledCount }} cobro(s) por entregar</span></div>
@@ -79,10 +79,10 @@
         <h3>Movimientos del turno</h3>
         @for (m of s.movements.slice().reverse(); track m.id) {
           <div class="mv">
-            <span>{{ m.direction === 'IN' ? '🟢' : '🔴' }}</span>
+            <span class="dot" [class.in]="m.direction === 'IN'" [attr.aria-label]="m.direction === 'IN' ? 'Entrada' : 'Salida'"></span>
             <div class="grow"><p class="strong small">{{ m.description }}</p><p class="tiny muted">{{ cashLabels[m.category] }} · {{ payLabel(m.method) }} · {{ m.createdAt | hour }} · {{ m.createdByName }}</p></div>
             <span class="num strong" [class.neg]="m.direction === 'OUT'" [class.pos]="m.direction === 'IN'">{{ m.direction === 'OUT' ? '−' : '+' }}{{ m.amount | money }}</span>
-            <button class="btn xs ghost" (click)="deleteMovement(m.id)">✕</button>
+            <button class="btn xs ghost" (click)="deleteMovement(m.id)" aria-label="Eliminar movimiento"><bx-icon name="x" /></button>
           </div>
         } @empty { <p class="muted small">Sin movimientos todavía.</p> }
       </div>
@@ -116,14 +116,14 @@
 @if (closing() && shift(); as s) {
   <div class="backdrop no-print" (click)="closing.set(false)">
     <div class="modal" (click)="$event.stopPropagation()">
-      <div class="modal-head"><h2>Cerrar caja</h2><button class="btn icon sm" (click)="closing.set(false)">✕</button></div>
+      <div class="modal-head"><h2>Cerrar caja</h2><button class="btn icon sm" (click)="closing.set(false)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
       <div class="col">
         <div class="fl"><span>Debe haber en efectivo</span><span class="strong">{{ s.expectedCash | money }}</span></div>
         @if (s.unsettledCount) { <p class="small" style="color: var(--c-amber)">Primero recibe los {{ s.unsettledCount }} cobro(s) que tienen los meseros.</p> }
         <label class="field"><span>¿Cuánto contaste?</span><input class="input" type="number" min="0" step="500" [(ngModel)]="counted" autofocus></label>
         @if (difference() !== null) {
           <p class="diff" [class.neg]="difference()! < 0" [class.pos]="difference()! > 0">
-            {{ difference() === 0 ? '¡Cuadrada! 🎉' : (difference()! > 0 ? 'Sobran ' : 'Faltan ') + ((difference()! < 0 ? -difference()! : difference()!) | money) }}
+            {{ difference() === 0 ? '¡Cuadrada!' : (difference()! > 0 ? 'Sobran ' : 'Faltan ') + ((difference()! < 0 ? -difference()! : difference()!) | money) }}
           </p>
         }
         <label class="field"><span>Nota del cierre</span><input class="input" [(ngModel)]="closingNote" placeholder="Ej: faltó un billete, se explicará mañana"></label>
@@ -143,7 +143,7 @@
       <div class="head-print"><h2>{{ ctx.name() }} · Cierre de caja</h2></div>
       <div class="modal-head no-print">
         <h2>{{ r.status === 'CLOSED' ? 'Cierre de caja' : 'Reporte parcial' }}</h2>
-        <div class="row"><button class="btn sm" (click)="print()">🖨️ Imprimir</button><button class="btn icon sm" (click)="report.set(null)">✕</button></div>
+        <div class="row"><button class="btn sm" (click)="print()"><bx-icon name="printer" /> Imprimir</button><button class="btn icon sm" (click)="report.set(null)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
       </div>
       <p class="muted small">{{ r.openedAt | date: 'EEEE d MMM y, h:mm a' }} → {{ r.closedAt ? (r.closedAt | date: 'h:mm a') : 'abierto' }} · abrió {{ r.openedBy }}@if (r.closedBy) {, cerró {{ r.closedBy }} }</p>
 

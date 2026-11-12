@@ -42,6 +42,12 @@ plataforma le pone una nueva). Para empezar de cero: `scripts\reset-dev-db.cmd`.
 **Modo soporte:** desde `/plataforma` el súper administrador pulsa **Entrar** en cualquier bar y queda
 dentro como su administrador (banda morada arriba, 4 horas, todo queda en la bitácora del bar).
 
+## Bar de demostración
+
+`scripts/seed-demo.mjs` crea «Candela Brava» (`/candela-brava`): carta con precios reales de Bogotá, fotos
+de Wikimedia Commons (créditos en `/creditos`), banners, equipo y una noche en curso. Ver el encabezado del
+script para los parámetros. `BRINDIX_DEMO_URL` en el `.env` activa el botón «Ver una carta real» de la landing.
+
 ## Música
 
 Se configura **por bar** en Configuración → Música. Guía: [docs/SPOTIFY.md](docs/SPOTIFY.md).

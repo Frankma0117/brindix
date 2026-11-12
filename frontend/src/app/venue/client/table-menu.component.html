@@ -4,14 +4,14 @@
       @if (ctx.venue()?.logoUrl) { <img class="logo" [src]="ctx.venue()!.logoUrl" alt=""> } @else { <bx-mascot [size]="40" [animate]="false" /> }
       <div class="grow">
         <p class="venue">{{ ctx.name() || 'Brindix' }}</p>
-        @if (tab()) { <p class="table">📍 {{ tab()!.tableName }}</p> }
+        @if (tab()) { <p class="table"><bx-icon name="map-pin" /> {{ tab()!.tableName }}</p> }
       </div>
       <bx-theme-toggle />
     </div>
   </header>
 
   @if (tableError()) {
-    <div class="container"><div class="card alert">⚠️ {{ tableError() }}</div></div>
+    <div class="container"><div class="card alert"><bx-icon name="triangle-alert" /> {{ tableError() }}</div></div>
   }
 
   <!-- ===================== CARTA ===================== -->
@@ -41,7 +41,7 @@
         <nav class="cats">
           <button class="chip" [class.active]="activeCategory() === null" (click)="scrollTo(null)">Todo</button>
           @for (c of menu(); track c.id) {
-            <button class="chip" [class.active]="activeCategory() === c.id" (click)="scrollTo(c.id)">{{ c.icon }} {{ c.name }}</button>
+            <button class="chip" [class.active]="activeCategory() === c.id" (click)="scrollTo(c.id)">{{ c.name }}</button>
           }
         </nav>
       </div>
@@ -54,7 +54,7 @@
 
       @if (featured().length && !query()) {
         <section class="section">
-          <h2 class="sec-title">⭐ Recomendados de la casa</h2>
+          <h2 class="sec-title">Recomendados de la casa</h2>
           <div class="featured">
             @for (p of featured(); track p.id) {
               <button class="feat" (click)="openDetail(p)">
@@ -68,7 +68,7 @@
 
       @for (c of filtered(); track c.id) {
         <section class="section" [id]="'cat-' + c.id">
-          <h2 class="sec-title">{{ c.icon }} {{ c.name }} <span class="faint small">{{ c.products.length }}</span></h2>
+          <h2 class="sec-title">{{ c.name }} <span class="faint small">{{ c.products.length }}</span></h2>
           <div class="grid-products">
             @for (p of c.products; track p.id) {
               <article class="product" [class.out]="p.soldOut" (click)="openDetail(p)">
@@ -96,10 +96,10 @@
       }
 
       @if (!canOrder() && !loading()) {
-        <p class="hint">🙋 Para pedir, llama a tu mesero desde «Mi mesa».</p>
+        <p class="hint"><bx-icon name="hand" /> Para pedir, llama a tu mesero desde «Mi mesa».</p>
       }
       @if (ctx.venue()?.wifiName) {
-        <div class="card wifi">📶 Wi-Fi: <strong>{{ ctx.venue()!.wifiName }}</strong> · Clave: <strong>{{ ctx.venue()!.wifiPassword }}</strong></div>
+        <div class="card wifi"><bx-icon name="audio-lines" /> Wi-Fi: <strong>{{ ctx.venue()!.wifiName }}</strong> · Clave: <strong>{{ ctx.venue()!.wifiPassword }}</strong></div>
       }
     </main>
   }
@@ -107,7 +107,7 @@
   <!-- ===================== MÚSICA ===================== -->
   @if (view() === 'music') {
     <main class="container music">
-      <h1>Pon tu canción 🎧</h1>
+      <h1>Pon tu canción</h1>
       @if (queue()?.nowPlaying; as np) {
         <div class="now card glow">
           <div class="cover">@if (np.image) { <img [src]="np.image" alt=""> } @else { <bx-mascot [size]="56" mood="party" /> }</div>
@@ -161,7 +161,7 @@
             @if (s.albumImage) { <img [src]="s.albumImage" alt=""> } @else { <div class="ph">♪</div> }
             <div class="grow"><p class="strong ellipsis">{{ s.title }}</p><p class="muted small ellipsis">{{ s.artist }}@if (s.tableName) { · {{ s.tableName }} }</p></div>
           </li>
-        } @empty { <li class="muted">La lista está libre. ¡Pide la primera! 🎉</li> }
+        } @empty { <li class="muted">La lista está libre. ¡Pide la primera!</li> }
       </ol>
     </main>
   }
@@ -176,14 +176,14 @@
         @if (tab()?.pendingTotal) { <p class="small amber">+ {{ tab()!.pendingTotal | money }} esperando confirmación</p> }
       </div>
       <div class="row calls">
-        <button class="btn grow" [disabled]="tab()?.calls?.includes('WAITER')" (click)="callWaiter('WAITER')">🙋 {{ tab()?.calls?.includes('WAITER') ? 'Mesero avisado' : 'Llamar al mesero' }}</button>
-        <button class="btn grow" [disabled]="tab()?.calls?.includes('BILL')" (click)="callWaiter('BILL')">🧾 {{ tab()?.calls?.includes('BILL') ? 'Cuenta pedida' : 'Pedir la cuenta' }}</button>
+        <button class="btn grow" [disabled]="tab()?.calls?.includes('WAITER')" (click)="callWaiter('WAITER')"><bx-icon name="hand" /> {{ tab()?.calls?.includes('WAITER') ? 'Mesero avisado' : 'Llamar al mesero' }}</button>
+        <button class="btn grow" [disabled]="tab()?.calls?.includes('BILL')" (click)="callWaiter('BILL')"><bx-icon name="receipt" /> {{ tab()?.calls?.includes('BILL') ? 'Cuenta pedida' : 'Pedir la cuenta' }}</button>
       </div>
       @for (r of (tab()?.rounds ?? []).slice().reverse(); track r.id) {
         <div class="card round" [attr.data-status]="r.status">
           <div class="row between">
             <span class="badge" [class.amber]="r.status === 'PENDING'" [class.teal]="r.status === 'CONFIRMED'" [class.green]="r.status === 'DELIVERED'" [class.red]="r.status === 'REJECTED'">{{ statusLabel(r.status) }}</span>
-            <span class="row" style="gap: 6px">@if (r.paid) { <span class="badge violet">Pagada</span> }<span class="tiny faint">{{ r.createdAt | ago }}</span></span>
+            <span class="row" style="gap: 6px">@if (r.paid) { <span class="badge dark">Pagada</span> }<span class="tiny faint">{{ r.createdAt | ago }}</span></span>
           </div>
           @for (i of r.items; track i.id) {
             <div class="row between line" [class.voided]="i.voided"><span>{{ i.quantity }} × {{ i.productName }}</span><span class="num">{{ i.lineTotal | money }}</span></div>
@@ -202,9 +202,9 @@
   }
 
   <nav class="tabbar">
-    <button [class.on]="view() === 'menu'" (click)="setView('menu')"><span>🍸</span>Carta</button>
-    <button [class.on]="view() === 'music'" (click)="setView('music')"><span>🎧</span>Música</button>
-    <button [class.on]="view() === 'tab'" (click)="setView('tab')"><span>🧾</span>Mi mesa @if (tab()?.pendingTotal) { <i class="dot"></i> }</button>
+    <button [class.on]="view() === 'menu'" (click)="setView('menu')"><bx-icon name="wine" />Carta</button>
+    <button [class.on]="view() === 'music'" (click)="setView('music')"><bx-icon name="headphones" />Música</button>
+    <button [class.on]="view() === 'tab'" (click)="setView('tab')"><bx-icon name="receipt" />Mi mesa @if (tab()?.pendingTotal) { <i class="dot"></i> }</button>
   </nav>
 </div>
 
@@ -212,10 +212,10 @@
   <div class="backdrop sheet" (click)="detail.set(null)">
     <div class="modal detail" (click)="$event.stopPropagation()">
       <bx-art class="detail-img" [art]="p.art" [imageUrl]="p.imageUrl" [name]="p.name" />
-      <button class="btn icon sm close" (click)="detail.set(null)" aria-label="Cerrar">✕</button>
+      <button class="btn icon sm close" (click)="detail.set(null)" aria-label="Cerrar"><bx-icon name="x" /></button>
       <div class="col">
         <h2>{{ p.name }}</h2>
-        @if (p.tags.length) { <div class="row wrap">@for (t of p.tags; track t) { <span class="badge violet">{{ t }}</span> }</div> }
+        @if (p.tags.length) { <div class="row wrap">@for (t of p.tags; track t) { <span class="badge">{{ t }}</span> }</div> }
         @if (p.description) { <p class="muted">{{ p.description }}</p> }
         <p class="price big">{{ p.price | money }}</p>
         @if (p.soldOut) {
@@ -227,7 +227,7 @@
             <button class="btn primary lg grow" (click)="addToCart(p, detailQty(), detailNote)">Agregar · {{ p.price * detailQty() | money }}</button>
           </div>
         } @else {
-          <p class="tiny muted">Pídelo a tu mesero 🙋</p>
+          <p class="tiny muted">Pídelo a tu mesero</p>
         }
       </div>
     </div>
@@ -245,7 +245,7 @@
           <button class="btn primary lg" (click)="closeSent()">Ver mi mesa</button>
         </div>
       } @else {
-        <div class="modal-head"><h2>Tu pedido</h2><button class="btn icon sm" (click)="cartOpen.set(false)">✕</button></div>
+        <div class="modal-head"><h2>Tu pedido</h2><button class="btn icon sm" (click)="cartOpen.set(false)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
         @for (l of cart(); track $index) {
           <div class="cart-line">
             <bx-art class="mini" [art]="l.product.art" [imageUrl]="l.product.imageUrl" [name]="l.product.name" />

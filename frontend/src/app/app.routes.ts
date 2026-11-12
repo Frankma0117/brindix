@@ -6,6 +6,8 @@ export const routes: Routes = [
   // Página de ventas de Brindix.
   { path: '', loadComponent: () => import('./landing/landing.component').then(m => m.LandingComponent), title: 'Brindix · Software para bares' },
   // Súper administrador: crea y administra bares.
+  // Créditos de las fotos de la demo.
+  { path: 'creditos', loadComponent: () => import('./landing/credits.component').then(m => m.CreditsComponent), title: 'Brindix · Créditos de fotos' },
   { path: 'plataforma', loadComponent: () => import('./platform/platform.component').then(m => m.PlatformComponent), title: 'Brindix · Plataforma' },
   {
     // Cada bar vive en /<slug>/...

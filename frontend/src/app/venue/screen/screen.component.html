@@ -9,7 +9,6 @@
           @else if (x.productImage) { <img class="ad-img" [src]="x.productImage" alt=""> }
           <div class="ad-shade"></div>
           <div class="ad-text">
-            <span class="ad-kicker">{{ data()?.venue?.name }}</span>
             <h1>{{ x.title }}</h1>
             @if (x.subtitle) { <p>{{ x.subtitle }}</p> }
             @if (x.productPrice) { <div class="ad-price">{{ x.productPrice | money }}</div> }
@@ -55,7 +54,7 @@
           <div class="row between times num"><span>{{ duration(progress()) || '0:00' }}</span><span>{{ duration(np.durationMs) }}</span></div>
         }
         @if (np.fromRequest && (np.requestedBy || np.tableName)) {
-          <p class="by">🎤 Pedida por <strong>{{ np.requestedBy || np.tableName }}</strong>@if (np.requestedBy && np.tableName) { · {{ np.tableName }} }</p>
+          <p class="by"><bx-icon name="mic" /> Pedida por <strong>{{ np.requestedBy || np.tableName }}</strong>@if (np.requestedBy && np.tableName) { · {{ np.tableName }} }</p>
         }
       } @else {
         <div class="now-main">
@@ -74,14 +73,14 @@
             @if (s.albumImage) { <img [src]="s.albumImage" alt=""> } @else { <span class="ph">♪</span> }
             <div class="grow"><p class="t ellipsis">{{ s.title }}</p><p class="a ellipsis">{{ s.artist }}@if (s.tableName) { · {{ s.tableName }} }</p></div>
           </li>
-        } @empty { <li class="free">¡La lista está libre! Escanea el QR de tu mesa y pide tu canción 🎶</li> }
+        } @empty { <li class="free">¡La lista está libre! Escanea el QR de tu mesa y pide tu canción</li> }
       </ol>
     </div>
 
     <footer class="cta">
       <span class="qr-ico">▦</span>
       <div><p class="strong">Escanea el QR de tu mesa</p><p class="small">Mira la carta y pon tu canción</p></div>
-      @if (data()?.venue?.wifiName) { <div class="wifi">📶 {{ data()!.venue.wifiName }}<br><span>{{ data()!.venue.wifiPassword }}</span></div> }
+      @if (data()?.venue?.wifiName) { <div class="wifi"><bx-icon name="audio-lines" /> {{ data()!.venue.wifiName }}<br><span>{{ data()!.venue.wifiPassword }}</span></div> }
     </footer>
   </aside>
 

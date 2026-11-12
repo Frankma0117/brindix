@@ -19,9 +19,8 @@ import { ThemeToggleComponent } from '../core/theme';
       <div class="head">
         <bx-mascot [size]="72" mood="wink" />
         <div>
-          <p class="kicker">{{ ctx.name() }}</p>
           <h2>Crea tu contraseña</h2>
-          <p class="muted small">Hola {{ auth.user()?.name }}. Estás entrando con una clave temporal: cámbiala por una que solo tú conozcas.</p>
+          <p class="muted small">{{ ctx.name() }} · Hola {{ auth.user()?.name }}. Estás entrando con una clave temporal: cámbiala por una que solo tú conozcas.</p>
         </div>
       </div>
       <label class="field"><span>Contraseña actual (la temporal)</span>
@@ -43,7 +42,6 @@ import { ThemeToggleComponent } from '../core/theme';
       background: radial-gradient(600px 400px at 20% 10%, rgba(255,79,139,.18), transparent), radial-gradient(500px 400px at 90% 90%, rgba(255,178,56,.14), transparent); }
     .box { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 14px; }
     .head { display: flex; gap: 14px; align-items: center; margin-bottom: 6px; }
-    .kicker { color: var(--c-pink); font-weight: 800; letter-spacing: .2em; font-size: 11px; text-transform: uppercase; }
     .err { color: var(--ink-red); font-weight: 600; font-size: 14px; }
   `],
 })

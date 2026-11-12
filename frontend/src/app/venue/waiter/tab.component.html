@@ -5,7 +5,7 @@
     <section class="summary card glow">
       <div class="row between top">
         <div>
-          <button class="cust" (click)="saveCustomer()">{{ t.customerName || 'Agregar nombre a la cuenta' }} ✎</button>
+          <button class="cust" (click)="saveCustomer()">{{ t.customerName || 'Agregar nombre a la cuenta' }} <bx-icon name="pencil" /></button>
           <p class="tiny muted">Abierta {{ t.openedAt | ago }} @if (t.openedByName) { por {{ t.openedByName }} }</p>
         </div>
         <span class="badge" [class.green]="t.status === 'OPEN'">{{ t.status === 'OPEN' ? 'Abierta' : t.status === 'CLOSED' ? 'Cerrada' : 'Cancelada' }}</span>
@@ -32,8 +32,8 @@
           <header class="row between">
             <div class="row wrap tags">
               <span class="badge" [class.pink]="r.status === 'PENDING'" [class.teal]="r.status === 'CONFIRMED'" [class.green]="r.status === 'DELIVERED'" [class.red]="r.status === 'REJECTED'">{{ roundLabels[r.status] }}</span>
-              @if (r.paid) { <span class="badge violet">Pagada</span> }
-              <span class="tiny muted">{{ r.source === 'CLIENT' ? '📱 Cliente' + (r.clientName ? ' · ' + r.clientName : '') : '🧑‍🍳 ' + (r.createdByName ?? '') }}</span>
+              @if (r.paid) { <span class="badge dark">Pagada</span> }
+              <span class="tiny muted who"><bx-icon [name]="r.source === 'CLIENT' ? 'smartphone' : 'user'" />{{ r.source === 'CLIENT' ? 'Cliente' + (r.clientName ? ' · ' + r.clientName : '') : (r.createdByName ?? '') }}</span>
               @if (r.assignedToName && r.assignedToName !== r.createdByName) { <span class="tiny muted">→ lleva {{ r.assignedToName }}</span> }
             </div>
             <span class="tiny faint nowrap">{{ r.createdAt | hour }}</span>
@@ -48,8 +48,8 @@
               </div>
               <span class="num">{{ i.lineTotal | money }}</span>
               @if (auth.isAdmin() && t.status === 'OPEN' && !i.voided && !r.paid && r.status !== 'REJECTED') {
-                <button class="btn xs ghost" (click)="changeQty(i)" title="Cambiar cantidad">±</button>
-                <button class="btn xs ghost" (click)="voidItem(i)" title="Anular">✕</button>
+                <button class="btn xs ghost" (click)="changeQty(i)" title="Cambiar cantidad" aria-label="Cambiar cantidad"><bx-icon name="pencil" /></button>
+                <button class="btn xs ghost" (click)="voidItem(i)" title="Anular" aria-label="Anular"><bx-icon name="x" /></button>
               }
             </div>
           }
@@ -65,7 +65,7 @@
                 </select>
               }
               @if (auth.isAdmin() && r.status === 'PENDING') {
-                <button class="btn sm primary" (click)="assign(r, auth.user()!.id)">🙋 Yo lo llevo</button>
+                <button class="btn sm primary" (click)="assign(r, auth.user()!.id)"><bx-icon name="hand" /> Yo lo llevo</button>
                 <button class="btn sm danger" (click)="reject(r)">Rechazar</button>
               }
               @if (r.status === 'CONFIRMED' && (auth.isAdmin() || isMine(r))) { <button class="btn sm" (click)="deliver(r)">Marcar entregada</button> }
@@ -76,7 +76,7 @@
           }
         </article>
       } @empty {
-        <div class="empty"><h3>Sin pedidos todavía</h3><p>Toca <b>＋ Pedido</b> para cargar lo que pidió la mesa.</p></div>
+        <div class="empty"><h3>Sin pedidos todavía</h3><p>Toca <b>Pedido</b> para cargar lo que pidió la mesa.</p></div>
       }
     </section>
 
@@ -95,9 +95,9 @@
 
     @if (t.status === 'OPEN') {
       <div class="row wrap secondary">
-        <button class="btn sm" (click)="openMove()">⇄ Cambiar de mesa</button>
-        <button class="btn sm" (click)="printBill()">🖨️ Prefactura</button>
-        @if (!t.due) { <button class="btn sm" (click)="releaseTable()">✓ Liberar mesa</button> }
+        <button class="btn sm" (click)="openMove()"><bx-icon name="refresh-cw" /> Cambiar de mesa</button>
+        <button class="btn sm" (click)="printBill()"><bx-icon name="printer" /> Prefactura</button>
+        @if (!t.due) { <button class="btn sm" (click)="releaseTable()"><bx-icon name="check" /> Liberar mesa</button> }
       </div>
     }
   </main>
@@ -110,7 +110,7 @@
           <p class="pay-total num">{{ (t.due > 0 ? t.due : t.consumed) | money }}</p>
         </div>
         @if (t.due > 0 && t.canCharge) { <button class="btn success lg" (click)="openCharge()">Cobrar</button> }
-        <button class="btn primary lg" (click)="picking.set(true)">＋ Pedido</button>
+        <button class="btn primary lg" (click)="picking.set(true)"><bx-icon name="plus" /> Pedido</button>
       </div>
       @if (t.due > 0 && !t.canCharge) { <p class="container tiny muted center">El administrador cobra esta cuenta.</p> }
     </div>
@@ -136,7 +136,7 @@
   @if (charging()) {
     <div class="backdrop sheet" (click)="charging.set(false)">
       <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal-head"><h2>Cobrar · {{ t.tableName }}</h2><button class="btn icon sm" (click)="charging.set(false)">✕</button></div>
+        <div class="modal-head"><h2>Cobrar · {{ t.tableName }}</h2><button class="btn icon sm" (click)="charging.set(false)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
         <div class="col">
           <span class="label-text">¿Qué se cobra?</span>
           @for (r of payable(); track r.id) {
@@ -166,7 +166,7 @@
   @if (moving()) {
     <div class="backdrop sheet" (click)="moving.set(false)">
       <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal-head"><h2>Pasar a otra mesa</h2><button class="btn icon sm" (click)="moving.set(false)">✕</button></div>
+        <div class="modal-head"><h2>Pasar a otra mesa</h2><button class="btn icon sm" (click)="moving.set(false)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
         <div class="grid cols-3">
           @for (f of freeTables(); track f.tableId) { <button class="btn" (click)="move(f)">{{ f.name }}</button> } @empty { <p class="muted">No hay mesas libres.</p> }
         </div>

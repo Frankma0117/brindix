@@ -4,6 +4,7 @@ import { MenuCategory, MenuProduct, WaiterOption } from '../../core/models';
 import { Auth } from '../../core/auth.service';
 import { MoneyPipe } from '../../core/ui';
 import { ProductArtComponent } from '../../shared/product-art.component';
+import { IconComponent } from '../../shared/icon.component';
 
 export interface PickedLine { product: MenuProduct; quantity: number; note?: string; }
 
@@ -19,24 +20,23 @@ const norm = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCas
 @Component({
   selector: 'bx-product-picker',
   standalone: true,
-  imports: [FormsModule, MoneyPipe, ProductArtComponent],
+  imports: [FormsModule, MoneyPipe, ProductArtComponent, IconComponent],
   template: `
   <div class="picker">
     <header class="top">
       <div class="bar">
-        <button class="btn icon sm" (click)="cancel.emit()" aria-label="Cerrar">✕</button>
+        <button class="btn icon sm" (click)="cancel.emit()" aria-label="Cerrar"><bx-icon name="x" /></button>
         <div class="grow">
-          <p class="kicker">Nuevo pedido</p>
-          <h2 class="ellipsis">{{ tableName() || 'Mesa' }}</h2>
+          <h2 class="ellipsis">Pedido · {{ tableName() || 'Mesa' }}</h2>
         </div>
         @if (count()) { <button class="btn ghost sm" (click)="clear()">Vaciar</button> }
       </div>
       <label class="search"><input class="input" placeholder="Buscar producto…" [ngModel]="q()" (ngModelChange)="q.set($event)" autocomplete="off"></label>
       @if (!q()) {
         <div class="cats">
-          @if (hasFeatured()) { <button class="chip" [class.active]="cat() === 'top'" (click)="cat.set('top')">⭐ Destacados</button> }
+          @if (hasFeatured()) { <button class="chip" [class.active]="cat() === 'top'" (click)="cat.set('top')"><bx-icon name="star" /> Destacados</button> }
           <button class="chip" [class.active]="cat() === null" (click)="cat.set(null)">Todo</button>
-          @for (c of menu(); track c.id) { <button class="chip" [class.active]="cat() === c.id" (click)="cat.set(c.id)">{{ c.icon }} {{ c.name }}</button> }
+          @for (c of menu(); track c.id) { <button class="chip" [class.active]="cat() === c.id" (click)="cat.set(c.id)">{{ c.name }}</button> }
         </div>
       }
     </header>
@@ -58,16 +58,16 @@ const norm = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCas
               </span>
             </button>
             @if (qty(p.id); as n) {
-              <div class="stepper big"><button (click)="dec(p)" aria-label="Quitar uno">−</button><span>{{ n }}</span><button (click)="add(p)" aria-label="Sumar uno">+</button></div>
+              <div class="stepper big"><button (click)="dec(p)" aria-label="Quitar uno"><bx-icon name="minus" /></button><span>{{ n }}</span><button (click)="add(p)" aria-label="Sumar uno"><bx-icon name="plus" /></button></div>
               <div class="quick">
                 @for (m of batches; track m) { <button class="qchip" [class.active]="n === m" (click)="setQty(p, m)">{{ m }}</button> }
-                <button class="qchip" [class.active]="!!noteOf(p.id) || noteOpen() === p.id" (click)="toggleNote(p.id)">📝 Nota</button>
+                <button class="qchip" [class.active]="!!noteOf(p.id) || noteOpen() === p.id" (click)="toggleNote(p.id)"><bx-icon name="sticky-note" /> Nota</button>
               </div>
               @if (noteOpen() === p.id || noteOf(p.id)) {
                 <input class="input note" placeholder="Ej: sin hielo, bien fría…" maxlength="120" [ngModel]="noteOf(p.id)" (ngModelChange)="setNote(p, $event)">
               }
             } @else {
-              <button class="plus" (click)="add(p)" [disabled]="p.soldOut" aria-label="Agregar">+</button>
+              <button class="plus" (click)="add(p)" [disabled]="p.soldOut" aria-label="Agregar"><bx-icon name="plus" /></button>
             }
           </div>
         }
@@ -108,17 +108,16 @@ const norm = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCas
   </div>`,
   styles: [`
     .picker { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: flex; flex-direction: column; animation: up .18s ease; }
-    .top { flex: none; background: var(--glass); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 10px 14px; display: flex; flex-direction: column; gap: 10px; }
+    .top { flex: none; background: var(--glass); border-bottom: 1px solid var(--line); padding: 10px 14px; display: flex; flex-direction: column; gap: 10px; }
     .top > *, .list, .foot > * { width: 100%; max-width: 720px; margin-left: auto; margin-right: auto; }
     .bar { display: flex; align-items: center; gap: 12px; }
-    .kicker { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--c-pink); }
     .bar h2 { font-size: 20px; }
     .cats { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
     .cats::-webkit-scrollbar { display: none; }
     .cats .chip { height: 34px; flex: none; }
 
     .list { flex: 1; overflow-y: auto; padding: 4px 14px 24px; -webkit-overflow-scrolling: touch; }
-    .sec { font-size: 12.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 16px 4px 6px; }
+    .sec { font-size: 14px; font-weight: 800; color: var(--muted); margin: 18px 4px 6px; }
     .prod { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; padding: 6px 8px 6px 6px; border-radius: 16px; border: 1px solid transparent; transition: background .12s, border-color .12s; }
     .prod + .prod { margin-top: 2px; }
     .prod.on { background: var(--surface); border-color: rgba(255, 79, 139, .45); }
@@ -132,12 +131,12 @@ const norm = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCas
     .price { color: var(--c-amber); font-size: 14px; }
     .stock { font-size: 12px; color: var(--faint); font-weight: 600; }
     .stock.low { color: var(--c-red); }
-    .plus { width: 44px; height: 44px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); font-size: 24px; font-weight: 700; cursor: pointer; line-height: 1; }
+    .plus { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); --icon-size: 22px; cursor: pointer; transition: transform 120ms var(--ease-out); }
     .plus:active { transform: scale(.92); background: var(--surface-3); }
     .stepper.big button { width: 40px; height: 40px; font-size: 22px; }
     .stepper.big span { min-width: 30px; font-size: 17px; }
     .quick { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 0 2px 66px; }
-    .qchip { height: 32px; min-width: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--muted); font: 700 13.5px var(--font); cursor: pointer; }
+    .qchip { display: inline-flex; align-items: center; gap: 5px; height: 32px; min-width: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--muted); font: 700 13.5px var(--font); cursor: pointer; }
     .qchip.active { background: var(--text); color: var(--chip-on); border-color: var(--text); }
     .note { grid-column: 1 / -1; margin: 8px 0 2px 66px; width: calc(100% - 66px); height: 40px; font-size: 14px; }
     @media (max-width: 420px) { .quick { padding-left: 0; } .note { margin-left: 0; width: 100%; } }
@@ -185,7 +184,7 @@ export class ProductPickerComponent {
     const cat = this.cat();
     if (cat === 'top') return [{ id: 'top', title: '', products: this.menu().flatMap(c => c.products).filter(p => p.featured) }];
     return this.menu().filter(c => cat === null || c.id === cat)
-      .map(c => ({ id: c.id, title: cat === null ? `${c.icon ?? ''} ${c.name}`.trim() : '', products: c.products }));
+      .map(c => ({ id: c.id, title: cat === null ? c.name : '', products: c.products }));
   });
 
   count = computed(() => this.lines().reduce((a, l) => a + l.quantity, 0));

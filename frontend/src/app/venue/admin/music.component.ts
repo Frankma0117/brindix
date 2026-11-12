@@ -8,19 +8,20 @@ import { Queue, Song, Track } from '../../core/models';
 import { AgoPipe, Toasts, duration } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
+import { IconComponent } from '../../shared/icon.component';
 
 /** Control de la cola de música. La conexión con Spotify/YouTube se hace en Configuración. */
 @Component({
   selector: 'bx-music',
   standalone: true,
-  imports: [FormsModule, RouterLink, AgoPipe, MascotComponent],
+  imports: [IconComponent, FormsModule, RouterLink, AgoPipe, MascotComponent],
   template: `
   <div class="page-head">
     <div><h1>Música</h1><p>Tú decides el orden: prioriza, mueve o quita lo que piden las mesas.</p></div>
     <div class="row">
       <span class="badge" [class.green]="queue()?.provider !== 'MANUAL'">{{ providerName() }}</span>
       <a class="btn sm" routerLink="../configuracion" fragment="musica">Configurar</a>
-      <a class="btn sm" [href]="'/' + ctx.slug() + '/pantalla'" target="_blank">📺 Pantalla</a>
+      <a class="btn sm" [href]="'/' + ctx.slug() + '/pantalla'" target="_blank"><bx-icon name="tv" /> Pantalla</a>
     </div>
   </div>
 
@@ -37,12 +38,12 @@ import { MascotComponent } from '../../shared/mascot.component';
           </div>
         </div>
         <div class="row wrap controls">
-          <button class="btn primary" (click)="post('/admin/music/next')">⏭ Siguiente de la lista</button>
+          <button class="btn primary" (click)="post('/admin/music/next')"><bx-icon name="skip-forward" /> Siguiente de la lista</button>
           @if (queue()?.provider === 'SPOTIFY' && queue()?.spotifyConnected) {
-            <button class="btn" (click)="post('/admin/spotify/player/pause')">⏸ Pausa</button>
-            <button class="btn" (click)="post('/admin/spotify/player/play')">▶ Reanudar</button>
+            <button class="btn" (click)="post('/admin/spotify/player/pause')"><bx-icon name="pause" /> Pausa</button>
+            <button class="btn" (click)="post('/admin/spotify/player/play')"><bx-icon name="play" /> Reanudar</button>
           } @else {
-            <button class="btn" (click)="post('/admin/music/stop')">⏹ Terminar actual</button>
+            <button class="btn" (click)="post('/admin/music/stop')"><bx-icon name="square" /> Terminar actual</button>
           }
         </div>
         <p class="tiny faint hint">
@@ -74,16 +75,16 @@ import { MascotComponent } from '../../shared/mascot.component';
             <span class="pos">{{ i + 1 }}</span>
             @if (s.albumImage) { <img [src]="s.albumImage" alt=""> } @else { <span class="ph">♪</span> }
             <div class="grow">
-              <p class="strong ellipsis">{{ s.pinned ? '📌 ' : '' }}{{ s.title }}</p>
+              <p class="strong ellipsis">@if (s.pinned) { <bx-icon name="pin" /> }{{ s.title }}</p>
               <p class="small muted ellipsis">{{ s.artist }} · {{ s.tableName || s.requestedBy || 'Bar' }} @if (s.durationMs) { · {{ duration(s.durationMs) }} }
                 @if (s.sentToPlayer) { · <span class="badge teal">En Spotify</span> } @if (s.provider === 'MANUAL' && queue()?.provider !== 'MANUAL') { · <span class="badge">manual</span> }</p>
             </div>
             <div class="acts">
-              <button class="btn xs" [disabled]="i === 0" (click)="act(s, 'top')" title="Que suene después">⏫</button>
+              <button class="btn xs" [disabled]="i === 0" (click)="act(s, 'top')" title="Que suene después" aria-label="Que suene después"><bx-icon name="chevrons-up" /></button>
               <button class="btn xs" [disabled]="i === 0" (click)="act(s, 'up')" title="Subir">▲</button>
               <button class="btn xs" [disabled]="last" (click)="act(s, 'down')" title="Bajar">▼</button>
-              <button class="btn xs" (click)="act(s, 'pin')" title="Fijar">📌</button>
-              <button class="btn xs danger" (click)="act(s, 'remove')" title="Quitar">✕</button>
+              <button class="btn xs" (click)="act(s, 'pin')" title="Fijar" aria-label="Fijar"><bx-icon name="pin" /></button>
+              <button class="btn xs danger" (click)="act(s, 'remove')" title="Quitar" aria-label="Quitar"><bx-icon name="x" /></button>
             </div>
           </div>
         } @empty { <p class="muted">La cola está vacía. Las mesas pueden pedir desde su QR.</p> }
@@ -150,7 +151,7 @@ export class MusicComponent implements OnInit {
   duration = duration;
 
   providerName(): string {
-    return { SPOTIFY: '🟢 Spotify', YOUTUBE: '🔴 YouTube', MANUAL: '✋ Manual' }[this.queue()?.provider ?? 'MANUAL'];
+    return { SPOTIFY: 'Spotify', YOUTUBE: 'YouTube', MANUAL: 'Manual' }[this.queue()?.provider ?? 'MANUAL'];
   }
 
   ngOnInit(): void {

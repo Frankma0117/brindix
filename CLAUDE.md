@@ -11,6 +11,9 @@ inventario con costos, música (Spotify/YouTube/manual), pantalla. Repo
       ganancia y diferencia de caja) y revisión visual con Chrome headless.
 - [x] 2026-11-11: desplegado en `/opt/brindix` (Docker, MySQL 8.4, puerto 127.0.0.1:5710).
 - [ ] `sudo bash /opt/brindix/scripts/sudo-setup.sh` (nginx + certbot de brindix.cania.app) — lo corre el usuario.
+- [x] 2026-11-12: rediseño con impeccable + taste + Emil (ver DESIGN.md/PRODUCT.md): íconos Lucide (`bx-icon`),
+      paleta sin violeta ni crema, landing nueva, resumen del admin sin tarjetas de métricas; detector 50 → 0-1.
+- [x] 2026-11-12: bar demo «Candela Brava» (`scripts/seed-demo.mjs`), fotos de Wikimedia Commons con créditos en `/creditos`.
 - [ ] Conectar Spotify/YouTube reales desde Configuración → Música (el código no se ha probado con cuentas reales).
 
 ## Decisiones del usuario

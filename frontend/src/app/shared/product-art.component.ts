@@ -85,7 +85,7 @@ import { ChangeDetectionStrategy, Component, computed, input, signal } from '@an
     .o1 { width: 70%; aspect-ratio: 1; top: -22%; right: -20%; }
     .o2 { width: 40%; aspect-ratio: 1; bottom: -14%; left: -10%; background: rgba(0,0,0,.12); }
     [data-art=beer]     { --a1: #ff9f1c; --a2: #c2410c; }
-    [data-art=cocktail] { --a1: #ff4f8b; --a2: #7b2ff7; }
+    [data-art=cocktail] { --a1: #ff5c6c; --a2: #9f1d2e; }
     [data-art=spirit]   { --a1: #a16207; --a2: #3b1d0b; }
     [data-art=shot]     { --a1: #f59e0b; --a2: #b91c1c; }
     [data-art=wine]     { --a1: #9f1239; --a2: #3b0718; }

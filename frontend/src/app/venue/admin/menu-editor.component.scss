@@ -48,5 +48,5 @@ $cols: 22px 58px minmax(140px, 1fr) 110px 110px 120px 64px 104px;
 .pform { display: flex; gap: 18px; flex-wrap: wrap; }
 .pform > .col { flex: 0 0 220px; }
 .preview { width: 100%; height: 170px; border-radius: 16px; }
-.ai { margin-left: 8px; background: rgba(139, 92, 246, .18); border-color: rgba(139, 92, 246, .4); color: var(--ink-violet); }
+.ai { margin-left: 8px; background: rgba(255, 178, 56, .14); border-color: rgba(255, 178, 56, .4); color: var(--ink-amber); }
 .profit-line { color: var(--c-green); font-weight: 700; }

@@ -5,6 +5,7 @@ import { Api, errorMessage } from '../../core/api.service';
 import { ART_OPTIONS, Category, Product } from '../../core/models';
 import { MoneyPipe, Toasts } from '../../core/ui';
 import { ProductArtComponent } from '../../shared/product-art.component';
+import { IconComponent } from '../../shared/icon.component';
 
 interface ProductForm {
   id?: number; categoryId: number | null; name: string; description: string; price: number | null; cost: number | null;
@@ -21,7 +22,7 @@ interface Section { category: Category; products: Product[]; }
 @Component({
   selector: 'bx-menu-editor',
   standalone: true,
-  imports: [FormsModule, MoneyPipe, ProductArtComponent, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [IconComponent, FormsModule, MoneyPipe, ProductArtComponent, CdkDropList, CdkDrag, CdkDragHandle],
   templateUrl: './menu-editor.component.html',
   styleUrl: './menu-editor.component.scss',
 })
@@ -250,7 +251,7 @@ export class MenuEditorComponent implements OnInit {
 
   editCat(c?: Category): void {
     this.catForm.set(c ? { id: c.id, name: c.name, icon: c.icon ?? '', art: c.art ?? 'food', active: c.active, sortOrder: c.sortOrder }
-      : { name: '', icon: '🍹', art: 'cocktail', active: true, sortOrder: 0 });
+      : { name: '', icon: '', art: 'cocktail', active: true, sortOrder: 0 });
   }
 
   async saveCat(): Promise<void> {

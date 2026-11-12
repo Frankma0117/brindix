@@ -9,17 +9,18 @@ import { Board, RoundView, TabView, TableBoard, WaiterOption } from '../../core/
 import { AgoPipe, MoneyPipe, Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
+import { IconComponent } from '../../shared/icon.component';
 
 /** Tablero de mesas: lo usan meseros y administrador. */
 @Component({
   selector: 'bx-board',
   standalone: true,
-  imports: [FormsModule, RouterLink, MoneyPipe, AgoPipe, WaiterHeaderComponent],
+  imports: [FormsModule, RouterLink, MoneyPipe, AgoPipe, WaiterHeaderComponent, IconComponent],
   template: `
   <bx-waiter-header title="Mesas" />
   <main class="container page-wrap">
     @if (board() && !board()!.cashOpen) {
-      <div class="card note">💵 La caja está cerrada: se pueden cargar pedidos pero no cobrar.
+      <div class="card note"><bx-icon name="banknote" /> La caja está cerrada: se pueden cargar pedidos pero no cobrar.
         @if (auth.isAdmin()) { <a [routerLink]="'/' + ctx.slug() + '/admin/caja'">Abrir caja</a> }</div>
     }
 
@@ -27,7 +28,7 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
       <section class="alerts">
         @for (c of board()!.calls; track c.id) {
           <div class="card alert call">
-            <span class="big-ico">{{ c.type === 'BILL' ? '🧾' : '🙋' }}</span>
+            <span class="big-ico" [class.bill]="c.type === 'BILL'"><bx-icon [name]="c.type === 'BILL' ? 'receipt' : 'hand'" /></span>
             <div class="grow"><p class="strong">{{ c.tableName }} {{ c.type === 'BILL' ? 'pide la cuenta' : 'te está llamando' }}</p><p class="tiny muted">{{ c.createdAt | ago }}</p></div>
             <button class="btn sm success" (click)="doneCall(c.id)">Listo</button>
           </div>
@@ -36,10 +37,10 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
     }
 
     @if (board()?.pending?.length && !auth.isAdmin()) {
-      <div class="card waiting">🛎️ <span class="grow">@for (r of board()!.pending; track r.id; let last = $last) { <b>{{ r.tableName }}</b>@if (!last) {, } } pidió desde el QR · el administrador lo asigna</span></div>
+      <div class="card waiting"><bx-icon name="bell-ring" /> <span class="grow">@for (r of board()!.pending; track r.id; let last = $last) { <b>{{ r.tableName }}</b>@if (!last) {, } } pidió desde el QR · el administrador lo asigna</span></div>
     }
     @if (board()?.pending?.length && auth.isAdmin()) {
-      <h2 class="sec">🛎️ Pedidos desde las mesas</h2>
+      <h2 class="sec"><bx-icon name="bell-ring" /> Pedidos desde las mesas</h2>
       <section class="alerts">
         @for (r of board()!.pending; track r.id) {
           <div class="card alert order pulse">
@@ -55,7 +56,7 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
                   </select>
                   <button class="btn sm" [disabled]="!assignTo[r.id]" (click)="assign(r)">Asignar</button>
                 }
-                <button class="btn sm primary" (click)="takeIt(r)">🙋 Yo lo llevo</button>
+                <button class="btn sm primary" (click)="takeIt(r)"><bx-icon name="hand" /> Yo lo llevo</button>
                 <button class="btn sm danger" (click)="reject(r)">Rechazar</button>
               </div>
 
@@ -65,7 +66,7 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
     }
 
     @if (board()?.inProgress?.length) {
-      <h2 class="sec">🚶 {{ auth.isAdmin() ? 'Por entregar' : 'Te toca llevar' }}</h2>
+      <h2 class="sec"><bx-icon name="footprints" /> {{ auth.isAdmin() ? 'Por entregar' : 'Te toca llevar' }}</h2>
       <section class="alerts">
         @for (r of board()!.inProgress; track r.id) {
           <div class="card alert deliver">
@@ -82,7 +83,7 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
     <div class="head">
       <div class="zones">
         <button class="chip" [class.active]="zone() === null" (click)="zone.set(null)">Todas</button>
-        <button class="chip" [class.active]="zone() === mineKey" (click)="zone.set(mineKey)">⭐ Mías</button>
+        <button class="chip" [class.active]="zone() === mineKey" (click)="zone.set(mineKey)"><bx-icon name="star" /> Mías</button>
         @for (z of zones(); track z) { <button class="chip" [class.active]="zone() === z" (click)="zone.set(z)">{{ z }}</button> }
       </div>
       <p class="tiny muted nowrap">{{ busyCount() }}/{{ board()?.tables?.length ?? 0 }} ocupadas</p>
@@ -94,10 +95,10 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
           <span class="tname">{{ t.name }}</span>
           @if (t.pendingRounds || t.inProgress || t.calls.length) {
             <span class="icons">
-              @if (t.pendingRounds) { <span class="badge pink">{{ t.pendingRounds }} 🛎️</span> }
-              @if (t.inProgress) { <span class="badge teal">{{ t.inProgress }} 🚶</span> }
-              @if (t.calls.includes('BILL')) { <span>🧾</span> }
-              @if (t.calls.includes('WAITER')) { <span>🙋</span> }
+              @if (t.pendingRounds) { <span class="badge pink"><bx-icon name="bell-ring" />{{ t.pendingRounds }}</span> }
+              @if (t.inProgress) { <span class="badge teal"><bx-icon name="footprints" />{{ t.inProgress }}</span> }
+              @if (t.calls.includes('BILL')) { <span class="badge amber"><bx-icon name="receipt" /></span> }
+              @if (t.calls.includes('WAITER')) { <span class="badge amber"><bx-icon name="hand" /></span> }
             </span>
           }
           @if (t.tabId) {
@@ -105,7 +106,7 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
             <p class="tiny muted ellipsis">{{ t.openedAt | ago }}@if (t.due && t.due !== t.consumed) { · <span class="amber">debe {{ t.due | money }}</span> }</p>
             @if (t.waiterName) { <p class="tiny ellipsis cust">{{ t.customerName || t.waiterName }}</p> }
           } @else {
-            <p class="free"><span class="go">＋</span> Libre</p>
+            <p class="free"><span class="go"><bx-icon name="plus" /></span> Libre</p>
           }
         </button>
       }
@@ -123,7 +124,10 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
     .alert.deliver { align-items: center; border-color: rgba(74,222,128,.35); }
     .alert ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
     .sel { max-width: 180px; height: 34px; }
-    .big-ico { font-size: 26px; }
+    .big-ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: rgba(94,194,171,.16); color: var(--c-teal); --icon-size: 22px; flex: none; }
+    .big-ico.bill { background: rgba(255,178,56,.16); color: var(--c-amber); }
+    .sec { display: flex; align-items: center; gap: 8px; }
+    .sec bx-icon { color: var(--c-amber); }
     .head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
     .zones { flex: 1; min-width: 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
     .zones::-webkit-scrollbar { display: none; }
@@ -135,8 +139,8 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
     .tcard:active { transform: scale(.97); }
     .tcard.busy { background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, var(--grad) border-box; border-color: transparent; }
     .tcard.attn { box-shadow: 0 0 0 3px rgba(255,79,139,.35); }
-    .tname { font-family: var(--display); font-weight: 800; font-size: 15.5px; line-height: 1.15; overflow-wrap: anywhere; }
-    .ttotal { font-family: var(--display); font-weight: 800; font-size: 18px; color: var(--c-amber); margin-top: auto; }
+    .tname { font-weight: 800; font-size: 15.5px; line-height: 1.15; overflow-wrap: anywhere; }
+    .ttotal { font-weight: 800; font-size: 18px; color: var(--c-amber); margin-top: auto; }
     .free { margin-top: auto; color: var(--faint); font-weight: 700; }
     .free { display: flex; align-items: center; gap: 6px; }
     .free .go { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 9px; background: var(--grad-soft); color: var(--c-pink); font-size: 18px; }

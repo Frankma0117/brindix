@@ -1,6 +1,6 @@
 <div class="page-head">
   <div><h1>Carta y productos</h1><p>Arrastra ⋮⋮ para ordenar. Toca o suelta una foto sobre la imagen. El precio y el costo se guardan al salir del campo.</p></div>
-  <div class="row"><button class="btn" (click)="editCat()">＋ Categoría</button><button class="btn primary" (click)="newProduct()">＋ Producto</button></div>
+  <div class="row"><button class="btn" (click)="editCat()"><bx-icon name="plus" /> Categoría</button><button class="btn primary" (click)="newProduct()"><bx-icon name="plus" /> Producto</button></div>
 </div>
 
 <section class="grid cols-4 kpis">
@@ -17,12 +17,11 @@
     <section class="cat card" cdkDrag [cdkDragData]="s" [class.off]="!s.category.active">
       <header class="cat-head">
         <span class="handle" cdkDragHandle title="Arrastrar categoría">⋮⋮</span>
-        <span class="cat-ico">{{ s.category.icon }}</span>
         <h2>{{ s.category.name }}</h2>
         <span class="badge">{{ s.products.length }}</span>
         @if (!s.category.active) { <span class="badge red">Oculta</span> }
         <span class="grow"></span>
-        <button class="btn xs" (click)="newProduct(s.category.id)">＋ Producto</button>
+        <button class="btn xs" (click)="newProduct(s.category.id)"><bx-icon name="plus" /> Producto</button>
         <button class="btn xs ghost" (click)="editCat(s.category)">Editar</button>
       </header>
 
@@ -36,7 +35,7 @@
             <span class="handle" cdkDragHandle title="Arrastrar">⋮⋮</span>
             <label class="thumb" [class.over]="dragOver() === p.id" (dragover)="onDragOver(p, $event)" (dragleave)="dragOver.set(null)" (drop)="onDrop(p, $event)" title="Cambiar foto">
               <bx-art [art]="s.category.art" [imageUrl]="p.imageUrl" [name]="p.name" />
-              <span class="cam">{{ uploading() === p.id ? '…' : '📷' }}</span>
+              <span class="cam">@if (uploading() === p.id) { … } @else { <bx-icon name="camera" /> }</span>
               <input type="file" accept="image/*" hidden (change)="onFile(p, $event)">
             </label>
             <div class="pname" (click)="edit(p)">
@@ -50,9 +49,9 @@
             </span>
             <span class="r">@if (p.trackStock) { <span class="badge" [class.red]="p.stock <= 0" [class.amber]="p.lowStock && p.stock > 0">{{ p.stock }}</span> } @else { <span class="faint tiny">prep.</span> }</span>
             <span class="acts">
-              <button class="ico-btn" [class.on]="p.featured" (click)="patch(p, { featured: !p.featured })" title="Recomendado">⭐</button>
-              <button class="ico-btn" [class.on]="p.available" (click)="patch(p, { available: !p.available })" [title]="p.available ? 'Visible en la carta' : 'Oculto'">{{ p.available ? '👁' : '🚫' }}</button>
-              <button class="ico-btn" (click)="edit(p)" title="Editar todo">✎</button>
+              <button class="ico-btn" [class.on]="p.featured" (click)="patch(p, { featured: !p.featured })" title="Recomendado" aria-label="Recomendado"><bx-icon name="star" /></button>
+              <button class="ico-btn" [class.on]="p.available" (click)="patch(p, { available: !p.available })" [title]="p.available ? 'Visible en la carta' : 'Oculto'" [attr.aria-label]="p.available ? 'Visible en la carta' : 'Oculto'"><bx-icon [name]="p.available ? 'eye' : 'eye-off'" /></button>
+              <button class="ico-btn" (click)="edit(p)" title="Editar todo" aria-label="Editar"><bx-icon name="pencil" /></button>
             </span>
           </div>
         } @empty {
@@ -67,7 +66,7 @@
 @if (form(); as f) {
   <div class="backdrop" (click)="form.set(null)">
     <div class="modal wide" (click)="$event.stopPropagation()">
-      <div class="modal-head"><h2>{{ f.id ? 'Editar producto' : 'Nuevo producto' }}</h2><button class="btn icon sm" (click)="form.set(null)">✕</button></div>
+      <div class="modal-head"><h2>{{ f.id ? 'Editar producto' : 'Nuevo producto' }}</h2><button class="btn icon sm" (click)="form.set(null)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
       <div class="pform">
         <div class="col">
           <bx-art class="preview" [art]="artOf(f.categoryId)" [imageUrl]="f.imageUrl" [name]="f.name" />
@@ -78,17 +77,17 @@
           <label class="field full"><span>Nombre</span><input class="input" [ngModel]="f.name" (ngModelChange)="setForm('name', $event)" maxlength="120"></label>
           <label class="field"><span>Categoría</span>
             <select class="input" [ngModel]="f.categoryId" (ngModelChange)="setForm('categoryId', $event)">
-              @for (s of sections(); track s.category.id) { <option [ngValue]="s.category.id">{{ s.category.icon }} {{ s.category.name }}</option> }
+              @for (s of sections(); track s.category.id) { <option [ngValue]="s.category.id">{{ s.category.name }}</option> }
             </select>
           </label>
           <label class="field"><span>Etiquetas (coma)</span><input class="input" [ngModel]="f.tags" (ngModelChange)="setForm('tags', $event)" placeholder="nacional, para compartir"></label>
           <label class="field full"><span>Descripción (la ve el cliente)
-            @if (aiEnabled()) { <button class="btn xs ai" type="button" [disabled]="describing()" (click)="describe()">{{ describing() ? 'Escribiendo…' : '✨ Redactar con IA' }}</button> }</span>
+            @if (aiEnabled()) { <button class="btn xs ai" type="button" [disabled]="describing()" (click)="describe()">@if (describing()) { Escribiendo… } @else { <bx-icon name="sparkles" /> Redactar con IA }</button> }</span>
             <textarea class="input" rows="2" [ngModel]="f.description" (ngModelChange)="setForm('description', $event)" maxlength="600"></textarea>
           </label>
           <label class="field"><span>A cómo se vende</span><input class="input" type="number" min="0" step="500" [ngModel]="f.price" (ngModelChange)="setForm('price', $event)"></label>
           <label class="field"><span>A cómo se compra (costo)</span><input class="input" type="number" min="0" step="100" [ngModel]="f.cost" (ngModelChange)="setForm('cost', $event)"></label>
-          @if (formProfit(f)) { <p class="full profit-line">💰 {{ formProfit(f) }}</p> }
+          @if (formProfit(f)) { <p class="full profit-line"><bx-icon name="hand-coins" /> {{ formProfit(f) }}</p> }
           <div class="full card flat col">
             <label class="check"><input type="checkbox" [ngModel]="f.trackStock" (ngModelChange)="setForm('trackStock', $event)"> Llevar inventario (botellas, latas…). Desactívalo en cócteles y comida preparada.</label>
             @if (f.trackStock) {
@@ -101,7 +100,7 @@
             }
           </div>
           <label class="check"><input type="checkbox" [ngModel]="f.available" (ngModelChange)="setForm('available', $event)"> Visible en la carta</label>
-          <label class="check"><input type="checkbox" [ngModel]="f.featured" (ngModelChange)="setForm('featured', $event)"> ⭐ Recomendado de la casa</label>
+          <label class="check"><input type="checkbox" [ngModel]="f.featured" (ngModelChange)="setForm('featured', $event)"> Recomendado de la casa</label>
         </div>
       </div>
       <div class="modal-foot">
@@ -116,10 +115,9 @@
 @if (catForm(); as cf) {
   <div class="backdrop" (click)="catForm.set(null)">
     <div class="modal" (click)="$event.stopPropagation()">
-      <div class="modal-head"><h2>{{ cf.id ? 'Editar categoría' : 'Nueva categoría' }}</h2><button class="btn icon sm" (click)="catForm.set(null)">✕</button></div>
+      <div class="modal-head"><h2>{{ cf.id ? 'Editar categoría' : 'Nueva categoría' }}</h2><button class="btn icon sm" (click)="catForm.set(null)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
       <div class="form-grid">
         <label class="field"><span>Nombre</span><input class="input" [(ngModel)]="cf.name" maxlength="80"></label>
-        <label class="field"><span>Emoji</span><input class="input" [(ngModel)]="cf.icon" maxlength="8"></label>
         <div class="field full"><span>Ilustración para productos sin foto</span>
           <div class="row wrap">@for (a of arts; track a.key) { <button class="chip" [class.active]="cf.art === a.key" (click)="cf.art = a.key">{{ a.label }}</button> }</div>
         </div>

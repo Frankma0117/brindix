@@ -1,4 +1,5 @@
 import { ThemeToggleComponent } from '../../core/theme';
+import { IconComponent } from '../../shared/icon.component';
 import { Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap, timer } from 'rxjs';
@@ -17,7 +18,7 @@ type View = 'menu' | 'music' | 'tab';
 @Component({
   selector: 'bx-table-menu',
   standalone: true,
-  imports: [FormsModule, MoneyPipe, AgoPipe, MascotComponent, ProductArtComponent, ThemeToggleComponent],
+  imports: [FormsModule, MoneyPipe, AgoPipe, MascotComponent, ProductArtComponent, ThemeToggleComponent, IconComponent],
   templateUrl: './table-menu.component.html',
   styleUrl: './table-menu.component.scss',
 })
@@ -205,7 +206,7 @@ export class TableMenuComponent implements OnInit {
     store.set('brindix.name', this.clientName.trim());
     try {
       await this.api.run(this.api.post(this.ctx.pub(`/tables/${this.code()}/songs`), { ...body, requestedBy: this.clientName.trim() || null }));
-      this.toasts.ok('¡Listo! Tu canción quedó pedida 🎶');
+      this.toasts.ok('¡Listo! Tu canción quedó pedida');
       this.songQuery = '';
       this.tracks.set([]);
       this.refreshQueue();

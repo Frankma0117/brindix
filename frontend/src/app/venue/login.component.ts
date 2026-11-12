@@ -19,7 +19,6 @@ import { ThemeToggleComponent } from '../core/theme';
       <div class="head">
         @if (ctx.venue()?.logoUrl) { <img class="logo" [src]="ctx.venue()!.logoUrl" alt=""> } @else { <bx-mascot [size]="84" mood="wink" /> }
         <div>
-          <p class="kicker">Brindix</p>
           <h2>{{ ctx.name() || 'Tu bar' }}</h2>
           <p class="muted small">Entra con tu usuario de administrador o mesero.</p>
         </div>
@@ -44,7 +43,6 @@ import { ThemeToggleComponent } from '../core/theme';
     .box { width: 100%; max-width: 410px; display: flex; flex-direction: column; gap: 14px; }
     .head { display: flex; gap: 14px; align-items: center; margin-bottom: 6px; }
     .logo { width: 84px; height: 84px; border-radius: 20px; object-fit: cover; }
-    .kicker { color: var(--c-pink); font-weight: 800; letter-spacing: .2em; font-size: 11px; text-transform: uppercase; }
     .err { color: var(--ink-red); font-weight: 600; font-size: 14px; }
     .note { background: var(--surface-2); border-radius: 10px; padding: 8px 12px; color: var(--muted); }
     .back { text-align: center; color: var(--muted); }

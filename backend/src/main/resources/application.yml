@@ -41,6 +41,7 @@ brindix:
   timezone: ${BRINDIX_TIMEZONE:America/Bogota}
   uploads-dir: ${BRINDIX_UPLOADS_DIR:./data/uploads}
   whatsapp: ${BRINDIX_WHATSAPP:573229457553}
+  demo-url: ${BRINDIX_DEMO_URL:}
   jwt:
     # En producción SIEMPRE un secreto largo (mínimo 32 caracteres).
     secret: ${BRINDIX_JWT_SECRET:dev-only-secret-change-me-please-0123456789abcdef}

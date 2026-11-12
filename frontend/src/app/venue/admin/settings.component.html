@@ -11,7 +11,7 @@
 @if (v(); as v) {
   <!-- El bar -->
   <section class="card pad-lg" id="bar">
-    <h2>🍸 El bar</h2>
+    <h2><bx-icon name="store" /> El bar</h2>
     <p class="lead">Así aparece en la carta, la pantalla y el ingreso del equipo.</p>
     <div class="row top gap-lg wrap">
       <div class="col" style="align-items: center">
@@ -32,7 +32,7 @@
 
   <!-- Pedidos y cobros -->
   <section class="card pad-lg" id="pedidos">
-    <h2>🛎️ Pedidos y cobros</h2>
+    <h2><bx-icon name="bell-ring" /> Pedidos y cobros</h2>
     <p class="lead">Decide quién pide y quién cobra.</p>
     <div class="switches">
       <label class="switch-row"><input type="checkbox" [(ngModel)]="v.clientOrdersEnabled">
@@ -45,7 +45,7 @@
 
   <!-- Música -->
   <section class="card pad-lg" id="musica">
-    <h2>🎧 Música</h2>
+    <h2><bx-icon name="headphones" /> Música</h2>
     <p class="lead">Elige con qué suena tu bar. Las claves se guardan cifradas y nunca se muestran completas.</p>
     <div class="switches">
       <label class="switch-row"><input type="checkbox" [(ngModel)]="v.musicEnabled"><div><b>Los clientes pueden pedir canciones</b></div></label>
@@ -56,14 +56,14 @@
 
     <h3 style="margin-top: 22px">¿Con qué se reproduce?</h3>
     <div class="providers" style="margin-top: 10px">
-      <button class="prov" [class.on]="provider === 'MANUAL'" (click)="provider = 'MANUAL'"><b>✋ Manual</b><span class="small muted">Los clientes escriben la canción; tú la pones en tu reproductor y pulsas «Siguiente».</span></button>
-      <button class="prov" [class.on]="provider === 'SPOTIFY'" (click)="provider = 'SPOTIFY'"><b>🟢 Spotify</b><span class="small muted">Buscan con carátula; la cola llega sola a Spotify. Requiere cuenta Premium.</span></button>
-      <button class="prov" [class.on]="provider === 'YOUTUBE'" (click)="provider = 'YOUTUBE'"><b>🔴 YouTube</b><span class="small muted">Buscan en YouTube y la pantalla del TV reproduce los videos en orden.</span></button>
+      <button class="prov" [class.on]="provider === 'MANUAL'" (click)="provider = 'MANUAL'"><b><bx-icon name="hand" /> Manual</b><span class="small muted">Los clientes escriben la canción; tú la pones en tu reproductor y pulsas «Siguiente».</span></button>
+      <button class="prov" [class.on]="provider === 'SPOTIFY'" (click)="provider = 'SPOTIFY'"><b><span class="brand-dot spotify"></span> Spotify</b><span class="small muted">Buscan con carátula; la cola llega sola a Spotify. Requiere cuenta Premium.</span></button>
+      <button class="prov" [class.on]="provider === 'YOUTUBE'" (click)="provider = 'YOUTUBE'"><b><span class="brand-dot youtube"></span> YouTube</b><span class="small muted">Buscan en YouTube y la pantalla del TV reproduce los videos en orden.</span></button>
     </div>
 
     @if (provider === 'SPOTIFY') {
       <div class="integ">
-        <h3>🟢 Spotify · tu app</h3>
+        <h3>Spotify · tu app</h3>
         <ol class="steps">
           <li>Entra a <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> con la cuenta <b>Premium</b> del bar y pulsa <b>Create app</b>.</li>
           <li>En <b>Redirect URI</b> pega exactamente esta dirección:
@@ -83,7 +83,7 @@
         <div class="divider"></div>
         <p class="small muted">5. Conecta la cuenta del bar (abre Spotify para aceptar los permisos):</p>
         @if (v.integrations.spotifyConnected) {
-          <p class="status ok">✓ Conectado como {{ v.integrations.spotifyAccount }}</p>
+          <p class="status ok"><bx-icon name="circle-check" /> Conectado como {{ v.integrations.spotifyAccount }}</p>
           <div class="row" style="margin-top: 8px"><button class="btn sm" (click)="connectSpotify()">Reconectar</button><button class="btn sm danger" (click)="disconnectSpotify()">Desconectar</button></div>
         } @else {
           <button class="btn spot-btn" [disabled]="!v.integrations.spotifyClientId || !v.integrations.spotifyClientSecret" (click)="connectSpotify()">Conectar Spotify</button>
@@ -95,7 +95,7 @@
 
     @if (provider === 'YOUTUBE') {
       <div class="integ">
-        <h3>🔴 YouTube · API key</h3>
+        <h3>YouTube · API key</h3>
         <ol class="steps">
           <li>Entra a <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>, crea un proyecto (por ejemplo «Brindix bar») y pulsa <b>Habilitar</b> en «YouTube Data API v3».</li>
           <li>Ve a <b>Credenciales → Crear credenciales → Clave de API</b> y cópiala.</li>
@@ -121,7 +121,7 @@
 
   <!-- Pantalla -->
   <section class="card pad-lg" id="pantalla">
-    <h2>📺 Pantalla del TV</h2>
+    <h2><bx-icon name="tv" /> Pantalla del TV</h2>
     <p class="lead">Muestra lo que suena, lo que sigue y tu publicidad.</p>
     <p class="small"><b>Solo ver</b> (cualquier pantalla):</p>
     <div class="copy"><span>{{ v.integrations.publicUrl }}/pantalla</span><button class="btn xs" (click)="copy(v.integrations.publicUrl + '/pantalla')">Copiar</button></div>
@@ -133,7 +133,7 @@
 
   <!-- Contraseña -->
   <section class="card pad-lg" id="cuenta">
-    <h2>🔐 Mi contraseña</h2>
+    <h2><bx-icon name="lock" /> Mi contraseña</h2>
     <div class="form-grid" style="max-width: 640px; margin-top: 12px">
       <label class="field"><span>Actual</span><input class="input" type="password" [(ngModel)]="current"></label>
       <label class="field"><span>Nueva (mínimo 8)</span><input class="input" type="password" [(ngModel)]="next"></label>

@@ -5,6 +5,7 @@ import { Api, errorMessage } from '../../core/api.service';
 import { AdminVenue, MusicProvider } from '../../core/models';
 import { Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
+import { IconComponent } from '../../shared/icon.component';
 
 /**
  * Configuración del bar (solo administrador). Aquí se conecta la música:
@@ -13,7 +14,7 @@ import { VenueContext } from '../../core/venue-context';
 @Component({
   selector: 'bx-settings',
   standalone: true,
-  imports: [FormsModule],
+  imports: [IconComponent, FormsModule],
   templateUrl: './settings.component.html',
   styles: [`
     .nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0; }
@@ -35,6 +36,11 @@ import { VenueContext } from '../../core/venue-context';
     .copy { display: flex; gap: 8px; align-items: center; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 10px; padding: 6px 6px 6px 12px; font-family: ui-monospace, monospace; font-size: 13px; word-break: break-all; }
     .copy span { flex: 1; }
     .status { padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-weight: 600; font-size: 14px; }
+    .brand-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+    .brand-dot.spotify { background: #1ed760; }
+    .brand-dot.youtube { background: #ff0033; }
+    h2 { display: flex; align-items: center; gap: 10px; }
+    h2 bx-icon { color: var(--c-amber); }
     .status.ok { background: rgba(74,222,128,.12); color: var(--ink-green); }
     .logo-prev { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; background: var(--surface-2); }
     .spot-btn { background: #1ed760; color: #06210f; border-color: transparent; font-weight: 800; }
@@ -58,7 +64,7 @@ export class SettingsComponent implements OnInit {
 
   ngOnInit(): void {
     const sp = this.route.snapshot.queryParamMap.get('spotify');
-    if (sp === 'ok') this.toasts.ok('¡Spotify conectado! 🎶');
+    if (sp === 'ok') this.toasts.ok('Spotify conectado');
     if (sp === 'error') this.toasts.error('No se pudo conectar Spotify. Revisa los datos de la app e intenta otra vez.');
     this.load();
     setTimeout(() => {

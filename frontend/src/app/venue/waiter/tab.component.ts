@@ -10,11 +10,12 @@ import { AgoPipe, HourPipe, MoneyPipe, Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { PickedLine, ProductPickerComponent } from './product-picker.component';
 import { WaiterHeaderComponent } from './waiter-header.component';
+import { IconComponent } from '../../shared/icon.component';
 
 @Component({
   selector: 'bx-tab',
   standalone: true,
-  imports: [FormsModule, MoneyPipe, AgoPipe, HourPipe, ProductPickerComponent, WaiterHeaderComponent],
+  imports: [FormsModule, MoneyPipe, AgoPipe, HourPipe, ProductPickerComponent, WaiterHeaderComponent, IconComponent],
   templateUrl: './tab.component.html',
   styleUrl: './tab.component.scss',
 })

@@ -7,6 +7,7 @@ import { Banner, Screen } from '../../core/models';
 import { MoneyPipe, duration } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
+import { IconComponent } from '../../shared/icon.component';
 
 // API del reproductor oficial de YouTube (se carga bajo demanda).
 declare global {
@@ -20,7 +21,7 @@ declare global {
 @Component({
   selector: 'bx-screen',
   standalone: true,
-  imports: [MoneyPipe, MascotComponent],
+  imports: [MoneyPipe, MascotComponent, IconComponent],
   templateUrl: './screen.component.html',
   styleUrl: './screen.component.scss',
 })

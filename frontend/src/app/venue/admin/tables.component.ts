@@ -6,17 +6,18 @@ import { Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
 import { QrComponent } from '../../shared/qr.component';
+import { IconComponent } from '../../shared/icon.component';
 
 interface TableForm { id?: number; name: string; zone: string; seats: number; sortOrder: number; active: boolean; }
 
 @Component({
   selector: 'bx-tables',
   standalone: true,
-  imports: [FormsModule, QrComponent, MascotComponent],
+  imports: [IconComponent, FormsModule, QrComponent, MascotComponent],
   template: `
   <div class="page-head no-print">
     <div><h1>Mesas y QR</h1><p>Imprime el QR de cada mesa: el cliente lo escanea y ve la carta, pide y pone música.</p></div>
-    <div class="row"><button class="btn" (click)="print()">🖨️ Imprimir todos</button><button class="btn primary" (click)="edit()">＋ Nueva mesa</button></div>
+    <div class="row"><button class="btn" (click)="print()"><bx-icon name="printer" /> Imprimir todos</button><button class="btn primary" (click)="edit()"><bx-icon name="plus" /> Nueva mesa</button></div>
   </div>
 
   <div class="tgrid no-print">
@@ -44,7 +45,7 @@ interface TableForm { id?: number; name: string; zone: string; seats: number; so
         <p class="v">{{ ctx.name() }}</p>
         <p class="tn">{{ t.name }}</p>
         <bx-qr [text]="url(t)" [size]="190" />
-        <p class="cta">Escanéame 📱</p>
+        <p class="cta">Escanéame</p>
         <p class="sub">Mira la carta · Pon tu canción · Llama al mesero</p>
         @if (ctx.venue()?.wifiName) { <p class="wifi">Wi-Fi: {{ ctx.venue()!.wifiName }} · {{ ctx.venue()!.wifiPassword }}</p> }
       </div>
@@ -54,7 +55,7 @@ interface TableForm { id?: number; name: string; zone: string; seats: number; so
   @if (form(); as f) {
     <div class="backdrop" (click)="form.set(null)">
       <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal-head"><h2>{{ f.id ? 'Editar mesa' : 'Nueva mesa' }}</h2><button class="btn icon sm" (click)="form.set(null)">✕</button></div>
+        <div class="modal-head"><h2>{{ f.id ? 'Editar mesa' : 'Nueva mesa' }}</h2><button class="btn icon sm" (click)="form.set(null)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
         <div class="form-grid">
           <label class="field"><span>Nombre</span><input class="input" [(ngModel)]="f.name" placeholder="Mesa 9"></label>
           <label class="field"><span>Zona</span><input class="input" [(ngModel)]="f.zone" placeholder="Salón, Terraza…"></label>
@@ -70,7 +71,7 @@ interface TableForm { id?: number; name: string; zone: string; seats: number; so
     .tgrid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
     .t { display: flex; gap: 14px; align-items: center; }
     .t.off { opacity: .5; }
-    .name { font-family: var(--display); font-size: 18px; }
+    .name { font-size: 18px; font-weight: 800; }
     .print-sheet { display: none; }
     @media print {
       :host ::ng-deep .side, :host ::ng-deep .mobile-top { display: none !important; }

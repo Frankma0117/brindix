@@ -1,10 +1,12 @@
 import { Component, Injectable, computed, inject, input, signal } from '@angular/core';
 import { store } from './ui';
+import { IconComponent } from '../shared/icon.component';
+import { IconName } from '../shared/icons';
 
 export type ThemeChoice = 'auto' | 'light' | 'dark';
 
 const KEY = 'brindix.theme';
-const META: Record<'light' | 'dark', string> = { light: '#faf7f2', dark: '#0c0a12' };
+const META: Record<'light' | 'dark', string> = { light: '#f3f3f1', dark: '#0f0d0b' };
 
 /**
  * Modo claro / oscuro. "auto" sigue al celular o computador. La elección se guarda en este
@@ -46,14 +48,15 @@ export class Theme {
 @Component({
   selector: 'bx-theme-toggle',
   standalone: true,
+  imports: [IconComponent],
   template: `
     <button type="button" class="btn icon" [class.sm]="small()" (click)="theme.cycle()" [title]="label()" [attr.aria-label]="label()">
-      {{ icon() }}
+      <bx-icon [name]="icon()" />
     </button>`,
 })
 export class ThemeToggleComponent {
   theme = inject(Theme);
   small = input(true);
-  icon = computed(() => ({ auto: '🌓', light: '☀️', dark: '🌙' })[this.theme.choice()]);
+  icon = computed<IconName>(() => ({ auto: 'sun-moon', light: 'sun', dark: 'moon' } as const)[this.theme.choice()]);
   label = computed(() => ({ auto: 'Tema: automático (toca para claro)', light: 'Tema: claro (toca para oscuro)', dark: 'Tema: oscuro (toca para automático)' })[this.theme.choice()]);
 }

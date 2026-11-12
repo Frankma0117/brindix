@@ -5,21 +5,22 @@ import { Api, errorMessage } from '../../core/api.service';
 import { Role, User } from '../../core/models';
 import { Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
+import { IconComponent } from '../../shared/icon.component';
 
 interface UserForm { id?: number; name: string; username: string; password: string; role: Role; active: boolean; }
 
 @Component({
   selector: 'bx-users',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [IconComponent, FormsModule, DatePipe],
   template: `
   <div class="page-head">
     <div><h1>Equipo</h1><p>Entran en <b>{{ loginUrl() }}</b> con su usuario y contraseña.</p></div>
-    <button class="btn primary" (click)="edit()">＋ Nuevo usuario</button>
+    <button class="btn primary" (click)="edit()"><bx-icon name="plus" /> Nuevo usuario</button>
   </div>
   <div class="grid cols-2 roles">
-    <div class="card"><h3>👑 Administrador</h3><p class="small muted">Todo: carta, precios y costos, inventario, caja y cierres, cobros, descuentos, modificar o anular pedidos, música, equipo y configuración. También puede atender mesas.</p></div>
-    <div class="card"><h3>🧑‍🍳 Mesero</h3><p class="small muted">Ve las mesas y la carta, carga rondas, entrega lo que le asignan y, si lo permites en Configuración, cobra (el dinero queda a su nombre hasta entregarlo en caja). No modifica nada.</p></div>
+    <div class="card"><h3><bx-icon name="crown" /> Administrador</h3><p class="small muted">Todo: carta, precios y costos, inventario, caja y cierres, cobros, descuentos, modificar o anular pedidos, música, equipo y configuración. También puede atender mesas.</p></div>
+    <div class="card"><h3><bx-icon name="user" /> Mesero</h3><p class="small muted">Ve las mesas y la carta, carga rondas, entrega lo que le asignan y, si lo permites en Configuración, cobra (el dinero queda a su nombre hasta entregarlo en caja). No modifica nada.</p></div>
   </div>
   <div class="table-wrap">
     <table class="table">
@@ -28,7 +29,7 @@ interface UserForm { id?: number; name: string; username: string; password: stri
         @for (u of users(); track u.id) {
           <tr>
             <td class="strong">{{ u.name }}</td><td class="muted">{{ u.username }}</td>
-            <td><span class="badge" [class.violet]="u.role === 'ADMIN'" [class.teal]="u.role === 'WAITER'">{{ u.role === 'ADMIN' ? 'Administrador' : 'Mesero' }}</span></td>
+            <td><span class="badge" [class.amber]="u.role === 'ADMIN'" [class.teal]="u.role === 'WAITER'">{{ u.role === 'ADMIN' ? 'Administrador' : 'Mesero' }}</span></td>
             <td><span class="badge" [class.green]="u.active" [class.red]="!u.active">{{ u.active ? 'Activo' : 'Inactivo' }}</span></td>
             <td class="muted small">{{ u.lastLoginAt ? (u.lastLoginAt | date: 'd MMM, h:mm a') : 'Nunca' }}</td>
             <td class="right"><button class="btn xs" (click)="edit(u)">Editar</button></td>
@@ -41,7 +42,7 @@ interface UserForm { id?: number; name: string; username: string; password: stri
   @if (form(); as f) {
     <div class="backdrop" (click)="form.set(null)">
       <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal-head"><h2>{{ f.id ? 'Editar usuario' : 'Nuevo usuario' }}</h2><button class="btn icon sm" (click)="form.set(null)">✕</button></div>
+        <div class="modal-head"><h2>{{ f.id ? 'Editar usuario' : 'Nuevo usuario' }}</h2><button class="btn icon sm" (click)="form.set(null)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
         <div class="form-grid">
           <label class="field full"><span>Nombre</span><input class="input" [(ngModel)]="f.name"></label>
           <label class="field"><span>Usuario</span><input class="input" [(ngModel)]="f.username" [disabled]="!!f.id" autocapitalize="none"></label>

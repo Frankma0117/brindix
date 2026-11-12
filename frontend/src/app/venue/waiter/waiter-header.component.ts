@@ -4,20 +4,21 @@ import { Auth } from '../../core/auth.service';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
 import { ThemeToggleComponent } from '../../core/theme';
+import { IconComponent } from '../../shared/icon.component';
 
 @Component({
   selector: 'bx-waiter-header',
   standalone: true,
-  imports: [RouterLink, MascotComponent, ThemeToggleComponent],
+  imports: [RouterLink, MascotComponent, ThemeToggleComponent, IconComponent],
   template: `
   @if (auth.isSupport()) {
-    <div class="support-bar">🛟 Modo soporte: estás dentro de <b>{{ ctx.name() }}</b> como administrador. Todo queda en la bitácora.
+    <div class="support-bar"><bx-icon name="life-buoy" /> Modo soporte: estás dentro de <b>{{ ctx.name() }}</b> como administrador. Todo queda en la bitácora.
       <button class="btn xs" (click)="leaveSupport()">Volver a la plataforma</button></div>
   }
   <header class="wh">
     <div class="container row between">
       <div class="row">
-        @if (back()) { <a class="btn icon sm" [routerLink]="back()" aria-label="Volver">←</a> }
+        @if (back()) { <a class="btn icon sm" [routerLink]="back()" aria-label="Volver"><bx-icon name="arrow-left" /></a> }
         @else { <bx-mascot [size]="36" [animate]="false" /> }
         <div>
           <p class="t">{{ title() }}</p>
@@ -27,13 +28,13 @@ import { ThemeToggleComponent } from '../../core/theme';
       <div class="row">
         <bx-theme-toggle />
         @if (auth.isAdmin()) { <a class="btn sm" [routerLink]="'/' + ctx.slug() + '/admin'">Panel</a> }
-        <button class="btn ghost sm" (click)="auth.logout()">Salir</button>
+        <button class="btn ghost icon sm" (click)="auth.logout()" aria-label="Salir" title="Salir"><bx-icon name="log-out" /></button>
       </div>
     </div>
   </header>`,
   styles: [`
-    .wh { position: sticky; top: 0; z-index: 25; background: var(--glass); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 10px 0; }
-    .t { font-family: var(--display); font-weight: 800; font-size: 18px; }
+    .wh { position: sticky; top: 0; z-index: 25; background: var(--glass); border-bottom: 1px solid var(--line); padding: 10px 0; }
+    .t { font-weight: 800; font-size: 18px; }
   `],
 })
 export class WaiterHeaderComponent {

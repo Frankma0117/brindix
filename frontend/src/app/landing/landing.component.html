@@ -1,198 +1,201 @@
 <div class="page">
-  <!-- Navegación -->
   <header class="nav">
-    <div class="container row between">
-      <a class="logo" href="/"><bx-mascot [size]="40" [animate]="false" /><span>Brindix</span></a>
-      <nav class="links" [class.open]="menuOpen()">
-        <button (click)="scroll('funciones')">Funciones</button>
-        <button (click)="scroll('como')">Cómo funciona</button>
+    <div class="container nav-row">
+      <a class="logo" href="/"><bx-mascot [size]="34" [animate]="false" /><span>Brindix</span></a>
+      <nav class="links" [class.open]="menuOpen()" aria-label="Secciones">
+        <button (click)="scroll('mesero')">Meseros</button>
         <button (click)="scroll('caja')">Caja</button>
+        <button (click)="scroll('musica')">Música</button>
         <button (click)="scroll('preguntas')">Preguntas</button>
       </nav>
-      <div class="row">
+      <div class="row nav-actions">
         <bx-theme-toggle />
         @if (auth.session()) {
           <a class="btn sm" [href]="auth.home()">Mi panel</a>
         } @else {
-          <button class="btn sm btn-login" (click)="loginOpen.set(true)">Ingresar</button>
+          <button class="btn sm" (click)="loginOpen.set(true)">Ingresar</button>
         }
-        <a class="btn primary sm hide-sm" [href]="waLink()" target="_blank" rel="noopener">Pide una demo</a>
-        <button class="btn icon sm burger" (click)="menuOpen.set(!menuOpen())" aria-label="Menú">☰</button>
+        <a class="btn primary sm hide-sm" [href]="waLink()" target="_blank" rel="noopener">Pedir una demo</a>
+        <button class="btn icon sm burger" (click)="menuOpen.set(!menuOpen())" [attr.aria-expanded]="menuOpen()" aria-label="Menú"><bx-icon [name]="menuOpen() ? 'x' : 'menu'" /></button>
       </div>
     </div>
   </header>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="blob g1"></div><div class="blob g2"></div><div class="blob g3"></div>
-    <div class="container hero-grid">
-      <div class="hero-text">
-        <span class="pill">🍸 Software para bares y gastrobares</span>
-        <h1>Tu bar, <span class="grad-text">en el celular</span> de todos.</h1>
-        <p class="lead">Carta con QR, rondas por mesa, música a pedido, pantalla con publicidad, inventario con costos y cierre de caja. Todo en un solo lugar.</p>
-        <div class="row wrap cta">
-          <a class="btn primary lg" [href]="waLink()" target="_blank" rel="noopener">Quiero Brindix en mi bar</a>
-          <button class="btn lg" (click)="scroll('funciones')">Ver qué hace</button>
-        </div>
-        <div class="trust">
-          <span>✓ Sin instalar apps</span><span>✓ El cliente no se registra</span><span>✓ Funciona en cualquier celular</span>
-        </div>
-      </div>
-
-      <div class="hero-art">
-        <div class="mascot-stage">
-          <div class="ring"></div>
-          <bx-mascot [size]="240" mood="party" />
-          <span class="bubble b1">🎶 «Tusa» pedida por Mesa 4</span>
-          <span class="bubble b2">🛎️ Mesa 2 pidió 6 cervezas</span>
-          <span class="bubble b3">💰 Caja cuadrada</span>
-        </div>
-        <!-- Celular con la carta -->
-        <div class="phone">
-          <div class="notch"></div>
-          <div class="ph-head"><b>La Terraza</b><span>📍 Mesa 4</span></div>
-          <div class="ph-promo">Happy Hour · 2x1 en cócteles</div>
-          <div class="ph-grid">
-            <div class="ph-card"><bx-art class="ph-img" art="cocktail" /><b>Mojito</b><span>$ 22.000</span></div>
-            <div class="ph-card"><bx-art class="ph-img" art="beer" /><b>Club Colombia</b><span>$ 8.000</span></div>
-            <div class="ph-card"><bx-art class="ph-img" art="food" /><b>Picada</b><span>$ 48.000</span></div>
-            <div class="ph-card"><bx-art class="ph-img" art="spirit" /><b>Old Parr</b><span>$ 220.000</span></div>
+  <main>
+    <!-- Primer pantallazo: qué es, para quién y una prueba concreta -->
+    <section class="hero screen" data-enter>
+      <div class="container hero-grid">
+        <div class="hero-text">
+          <h1>El sistema para bares que toma pedidos en el celular y cuadra la caja.</h1>
+          <p class="lead">Carta con QR en cada mesa, rondas que el mesero carga en dos toques, música que piden los clientes y un cierre de caja que te dice exactamente cuánto falta o sobra.</p>
+          <div class="row wrap cta">
+            <a class="btn primary lg" [href]="waLink()" target="_blank" rel="noopener">Pedir una demo</a>
+            @if (demoUrl()) { <a class="btn lg" [href]="demoUrl()">Ver una carta real</a> }
+            @else { <button class="btn lg" (click)="scroll('mesero')">Ver cómo funciona</button> }
           </div>
-          <div class="ph-cart">🧾 Ver mi pedido · $ 30.000</div>
+          <p class="fact"><b>6 cervezas, 2 toques.</b> Funciona en el navegador del celular: nada que instalar y el cliente no se registra.</p>
         </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- Funciones -->
-  <section class="section" id="funciones">
-    <div class="container">
-      <p class="kicker">Todo lo que necesita tu bar</p>
-      <h2 class="title">Menos papelitos, más brindis.</h2>
-      <div class="features">
-        @for (f of features; track f.title) {
-          <article class="feature card">
-            <span class="f-ico">{{ f.icon }}</span>
-            <h3>{{ f.title }}</h3>
-            <p class="muted">{{ f.text }}</p>
-          </article>
-        }
-      </div>
-    </div>
-  </section>
-
-  <!-- Perfiles -->
-  <section class="section alt">
-    <div class="container">
-      <p class="kicker">Cada quien con lo suyo</p>
-      <h2 class="title">Tres perfiles, una sola noche.</h2>
-      <div class="roles">
-        <div class="role card">
-          <span class="r-ico">🙋</span><h3>Cliente</h3>
-          <ul><li>Escanea el QR de su mesa</li><li>Ve la carta con fotos</li><li>Pide y pone su canción</li><li>Llama al mesero o pide la cuenta</li></ul>
-        </div>
-        <div class="role card">
-          <span class="r-ico">🧑‍🍳</span><h3>Mesero</h3>
-          <ul><li>Entra con su usuario y contraseña</li><li>Ve las mesas y la carta</li><li>Carga rondas por tandas</li><li>Entrega y, si lo permites, cobra</li></ul>
-        </div>
-        <div class="role card glow">
-          <span class="r-ico">👑</span><h3>Administrador</h3>
-          <ul><li>Carta, precios, costos e inventario</li><li>Asigna pedidos y modifica con cuidado</li><li>Caja, cierres y reportes</li><li>Música, pantalla, equipo y configuración</li></ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Cómo funciona -->
-  <section class="section" id="como">
-    <div class="container">
-      <p class="kicker">Empieza en una tarde</p>
-      <h2 class="title">Así de fácil.</h2>
-      <div class="steps">
-        @for (s of steps; track s.n) {
-          <div class="step"><span class="n">{{ s.n }}</span><h3>{{ s.title }}</h3><p class="muted">{{ s.text }}</p></div>
-        }
-      </div>
-    </div>
-  </section>
-
-  <!-- Caja -->
-  <section class="section alt" id="caja">
-    <div class="container split">
-      <div>
-        <p class="kicker">Cierre de caja</p>
-        <h2 class="title">Al final de la noche, las cuentas claras.</h2>
-        <p class="muted big-p">Abres el turno con la base, Brindix suma lo que se cobró en efectivo, resta los recibos y compras pagados de la caja, y te dice cuánto debería haber. Cuentas, escribes el total y listo: diferencia, ventas por medio de pago, ganancia por producto y todo lo que se anuló.</p>
-        <ul class="checks">
-          <li>Precio de venta y de compra en cada producto</li>
-          <li>Dinero que cobraron los meseros, pendiente de entregar</li>
-          <li>Recibos, reposiciones, retiros y pagos al personal</li>
-          <li>Bitácora de anulaciones y cambios</li>
-        </ul>
-      </div>
-      <div class="ticket card">
-        <div class="row between"><b>Cierre · viernes</b><span class="badge green">Cuadrada</span></div>
-        <div class="divider"></div>
-        <div class="tl"><span>Base inicial</span><span>$ 200.000</span></div>
-        <div class="tl"><span>Ventas en efectivo</span><span>$ 1.284.000</span></div>
-        <div class="tl"><span>Recibo de la luz</span><span>− $ 86.000</span></div>
-        <div class="tl"><span>Reposición de hielo</span><span>− $ 24.000</span></div>
-        <div class="divider"></div>
-        <div class="tl strong"><span>Esperado en caja</span><span>$ 1.374.000</span></div>
-        <div class="tl strong"><span>Contado</span><span>$ 1.374.000</span></div>
-        <div class="divider"></div>
-        <div class="tl"><span>Ventas totales (todos los medios)</span><span>$ 2.912.000</span></div>
-        <div class="tl grad"><span>Ganancia estimada</span><span>$ 1.538.000</span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Música y pantalla -->
-  <section class="section">
-    <div class="container split rev">
-      <div class="tv">
-        <div class="tv-screen">
-          <div class="tv-ad"><span>Happy Hour</span><small>2x1 en cócteles</small></div>
-          <div class="tv-side">
-            <small>SONANDO AHORA</small><b>Provenza</b><span>Karol G · Mesa 1</span>
-            <small class="mt">LO QUE SIGUE</small><span>1 · La Bicicleta</span><span>2 · Tusa</span>
+        <!-- Interfaz real: la carta que ve el cliente al escanear el QR -->
+        <div class="device" aria-hidden="true">
+          <div class="phone">
+            <div class="ph-head">
+              <img src="/demo-assets/candela-mark.png" alt="" class="ph-logo" width="34" height="34" loading="lazy">
+              <div><b>Candela Brava</b><span>Mesa 4</span></div>
+            </div>
+            <div class="ph-promo" style="background-image: linear-gradient(90deg, rgba(15,13,11,.85), rgba(15,13,11,.2)), url(/demo-assets/michelada-m.jpg)">
+              <b>Martes de micheladas</b><span>Club Colombia michelada a $ 12.000</span>
+            </div>
+            <div class="ph-chips"><span class="on">Todo</span><span>Cervezas</span><span>Cócteles</span><span>Para picar</span></div>
+            <div class="ph-grid">
+              <div class="ph-card"><img src="/demo-assets/club-dorada-s.jpg" alt="" width="320" height="240" loading="lazy"><b>Club Colombia Dorada</b><span>$ 9.000</span></div>
+              <div class="ph-card"><img src="/demo-assets/mojito-s.jpg" alt="" width="320" height="240" loading="lazy"><b>Mojito</b><span>$ 30.000</span></div>
+              <div class="ph-card"><img src="/demo-assets/picada-s.jpg" alt="" width="320" height="240" loading="lazy"><b>Picada de la casa</b><span>$ 78.000</span></div>
+              <div class="ph-card"><img src="/demo-assets/aguardiente-s.jpg" alt="" width="320" height="240" loading="lazy"><b>Antioqueño · media</b><span>$ 95.000</span></div>
+            </div>
+            <div class="ph-cart">Ver mi pedido · $ 39.000</div>
           </div>
         </div>
-        <div class="tv-foot"></div>
       </div>
-      <div>
-        <p class="kicker">Música y pantalla</p>
-        <h2 class="title">Que el bar suene a lo que piden tus clientes.</h2>
-        <p class="muted big-p">Conecta Spotify o YouTube desde la configuración del administrador. Los clientes buscan su canción desde la mesa, tú decides el orden y el TV muestra lo que suena, lo que sigue y tu publicidad.</p>
+    </section>
+
+    <!-- Meseros -->
+    <section class="section screen" id="mesero">
+      <div class="container split">
+        <div class="copy">
+          <h2>Una ronda de seis cervezas se carga en dos toques.</h2>
+          <p class="big-p">El mesero abre la mesa, toca el producto y elige la tanda: 2, 3, 6 o 12. Agrega una nota si piden sin hielo y envía. La ronda queda en la cuenta correcta, descuenta inventario y le llega a quien la lleva.</p>
+          <ul class="plain">
+            <li><b>Mesas libres y ocupadas</b> a la vista, con lo que debe cada una.</li>
+            <li><b>Pedidos desde el QR</b> que el administrador asigna con un toque.</li>
+            <li><b>Cobro por ronda o total</b>, y el efectivo queda a nombre de quien cobró.</li>
+          </ul>
+        </div>
+        <div class="device" aria-hidden="true">
+          <div class="phone picker">
+            <div class="pk-head"><b>Pedido · Mesa 4</b><span class="pk-x"></span></div>
+            <div class="pk-row on">
+              <img src="/demo-assets/club-dorada-xs.jpg" alt="" width="44" height="44" loading="lazy"><div><b>Club Colombia Dorada</b><span>$ 9.000</span></div>
+              <div class="pk-step"><i>−</i><b>6</b><i>+</i></div>
+              <div class="pk-quick"><span>1</span><span>2</span><span>3</span><span class="on">6</span><span>12</span><span>Nota</span></div>
+            </div>
+            <div class="pk-row"><img src="/demo-assets/aguila-xs.jpg" alt="" width="44" height="44" loading="lazy"><div><b>Águila</b><span>$ 8.000</span></div><span class="pk-plus">+</span></div>
+            <div class="pk-row"><img src="/demo-assets/poker-xs.jpg" alt="" width="44" height="44" loading="lazy"><div><b>Póker</b><span>$ 8.000</span></div><span class="pk-plus">+</span></div>
+            <div class="pk-row"><img src="/demo-assets/michelada-xs.jpg" alt="" width="44" height="44" loading="lazy"><div><b>Michelada</b><span>$ 12.000</span></div><span class="pk-plus">+</span></div>
+            <div class="pk-send"><span class="pk-count">6</span><b>$ 54.000</b><span class="pk-btn">Enviar pedido</span></div>
+          </div>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Preguntas -->
-  <section class="section alt" id="preguntas">
-    <div class="container narrow">
-      <p class="kicker">Preguntas frecuentes</p>
-      <h2 class="title">Lo que suelen preguntarnos.</h2>
-      @for (f of faqs; track f.q) {
-        <details class="faq card"><summary>{{ f.q }}</summary><p class="muted">{{ f.a }}</p></details>
-      }
-    </div>
-  </section>
+    <!-- Caja -->
+    <section class="section screen alt" id="caja">
+      <div class="container split">
+        <div class="copy">
+          <h2>Al final de la noche, la caja te dice si cuadra.</h2>
+          <p class="big-p">Abres el turno con la base. Brindix suma lo cobrado en efectivo, resta los recibos y compras que salieron de la caja y calcula lo que debería haber. Cuentas, escribes el total y ves la diferencia, las ventas por medio de pago y la ganancia por producto.</p>
+          <ul class="plain">
+            <li><b>Precio de venta y costo</b> en cada producto, con costo promedio en cada compra.</li>
+            <li><b>Bitácora</b> de anulaciones, descuentos y cambios, con nombre y motivo.</li>
+          </ul>
+        </div>
+        <div class="ticket card" aria-label="Ejemplo de cierre de caja">
+          <div class="row between"><b>Cierre · viernes</b><span class="badge green">Cuadrada</span></div>
+          <div class="divider"></div>
+          <div class="tl"><span>Base inicial</span><span class="num">$ 200.000</span></div>
+          <div class="tl"><span>Ventas en efectivo</span><span class="num">$ 1.284.000</span></div>
+          <div class="tl"><span>Recibo de la luz</span><span class="num">− $ 86.000</span></div>
+          <div class="tl"><span>Hielo y limones</span><span class="num">− $ 24.000</span></div>
+          <div class="divider"></div>
+          <div class="tl strong"><span>Esperado en caja</span><span class="num">$ 1.374.000</span></div>
+          <div class="tl strong"><span>Contado</span><span class="num">$ 1.374.000</span></div>
+          <div class="divider"></div>
+          <div class="tl"><span>Ventas totales</span><span class="num">$ 2.912.000</span></div>
+          <div class="tl profit"><span>Ganancia estimada</span><span class="num">$ 1.538.000</span></div>
+        </div>
+      </div>
+    </section>
 
-  <!-- Cierre -->
-  <section class="section final" id="contacto">
-    <div class="container final-box">
-      <bx-mascot [size]="130" mood="wink" />
-      <h2>¿Brindamos por tu bar?</h2>
-      <p class="muted">Te mostramos Brindix funcionando y lo dejamos listo con tu carta.</p>
-      <a class="btn primary lg" [href]="waLink()" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
-    </div>
-  </section>
+    <!-- Momento: la barra -->
+    <section class="photo-band" aria-label="Una barra de noche">
+      <img src="/demo-assets/barra.jpg" srcset="/demo-assets/barra-sm.jpg 640w, /demo-assets/barra.jpg 1100w" sizes="100vw" alt="Barra de un bar de noche con botellas iluminadas" width="1100" height="733" loading="lazy" decoding="async">
+      <div class="container band-text">
+        <p class="band-big">Hecho para la noche colombiana: aguardiente por media, cerveza por canasta y la cuenta de la mesa siempre al día.</p>
+      </div>
+    </section>
+
+    <!-- Música y pantalla -->
+    <section class="section screen" id="musica">
+      <div class="container split rev">
+        <div class="tv" aria-hidden="true">
+          <div class="tv-screen">
+            <div class="tv-ad"><img src="/demo-assets/shots-m.jpg" srcset="/demo-assets/shots-sm.jpg 420w, /demo-assets/shots-m.jpg 800w" sizes="(max-width: 900px) 60vw, 420px" alt="" width="800" height="533" loading="lazy">
+              <b>Hora feliz de tequila</b><span>2 shots por $ 30.000 hasta las 10 p. m.</span>
+            </div>
+            <div class="tv-side">
+              <span class="tv-l">Sonando ahora</span><b>Provenza</b><span>Karol G · Mesa 1</span>
+              <span class="tv-l mt">Lo que sigue</span><span>1 · La Bicicleta</span><span>2 · Tusa</span>
+            </div>
+          </div>
+          <div class="tv-foot"></div>
+        </div>
+        <div class="copy">
+          <h2>El TV muestra lo que suena, lo que sigue y tus promociones.</h2>
+          <p class="big-p">Los clientes buscan su canción desde la mesa. Tú apruebas, priorizas o quitas; Spotify o YouTube la ponen en orden y la pantalla rota tus banners con foto y precio.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Perfiles -->
+    <section class="section screen alt" id="perfiles">
+      <div class="container">
+        <h2 class="center-h">Cada persona ve solo lo suyo.</h2>
+        <div class="roles">
+          <div class="role">
+            <h3>Cliente</h3>
+            <p>Escanea el QR de su mesa, ve la carta con fotos, pide si el bar lo permite, pone su canción y pide la cuenta. Sin registrarse.</p>
+          </div>
+          <div class="role">
+            <h3>Mesero</h3>
+            <p>Entra con su usuario, ve sus mesas, carga rondas por tandas, entrega y, si lo permites, cobra. No puede cambiar precios ni inventario.</p>
+          </div>
+          <div class="role">
+            <h3>Administrador</h3>
+            <p>Carta, precios y costos, inventario, caja y cierres, asignación de pedidos, música, pantalla y equipo. En bares pequeños también atiende mesas.</p>
+          </div>
+        </div>
+        <ol class="steps">
+          <li><b>Creamos tu bar</b><span>Tu dirección brindix.cania.app/tu-bar y el usuario del administrador.</span></li>
+          <li><b>Cargas tu carta</b><span>Productos con foto, precio de venta y costo, ordenados arrastrando.</span></li>
+          <li><b>Imprimes los QR</b><span>Uno por mesa, listos para el portavasos.</span></li>
+          <li><b>Abres la caja</b><span>Con la base del día, y a atender.</span></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Preguntas y contacto en una sola pantalla -->
+    <section class="section screen" id="preguntas">
+      <div class="container split faq-split">
+        <div>
+          <h2>Preguntas frecuentes</h2>
+          @for (f of faqs; track f.q) {
+            <details class="faq"><summary>{{ f.q }}<bx-icon name="chevron-down" /></summary><p class="muted">{{ f.a }}</p></details>
+          }
+        </div>
+        <div class="final-box card" id="contacto">
+          <bx-mascot [size]="110" mood="wink" />
+          <h2>¿Brindamos por tu bar?</h2>
+          <p class="muted">Te mostramos Brindix funcionando y lo dejamos listo con tu carta, tus mesas y tus QR.</p>
+          <a class="btn primary lg" [href]="waLink()" target="_blank" rel="noopener">Escribir por WhatsApp</a>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <footer class="footer">
     <div class="container row between wrap">
-      <span class="row"><bx-mascot [size]="28" [animate]="false" /> Brindix · {{ 2026 }}</span>
-      <span class="muted small">Hecho en Colombia para la noche colombiana.</span>
+      <span class="row"><bx-mascot [size]="26" [animate]="false" /> Brindix · {{ year }}</span>
+      <span class="muted small">Fotos de la demo: Wikimedia Commons (CC BY, CC BY-SA, CC0 y dominio público) · <a href="/creditos">Créditos</a></span>
     </div>
   </footer>
 </div>
@@ -201,7 +204,7 @@
 @if (loginOpen()) {
   <div class="backdrop" (click)="loginOpen.set(false)">
     <form class="modal" (click)="$event.stopPropagation()" (ngSubmit)="goToBar()">
-      <div class="modal-head"><h2>Ingresar a tu bar</h2><button type="button" class="btn icon sm" (click)="loginOpen.set(false)">✕</button></div>
+      <div class="modal-head"><h2>Ingresar a tu bar</h2><button type="button" class="btn icon sm" (click)="loginOpen.set(false)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
       <label class="field"><span>Dirección de tu bar</span>
         <div class="slug-input"><span>brindix.cania.app/</span><input class="input" name="slug" [(ngModel)]="slug" placeholder="tu-bar" autocapitalize="none" autofocus></div>
       </label>

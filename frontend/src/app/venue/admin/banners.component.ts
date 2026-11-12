@@ -76,9 +76,9 @@ interface BannerForm {
     .swatch { width: 40px; height: 40px; border-radius: 12px; border: 2px solid transparent; background: linear-gradient(135deg, var(--p1), var(--p2)); cursor: pointer; }
     .swatch.on { border-color: #fff; }
     [data-theme=amber] { --p1: #ffb238; --p2: #e2521d; }
-    [data-theme=neon] { --p1: #ff4f8b; --p2: #6d28d9; }
+    [data-theme=neon] { --p1: #ff5c6c; --p2: #9f1d2e; }
     [data-theme=lime] { --p1: #84cc16; --p2: #0f766e; }
-    [data-theme=berry] { --p1: #be185d; --p2: #4c1d95; }
+    [data-theme=berry] { --p1: #c2410c; --p2: #5c1a0b; }
     [data-theme=ocean] { --p1: #06b6d4; --p2: #1e3a8a; }
   `],
 })

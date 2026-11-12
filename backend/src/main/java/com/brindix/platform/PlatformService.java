@@ -29,7 +29,7 @@ import java.util.Set;
 public class PlatformService {
 
     /** Direcciones que no puede usar un bar porque son rutas de la app. */
-    private static final Set<String> RESERVED = Set.of("api", "uploads", "plataforma", "ingresar", "admin", "mesero",
+    private static final Set<String> RESERVED = Set.of("api", "uploads", "plataforma", "creditos", "demo-assets", "ingresar", "admin", "mesero",
             "pantalla", "carta", "assets", "static", "brindix", "www", "app", "login", "favicon.svg");
 
     private final PlatformUserRepository platformUsers;

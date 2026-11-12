@@ -15,6 +15,8 @@ public record AppProperties(
         String timezone,
         String uploadsDir,
         String whatsapp,
+        /** Carta del bar demo que enlaza la landing ("Ver una carta real"); vacío = sin enlace. */
+        String demoUrl,
         Jwt jwt,
         String secretKey,
         Seed seed,

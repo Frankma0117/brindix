@@ -59,6 +59,7 @@ public class PlatformController {
     /** Datos públicos de contacto para la landing. */
     @GetMapping("/api/public/site")
     public Map<String, String> site() {
-        return Map.of("whatsapp", props.whatsapp() == null ? "" : props.whatsapp());
+        return Map.of("whatsapp", props.whatsapp() == null ? "" : props.whatsapp(),
+                "demoUrl", props.demoUrl() == null ? "" : props.demoUrl());
     }
 }

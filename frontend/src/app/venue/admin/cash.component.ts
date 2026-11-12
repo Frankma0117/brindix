@@ -5,6 +5,7 @@ import { Api, errorMessage } from '../../core/api.service';
 import { CASH_LABELS, CashCategory, PAYMENT_LABELS, PaymentMethod, PaymentView, ShiftReport, ShiftRow, ShiftStatus } from '../../core/models';
 import { HourPipe, MoneyPipe, Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
+import { IconComponent } from '../../shared/icon.component';
 
 interface CashState { open: boolean; shift: ShiftStatus | Record<string, never>; unsettled: PaymentView[]; }
 
@@ -12,19 +13,21 @@ interface CashState { open: boolean; shift: ShiftStatus | Record<string, never>;
 @Component({
   selector: 'bx-cash',
   standalone: true,
-  imports: [FormsModule, DatePipe, MoneyPipe, HourPipe],
+  imports: [IconComponent, FormsModule, DatePipe, MoneyPipe, HourPipe],
   templateUrl: './cash.component.html',
   styles: [`
     .open-box { max-width: 520px; display: flex; flex-direction: column; gap: 14px; }
     .flow { display: grid; gap: 8px; }
     .fl { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--line); font-variant-numeric: tabular-nums; }
-    .fl.total { border: 0; font-family: var(--display); font-size: 22px; font-weight: 800; }
+    .fl.total { border: 0; font-size: 22px; font-weight: 800; }
+    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--red); flex: none; }
+    .dot.in { background: var(--green); }
     .neg { color: var(--ink-red); } .pos { color: var(--ink-green); }
     .mv { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
     .mv:last-child { border: 0; }
     .layout { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; align-items: start; margin-top: 16px; }
     @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
-    .diff { font-family: var(--display); font-size: 26px; font-weight: 800; }
+    .diff { font-size: 26px; font-weight: 800; }
     .report h3 { margin: 18px 0 8px; }
     .report .table td, .report .table th { padding: 7px 8px; }
     .head-print { display: none; }

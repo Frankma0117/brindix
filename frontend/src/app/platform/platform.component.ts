@@ -114,11 +114,11 @@ interface VenueForm {
     }
   }`,
   styles: [`
-    .login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: radial-gradient(600px 400px at 30% 10%, rgba(139,92,246,.2), transparent); }
+    .login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: radial-gradient(600px 400px at 30% 10%, rgba(255,178,56,.14), transparent); }
     .box { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 14px; }
     .err { color: var(--ink-red); font-weight: 600; }
     .top { border-bottom: 1px solid var(--line); padding: 12px 0; background: var(--bg-2); }
-    .brand { font-family: var(--display); font-size: 18px; }
+    .brand { font-size: 18px; }
     .wrap-p { padding-top: 26px; padding-bottom: 60px; }
     .sec { margin-top: 6px; font-size: 15px; color: var(--c-amber); }
     .slug { display: flex; align-items: center; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg-2); }

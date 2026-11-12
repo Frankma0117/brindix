@@ -1,6 +1,6 @@
 :host { display: block; }
 .screen { position: fixed; inset: 0; display: grid; grid-template-columns: 1fr minmax(380px, 34vw); gap: 2vw; padding: 2vw; background: #08060d; overflow: hidden; }
-.bg-glow { position: absolute; inset: -20%; background: radial-gradient(40% 40% at 80% 20%, rgba(255, 79, 139, .22), transparent), radial-gradient(40% 40% at 10% 90%, rgba(255, 178, 56, .16), transparent); animation: drift 18s ease-in-out infinite alternate; pointer-events: none; }
+.bg-glow { position: absolute; inset: -20%; background: radial-gradient(40% 40% at 80% 20%, rgba(255, 92, 108, .16), transparent), radial-gradient(40% 40% at 10% 90%, rgba(255, 178, 56, .16), transparent); animation: drift 18s ease-in-out infinite alternate; pointer-events: none; }
 @keyframes drift { to { transform: translate(3%, -3%) scale(1.05); } }
 
 .ads { position: relative; border-radius: 2vw; overflow: hidden; }
@@ -20,9 +20,9 @@
 .ad-dots span { width: .7vw; height: .7vw; border-radius: 9px; background: rgba(255, 255, 255, .4); transition: width .3s; }
 .ad-dots span.on { width: 2.4vw; background: #fff; }
 [data-theme=amber] { --p1: #ffb238; --p2: #e2521d; }
-[data-theme=neon] { --p1: #ff4f8b; --p2: #6d28d9; }
+[data-theme=neon] { --p1: #ff5c6c; --p2: #9f1d2e; }
 [data-theme=lime] { --p1: #84cc16; --p2: #0f766e; }
-[data-theme=berry] { --p1: #be185d; --p2: #4c1d95; }
+[data-theme=berry] { --p1: #c2410c; --p2: #5c1a0b; }
 [data-theme=ocean] { --p1: #06b6d4; --p2: #1e3a8a; }
 
 .music { position: relative; display: flex; flex-direction: column; gap: 1.6vw; min-height: 0; }

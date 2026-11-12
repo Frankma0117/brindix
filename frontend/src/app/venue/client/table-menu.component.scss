@@ -18,24 +18,24 @@
 .promo .dots button { width: 8px; height: 8px; border-radius: 99px; border: 0; background: rgba(255, 255, 255, .45); padding: 0; cursor: pointer; transition: width .2s; }
 .promo .dots button.on { width: 22px; background: #fff; }
 [data-theme=amber] { --p1: #ffb238; --p2: #e2521d; }
-[data-theme=neon] { --p1: #ff4f8b; --p2: #6d28d9; }
+[data-theme=neon] { --p1: #ff5c6c; --p2: #9f1d2e; }
 [data-theme=lime] { --p1: #84cc16; --p2: #0f766e; }
-[data-theme=berry] { --p1: #be185d; --p2: #4c1d95; }
+[data-theme=berry] { --p1: #c2410c; --p2: #5c1a0b; }
 [data-theme=ocean] { --p1: #06b6d4; --p2: #1e3a8a; }
 
-.sticky { position: sticky; top: 0; z-index: 20; background: var(--glass); backdrop-filter: blur(12px); padding: 10px 0; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+.sticky { position: sticky; top: 0; z-index: 20; background: var(--glass); padding: 10px 0; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
 .cats { display: flex; gap: 8px; overflow-x: auto; padding-top: 10px; scrollbar-width: none; }
 .cats::-webkit-scrollbar { display: none; }
 .section { padding-top: 22px; scroll-margin-top: 130px; }
 .sec-title { font-size: 20px; margin-bottom: 12px; display: flex; align-items: baseline; gap: 8px; }
 
-.featured { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.featured { display: flex; gap: 12px; overflow-x: auto; padding: 2px 16px 6px; margin: 0 -16px; scroll-padding: 0 16px; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .featured::-webkit-scrollbar { display: none; }
 .feat { flex: 0 0 210px; scroll-snap-align: start; border: 0; padding: 0; border-radius: 20px; overflow: hidden; position: relative; cursor: pointer; background: var(--surface); text-align: left; color: var(--text); }
 .feat-img { height: 230px; }
-.feat-body { position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 14px 14px; background: linear-gradient(transparent, rgba(0, 0, 0, .78)); display: flex; flex-direction: column; }
-.feat-body .name { font-family: var(--display); font-weight: 800; font-size: 18px; }
-.feat-body .price { color: var(--c-amber); font-weight: 800; }
+.feat-body { position: absolute; left: 0; right: 0; bottom: 0; padding: 48px 14px 14px; background: linear-gradient(transparent, rgba(10, 8, 6, .9) 55%); display: flex; flex-direction: column; color: #f7f1ea; }
+.feat-body .name { font-weight: 800; font-size: 17px; }
+.feat-body .price { color: #ffb238; font-weight: 800; }
 
 .grid-products { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (min-width: 700px) { .grid-products { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -68,11 +68,11 @@
 .total-line { margin: 16px 0 12px; }
 .center { text-align: center; margin-top: 10px; }
 
-.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; justify-content: center; gap: 4px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: var(--glass); backdrop-filter: blur(14px); border-top: 1px solid var(--line); }
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; justify-content: center; gap: 4px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: var(--glass); border-top: 1px solid var(--line); }
 .tabbar button { position: relative; flex: 0 1 140px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px; border: 0; border-radius: 14px; background: transparent; color: var(--faint); font: 700 12px var(--font); cursor: pointer; }
-.tabbar button span { font-size: 20px; filter: grayscale(1); opacity: .7; }
+.tabbar button bx-icon { --icon-size: 22px; }
 .tabbar button.on { color: var(--text); background: var(--surface-2); }
-.tabbar button.on span { filter: none; opacity: 1; }
+.tabbar button.on bx-icon { color: var(--c-amber); }
 .tabbar .dot { position: absolute; top: 6px; right: 30%; width: 8px; height: 8px; border-radius: 9px; background: var(--pink); }
 
 .music h1 { margin: 10px 0 16px; }
