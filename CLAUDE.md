@@ -30,6 +30,17 @@ inventario con costos, música (Spotify/YouTube/manual), pantalla. Repo
 - Imágenes en DigitalOcean Spaces (mismo bucket de Aula Interactiva, prefijo `brindix/`); imágenes de
   prueba generadas una sola vez con fal.ai (`scripts/seed-images.py`).
 
+## Diseño: skills obligatorias
+Todo trabajo de diseño sigue las skills instaladas en `~/.claude/skills`:
+- **impeccable**: pantallas de trabajo (mesero, caja, admin, plataforma) = modo *Operate*; landing = *Persuade*.
+  Leer `reference/craft-floor.md` antes de editar UI. Pendiente según esa guía: quitar las etiquetas sobre
+  los títulos (kicker), el texto con degradado, los emoji usados como íconos (pasar a un solo set SVG) y las
+  tarjetas de métricas genéricas.
+- **design-taste-frontend** (taste): solo para la landing (tipo *software*): nada de violeta en la paleta
+  propia, una sección por pantalla, sin animaciones al hacer scroll.
+- **Emil Kowalski** (emil-design-eng, animate, review-animations…): movimiento < 300 ms con ease-out fuerte,
+  `:active` scale(.97), hover solo con `(hover: hover) and (pointer: fine)`.
+
 ## Tema claro / oscuro
 - `core/theme.ts`: Automático (sigue al dispositivo) → Claro → Oscuro; se guarda en `brindix.theme`; `index.html`
   aplica `<html data-mode>` antes de Angular. La pantalla del TV es siempre oscura (`.force-dark`).
