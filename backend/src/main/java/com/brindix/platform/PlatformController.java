@@ -41,8 +41,15 @@ public class PlatformController {
     }
 
     @PostMapping("/api/platform/password")
-    public void changePassword(@Valid @RequestBody StaffDtos.PasswordChange in) {
-        service.changePassword(CurrentUser.get(), in);
+    public Map<String, String> changePassword(@Valid @RequestBody StaffDtos.PasswordChange in) {
+        return Map.of("token", service.changePassword(CurrentUser.get(), in));
+    }
+
+    /** Olvidé mi contraseña (súper administrador): con la clave de recuperación del servidor. */
+    @PostMapping("/api/platform/recover")
+    public Map<String, String> recover(@Valid @RequestBody PlatformService.RecoverInput in, jakarta.servlet.http.HttpServletRequest req) {
+        service.recover(in, com.brindix.common.ClientIp.of(req));
+        return Map.of("message", "Contraseña restablecida. Ya puedes entrar.");
     }
 
     /** Modo soporte: entrar al bar como su administrador. */

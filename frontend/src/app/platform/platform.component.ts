@@ -7,6 +7,7 @@ import { Auth, PlatformAuth, StaffSession } from '../core/auth.service';
 import { PlatformVenue } from '../core/models';
 import { Toasts } from '../core/ui';
 import { MascotComponent } from '../shared/mascot.component';
+import { ResetRequestsComponent } from '../shared/reset-requests.component';
 import { ThemeToggleComponent } from '../core/theme';
 
 interface VenueForm {
@@ -18,10 +19,24 @@ interface VenueForm {
 @Component({
   selector: 'bx-platform',
   standalone: true,
-  imports: [FormsModule, DatePipe, MascotComponent, ThemeToggleComponent],
+  imports: [FormsModule, DatePipe, MascotComponent, ThemeToggleComponent, ResetRequestsComponent],
   template: `
   @if (!auth.session() || auth.session()!.mustChangePassword || changing()) { <bx-theme-toggle class="theme-corner" /> }
-  @if (!auth.session()) {
+  @if (!auth.session() && recovering()) {
+    <main class="login-wrap">
+      <form class="card pad-lg box" (ngSubmit)="recover()">
+        <div><h2>Recuperar acceso</h2><p class="muted small">Para el súper administrador de Brindix. Necesitas la clave de recuperación del servidor: en <code>/opt/brindix/.env</code>, variable <code>BRINDIX_RECOVERY_KEY</code>.</p></div>
+        <label class="field"><span>Usuario</span><input class="input" name="ru" [(ngModel)]="username" autocomplete="username" autocapitalize="none"></label>
+        <label class="field"><span>Clave de recuperación</span><input class="input" name="rk" type="password" [(ngModel)]="recoveryKey" autocomplete="off"></label>
+        <label class="field"><span>Nueva contraseña (mínimo 8)</span><input class="input" name="rn" type="password" [(ngModel)]="next" autocomplete="new-password"></label>
+        <label class="field"><span>Repite la nueva</span><input class="input" name="rr" type="password" [(ngModel)]="repeat" autocomplete="new-password"></label>
+        @if (error()) { <p class="err">{{ error() }}</p> }
+        <button class="btn primary lg block" [disabled]="busy() || !username || !recoveryKey || next.length < 8 || !repeat">Restablecer</button>
+        <button type="button" class="btn ghost sm" (click)="recovering.set(false); error.set('')">Volver</button>
+        <p class="tiny muted">Al restablecerla se cierran todas las sesiones abiertas.</p>
+      </form>
+    </main>
+  } @else if (!auth.session()) {
     <main class="login-wrap">
       <form class="card pad-lg box" (ngSubmit)="login()">
         <div class="row"><bx-mascot [size]="70" mood="wink" /><div><h2>Plataforma Brindix</h2><p class="muted small">Acceso del administrador del servicio.</p></div></div>
@@ -29,6 +44,7 @@ interface VenueForm {
         <label class="field"><span>Contraseña</span><input class="input" name="p" type="password" [(ngModel)]="password" autocomplete="current-password"></label>
         @if (error()) { <p class="err">{{ error() }}</p> }
         <button class="btn primary lg block" [disabled]="busy() || !username || !password">Entrar</button>
+        <button type="button" class="btn ghost sm" (click)="recovering.set(true); error.set('')">¿Olvidaste tu contraseña?</button>
       </form>
     </main>
   } @else if (auth.session()!.mustChangePassword || changing()) {
@@ -57,6 +73,7 @@ interface VenueForm {
         <div><h1>Bares</h1><p>Cada bar tiene su dirección, su administrador y sus datos separados.</p></div>
         <button class="btn primary" (click)="newVenue()">＋ Nuevo bar</button>
       </div>
+      <bx-reset-requests base="/platform" [showVenue]="true" />
       <div class="table-wrap">
         <table class="table">
           <thead><tr><th>Bar</th><th>Dirección</th><th>Administrador</th><th>Contacto</th><th>Usuarios</th><th>Estado</th><th>Creado</th><th></th></tr></thead>
@@ -138,6 +155,8 @@ export class PlatformComponent implements OnInit {
   next = '';
   repeat = '';
   changing = signal(false);
+  recovering = signal(false);
+  recoveryKey = '';
   busy = signal(false);
   error = signal('');
   venues = signal<PlatformVenue[]>([]);
@@ -170,6 +189,22 @@ export class PlatformComponent implements OnInit {
       this.changing.set(false);
       this.toasts.ok('Contraseña cambiada');
       this.load();
+    } catch (e) {
+      this.error.set(errorMessage(e));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async recover(): Promise<void> {
+    if (this.next !== this.repeat) { this.error.set('Las dos contraseñas nuevas no coinciden'); return; }
+    this.busy.set(true);
+    this.error.set('');
+    try {
+      await this.api.run(this.api.post('/platform/recover', { username: this.username.trim(), recoveryKey: this.recoveryKey, next: this.next, temporary: false }));
+      this.toasts.ok('Contraseña restablecida. Entra con la nueva.');
+      this.recovering.set(false);
+      this.recoveryKey = this.next = this.repeat = this.password = '';
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {

@@ -25,4 +25,6 @@ public class PlatformUser {
     private Instant lastLoginAt;
     /** Clave inicial o puesta por otra persona: debe cambiarla al entrar. */
     private boolean mustChangePassword;
+    /** Sube al cambiar o restablecer la contraseña: los tokens con otra versión dejan de valer. */
+    private int tokenVersion;
 }

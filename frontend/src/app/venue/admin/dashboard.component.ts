@@ -18,6 +18,9 @@ import { IconComponent } from '../../shared/icon.component';
   </div>
 
   @if (data(); as d) {
+    @if (resetCount()) {
+      <a class="card warn-box" routerLink="equipo"><bx-icon name="shield-check" /> <b>{{ resetCount() }} {{ resetCount() === 1 ? 'persona pide' : 'personas piden' }} recuperar su contraseña.</b> Revísalo en Equipo.</a>
+    }
     @if (!d.live.cashOpen) {
       <a class="card warn-box" routerLink="caja"><bx-icon name="banknote" /> <b>La caja está cerrada.</b> Ábrela con la base del día para poder cobrar.</a>
     }
@@ -121,6 +124,7 @@ export class DashboardComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   data = signal<Dashboard | null>(null);
   low = signal<Product[]>([]);
+  resetCount = signal(0);
   maxTop = computed(() => Math.max(1, ...(this.data()?.today.products ?? []).map(p => p.revenue)));
 
   greeting(): string {
@@ -138,5 +142,6 @@ export class DashboardComponent implements OnInit {
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(d => d && this.data.set(d));
     this.api.get<Product[]>('/admin/reports/low-stock').subscribe(l => this.low.set(l.slice(0, 8)));
+    this.api.get<{ mine: boolean }[]>('/admin/password-requests').subscribe({ next: l => this.resetCount.set(l.filter(r => !r.mine).length), error: () => {} });
   }
 }

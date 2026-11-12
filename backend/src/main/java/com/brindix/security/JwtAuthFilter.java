@@ -49,20 +49,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             jwt.parse(header.substring(7)).ifPresent(sub -> {
                 if (sub.kind() == JwtService.Kind.PLATFORM) {
-                    platform.findById(sub.id()).filter(u -> u.isActive()).ifPresent(u -> {
+                    platform.findById(sub.id()).filter(u -> u.isActive() && u.getTokenVersion() == sub.version()).ifPresent(u -> {
                         mustChange[0] = u.isMustChangePassword();
                         authenticate(new StaffPrincipal(u.getId(), null, u.getUsername(), u.getName(), Role.SUPERADMIN, false),
                                 List.of(new SimpleGrantedAuthority("ROLE_SUPERADMIN")));
                     });
                 } else if (sub.kind() == JwtService.Kind.SUPPORT) {
                     platform.findById(sub.supportBy()).filter(p -> p.isActive()).ifPresent(p ->
-                            staff.findById(sub.id()).filter(u -> u.isActive() && u.getRole() == Role.ADMIN)
+                            staff.findById(sub.id()).filter(u -> u.isActive() && u.getRole() == Role.ADMIN && u.getTokenVersion() == sub.version())
                                     .filter(u -> venues.findById(u.getVenueId()).map(v -> v.isActive()).orElse(false))
                                     .ifPresent(u -> authenticate(
                                             new StaffPrincipal(u.getId(), u.getVenueId(), u.getUsername(), "Soporte Brindix (" + p.getName() + ")", Role.ADMIN, true),
                                             List.of(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_WAITER")))));
                 } else {
-                    staff.findById(sub.id()).filter(u -> u.isActive())
+                    staff.findById(sub.id()).filter(u -> u.isActive() && u.getTokenVersion() == sub.version())
                             .filter(u -> venues.findById(u.getVenueId()).map(v -> v.isActive()).orElse(false))
                             .ifPresent(u -> {
                                 mustChange[0] = u.isMustChangePassword();

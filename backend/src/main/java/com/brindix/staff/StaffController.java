@@ -34,8 +34,8 @@ public class StaffController {
     }
 
     @PostMapping("/api/auth/password")
-    public void changePassword(@Valid @RequestBody StaffDtos.PasswordChange in) {
-        service.changePassword(CurrentUser.get(), in);
+    public Map<String, String> changePassword(@Valid @RequestBody StaffDtos.PasswordChange in) {
+        return Map.of("token", service.changePassword(CurrentUser.get(), in));
     }
 
     @GetMapping("/api/staff/waiters")

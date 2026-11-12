@@ -17,6 +17,8 @@ public record AppProperties(
         String whatsapp,
         /** Carta del bar demo que enlaza la landing ("Ver una carta real"); vacío = sin enlace. */
         String demoUrl,
+        /** BRINDIX_RECOVERY_KEY: recupera la contraseña del súper administrador (mínimo 24 caracteres). */
+        String recoveryKey,
         Jwt jwt,
         String secretKey,
         Seed seed,

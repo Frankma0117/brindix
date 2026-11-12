@@ -47,7 +47,7 @@ public class StaffService {
         }
         guard.ok(key);
         u.setLastLoginAt(Instant.now());
-        return new StaffDtos.LoginResponse(jwt.issue(JwtService.Kind.STAFF, u.getId()), StaffDtos.UserView.of(u),
+        return new StaffDtos.LoginResponse(jwt.issue(JwtService.Kind.STAFF, u.getId(), u.getTokenVersion()), StaffDtos.UserView.of(u),
                 venue.getSlug(), venue.getName(), false);
     }
 
@@ -107,6 +107,7 @@ public class StaffService {
         if (in.password() != null && !in.password().isBlank()) {
             u.setPasswordHash(encoder.encode(in.password()));
             u.setMustChangePassword(true);
+            u.setTokenVersion(u.getTokenVersion() + 1); // cierra sus sesiones abiertas
         }
         audit.log(me, me.venueId(), "Editó usuario", "user", u.getId(),
                 u.getName() + " · " + u.getRole() + (u.isActive() ? "" : " · desactivado") + (in.password() != null && !in.password().isBlank() ? " · nueva contraseña" : ""));
@@ -114,7 +115,8 @@ public class StaffService {
     }
 
     @Transactional
-    public void changePassword(StaffPrincipal me, StaffDtos.PasswordChange in) {
+    /** Cambia la propia contraseña; cierra las demás sesiones y devuelve un token nuevo para esta. */
+    public String changePassword(StaffPrincipal me, StaffDtos.PasswordChange in) {
         if (me.support()) throw ApiException.forbidden("En modo soporte no se cambia la contraseña del administrador");
         StaffUser u = get(me.id());
         if (!encoder.matches(in.current(), u.getPasswordHash())) {
@@ -123,5 +125,8 @@ public class StaffService {
         if (in.current().equals(in.next())) throw ApiException.badRequest("La nueva contraseña debe ser distinta a la actual");
         u.setPasswordHash(encoder.encode(in.next()));
         u.setMustChangePassword(false);
+        u.setTokenVersion(u.getTokenVersion() + 1);
+        audit.log(me, me.venueId(), "Cambió su contraseña", "user", u.getId(), null);
+        return jwt.issue(JwtService.Kind.STAFF, u.getId(), u.getTokenVersion());
     }
 }

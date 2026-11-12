@@ -45,10 +45,11 @@ export class Auth {
     store.set(STAFF_KEY, s);
   }
 
+  /** Cambia la contraseña; el servidor cierra las demás sesiones y entrega un token nuevo para esta. */
   async changePassword(current: string, next: string): Promise<void> {
-    await firstValueFrom(this.api.post('/auth/password', { current, next }));
+    const r = await firstValueFrom(this.api.post<{ token: string }>('/auth/password', { current, next }));
     const s = this.session();
-    if (s) this.use({ ...s, user: { ...s.user, mustChangePassword: false } });
+    if (s) this.use({ ...s, token: r.token, user: { ...s.user, mustChangePassword: false } });
   }
 
   logout(redirect = true): void {
@@ -104,10 +105,10 @@ export class PlatformAuth {
   }
 
   async changePassword(current: string, next: string): Promise<void> {
-    await firstValueFrom(this.api.post('/platform/password', { current, next }));
+    const r = await firstValueFrom(this.api.post<{ token: string }>('/platform/password', { current, next }));
     const s = this.session();
     if (s) {
-      const updated = { ...s, mustChangePassword: false };
+      const updated = { ...s, token: r.token, mustChangePassword: false };
       this.session.set(updated);
       store.set(PLATFORM_KEY, updated);
     }

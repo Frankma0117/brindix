@@ -6,18 +6,20 @@ import { Role, User } from '../../core/models';
 import { Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { IconComponent } from '../../shared/icon.component';
+import { ResetRequestsComponent } from '../../shared/reset-requests.component';
 
 interface UserForm { id?: number; name: string; username: string; password: string; role: Role; active: boolean; }
 
 @Component({
   selector: 'bx-users',
   standalone: true,
-  imports: [IconComponent, FormsModule, DatePipe],
+  imports: [IconComponent, FormsModule, DatePipe, ResetRequestsComponent],
   template: `
   <div class="page-head">
     <div><h1>Equipo</h1><p>Entran en <b>{{ loginUrl() }}</b> con su usuario y contraseña.</p></div>
     <button class="btn primary" (click)="edit()"><bx-icon name="plus" /> Nuevo usuario</button>
   </div>
+  <bx-reset-requests base="/admin" />
   <div class="grid cols-2 roles">
     <div class="card"><h3><bx-icon name="crown" /> Administrador</h3><p class="small muted">Todo: carta, precios y costos, inventario, caja y cierres, cobros, descuentos, modificar o anular pedidos, música, equipo y configuración. También puede atender mesas.</p></div>
     <div class="card"><h3><bx-icon name="user" /> Mesero</h3><p class="small muted">Ve las mesas y la carta, carga rondas, entrega lo que le asignan y, si lo permites en Configuración, cobra (el dinero queda a su nombre hasta entregarlo en caja). No modifica nada.</p></div>

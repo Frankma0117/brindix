@@ -16,6 +16,8 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'ingresar' },
       { path: 'ingresar', loadComponent: () => import('./venue/login.component').then(m => m.LoginComponent), title: 'Ingresar' },
+      // ¿Olvidaste tu contraseña? (pide código al administrador y lo usa)
+      { path: 'recuperar', loadComponent: () => import('./venue/recover.component').then(m => m.RecoverComponent), title: 'Recuperar contraseña' },
       // Primer ingreso: cambiar la clave temporal.
       { path: 'clave', canActivate: [passwordGuard], loadComponent: () => import('./venue/change-password.component').then(m => m.ChangePasswordComponent), title: 'Crea tu contraseña' },
       // Cliente: llega escaneando el QR de su mesa.

@@ -40,9 +40,10 @@ public class PlatformService {
     private final LoginGuard guard;
     private final VenueStarter starter;
     private final AuditService audit;
+    private final com.brindix.common.AppProperties props;
 
     public PlatformService(PlatformUserRepository platformUsers, VenueRepository venues, StaffUserRepository staff,
-                           PasswordEncoder encoder, JwtService jwt, LoginGuard guard, VenueStarter starter, AuditService audit) {
+                           PasswordEncoder encoder, JwtService jwt, LoginGuard guard, VenueStarter starter, AuditService audit, com.brindix.common.AppProperties props) {
         this.platformUsers = platformUsers;
         this.venues = venues;
         this.staff = staff;
@@ -51,6 +52,7 @@ public class PlatformService {
         this.guard = guard;
         this.starter = starter;
         this.audit = audit;
+        this.props = props;
     }
 
     public record LoginRequest(@NotBlank String username, @NotBlank String password) {}
@@ -84,16 +86,46 @@ public class PlatformService {
         }
         guard.ok(key);
         u.setLastLoginAt(Instant.now());
-        return new LoginResponse(jwt.issue(JwtService.Kind.PLATFORM, u.getId()), u.getName(), u.isMustChangePassword());
+        return new LoginResponse(jwt.issue(JwtService.Kind.PLATFORM, u.getId(), u.getTokenVersion()), u.getName(), u.isMustChangePassword());
     }
 
     @Transactional
-    public void changePassword(StaffPrincipal me, StaffDtos.PasswordChange in) {
+    public String changePassword(StaffPrincipal me, StaffDtos.PasswordChange in) {
         PlatformUser u = platformUsers.findById(me.id()).orElseThrow(() -> ApiException.notFound("Usuario no encontrado"));
         if (!encoder.matches(in.current(), u.getPasswordHash())) throw ApiException.badRequest("La contraseña actual no coincide");
         if (in.current().equals(in.next())) throw ApiException.badRequest("La nueva contraseña debe ser distinta a la actual");
         u.setPasswordHash(encoder.encode(in.next()));
         u.setMustChangePassword(false);
+        u.setTokenVersion(u.getTokenVersion() + 1);
+        return jwt.issue(JwtService.Kind.PLATFORM, u.getId(), u.getTokenVersion());
+    }
+
+    public record RecoverInput(@NotBlank String username, @NotBlank String recoveryKey,
+                               @NotBlank @Size(min = 8, max = 100) String next, boolean temporary) {}
+
+    /**
+     * El súper administrador olvidó su contraseña: se recupera con la clave BRINDIX_RECOVERY_KEY del .env del
+     * servidor (prueba de que tiene acceso al servidor). Cierra todas sus sesiones.
+     */
+    @Transactional
+    public void recover(RecoverInput in, String ip) {
+        String key = "recover:" + ip;
+        guard.check(key);
+        guard.check("recover:all");
+        String expected = props.recoveryKey();
+        PlatformUser u = platformUsers.findByUsernameIgnoreCase(in.username().trim()).orElse(null);
+        boolean ok = expected != null && expected.length() >= 24 && u != null && u.isActive()
+                && java.security.MessageDigest.isEqual(expected.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        in.recoveryKey().trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        if (!ok) {
+            guard.failed(key);
+            guard.failed("recover:all");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Usuario o clave de recuperación incorrectos");
+        }
+        guard.ok(key);
+        u.setPasswordHash(encoder.encode(in.next()));
+        u.setMustChangePassword(in.temporary());
+        u.setTokenVersion(u.getTokenVersion() + 1);
     }
 
     /**
@@ -111,7 +143,7 @@ public class PlatformService {
                 "Entró en modo soporte", "venue", venueId, "Como " + admin.getUsername());
         var user = new StaffDtos.UserView(admin.getId(), name, admin.getUsername(), Role.ADMIN, true,
                 admin.getCreatedAt(), admin.getLastLoginAt(), false);
-        return new StaffDtos.LoginResponse(jwt.issueSupport(admin.getId(), me.id()), user, v.getSlug(), v.getName(), true);
+        return new StaffDtos.LoginResponse(jwt.issueSupport(admin.getId(), me.id(), admin.getTokenVersion()), user, v.getSlug(), v.getName(), true);
     }
 
     @Transactional(readOnly = true)
@@ -148,6 +180,7 @@ public class PlatformService {
         admin.setPasswordHash(encoder.encode(in.password()));
         admin.setActive(true);
         admin.setMustChangePassword(true);
+        admin.setTokenVersion(admin.getTokenVersion() + 1);
     }
 
     private VenueRow row(Venue v) {

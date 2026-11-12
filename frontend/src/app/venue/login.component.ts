@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { errorMessage } from '../core/api.service';
 import { Auth } from '../core/auth.service';
 import { VenueContext } from '../core/venue-context';
@@ -11,7 +11,7 @@ import { ThemeToggleComponent } from '../core/theme';
 @Component({
   selector: 'bx-login',
   standalone: true,
-  imports: [FormsModule, MascotComponent, ThemeToggleComponent],
+  imports: [FormsModule, RouterLink, MascotComponent, ThemeToggleComponent],
   template: `
   <bx-theme-toggle class="theme-corner" />
   <main class="wrap">
@@ -34,7 +34,7 @@ import { ThemeToggleComponent } from '../core/theme';
       </label>
       @if (error()) { <p class="err">{{ error() }}</p> }
       <button class="btn primary lg block" [disabled]="busy() || !username || !password">{{ busy() ? 'Entrando…' : 'Entrar' }}</button>
-      <a href="/" class="back small">← Brindix</a>
+      <a class="forgot small" [routerLink]="'/' + ctx.slug() + '/recuperar'">¿Olvidaste tu contraseña?</a>
     </form>
   </main>`,
   styles: [`
@@ -45,7 +45,7 @@ import { ThemeToggleComponent } from '../core/theme';
     .logo { width: 84px; height: 84px; border-radius: 20px; object-fit: cover; }
     .err { color: var(--ink-red); font-weight: 600; font-size: 14px; }
     .note { background: var(--surface-2); border-radius: 10px; padding: 8px 12px; color: var(--muted); }
-    .back { text-align: center; color: var(--muted); }
+    .forgot { text-align: center; color: var(--muted); padding: 6px; }
   `],
 })
 export class LoginComponent {

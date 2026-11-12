@@ -26,6 +26,11 @@ El súper administrador (`platform_users`) no pertenece a ningún bar.
 
 ### Reglas importantes
 
+- **Recuperar contraseña** (personal): se pide en `/<bar>/recuperar` (respuesta igual exista o no el usuario, 5 por IP
+  cada 15 min); la aprueba otro administrador del bar en Equipo o el súper administrador en la plataforma; el código
+  (8 caracteres, 30 min, un solo uso, 5 intentos) se guarda como SHA-256. Súper administrador: `BRINDIX_RECOVERY_KEY`.
+- **Versión de sesión** (`token_version` en el JWT `ver`): cambiar o restablecer la contraseña cierra las demás sesiones.
+
 - **Clave temporal**: las cuentas nuevas, las claves puestas por otro y las sembradas tienen
   `must_change_password`; mientras no la cambien, el backend solo deja cambiarla (403 `PASSWORD_CHANGE_REQUIRED`).
 - **Modo soporte**: token `support` (4 h) que firma el súper administrador; el bar lo ve como su

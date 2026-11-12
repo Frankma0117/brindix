@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Api, errorMessage } from '../../core/api.service';
+import { Auth } from '../../core/auth.service';
 import { AdminVenue, MusicProvider } from '../../core/models';
 import { Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
@@ -47,6 +48,7 @@ import { IconComponent } from '../../shared/icon.component';
   `],
 })
 export class SettingsComponent implements OnInit {
+  private auth = inject(Auth);
   private api = inject(Api);
   private toasts = inject(Toasts);
   private route = inject(ActivatedRoute);
@@ -161,7 +163,7 @@ export class SettingsComponent implements OnInit {
 
   async changePassword(): Promise<void> {
     try {
-      await this.api.run(this.api.post('/auth/password', { current: this.current, next: this.next }));
+      await this.auth.changePassword(this.current, this.next);
       this.current = '';
       this.next = '';
       this.toasts.ok('Contraseña cambiada');
