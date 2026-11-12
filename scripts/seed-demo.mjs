@@ -4,6 +4,8 @@
 //
 //   node scripts/seed-demo.mjs --api http://localhost:8080/api --super brindix --super-pass XXX \
 //        --images <carpeta con <producto>.jpg, candela-mark.png> --admin-pass XXX --waiter-pass XXX
+//   Sobre un bar que ya existe, sin la plataforma: --slug demo --admin-current <clave actual del admin>
+//   (quita la carta anterior, cierra las cuentas abiertas y deja todo como Candela Brava).
 //
 // Las fotos vienen de Wikimedia Commons (ver frontend/public/demo-assets/credits.json).
 import fs from 'fs';
@@ -16,9 +18,10 @@ const SUPER_PASS = arg('super-pass');
 const IMAGES = arg('images');
 const ADMIN_PASS = arg('admin-pass');
 const WAITER_PASS = arg('waiter-pass');
-const SLUG = 'candela-brava';
-if (!SUPER_PASS || !IMAGES || !ADMIN_PASS || !WAITER_PASS) {
-  console.error('Faltan --super-pass, --images, --admin-pass o --waiter-pass');
+const SLUG = arg('slug', 'candela-brava');
+const ADMIN_CURRENT = arg('admin-current');
+if ((!SUPER_PASS && !ADMIN_CURRENT) || !IMAGES || !ADMIN_PASS || !WAITER_PASS) {
+  console.error('Faltan --super-pass (o --admin-current), --images, --admin-pass o --waiter-pass');
   process.exit(2);
 }
 
@@ -111,10 +114,15 @@ const TABLES = [
 ];
 
 async function main() {
+  const temp = 'temporal-' + Math.random().toString(36).slice(2, 10);
+  let A;
+  if (ADMIN_CURRENT) {
+    A = await staffLogin('admin', ADMIN_CURRENT, ADMIN_PASS);
+    console.log('Entré al bar existente:', SLUG);
+  } else {
   // 1. Plataforma: crear el bar (o recuperar su administrador si ya existe)
   const p = await call('POST', '/platform/login', { username: SUPER, password: SUPER_PASS });
   if (p.mustChangePassword) throw new Error('El súper administrador debe cambiar su clave antes de correr este script');
-  const temp = 'temporal-' + Math.random().toString(36).slice(2, 10);
   let venue = (await call('GET', '/platform/venues', null, p.token)).find(v => v.slug === SLUG);
   if (!venue) {
     venue = await call('POST', '/platform/venues', {
@@ -126,7 +134,8 @@ async function main() {
     await call('POST', `/platform/venues/${venue.id}/reset-admin`, { password: temp }, p.token);
     console.log('El bar ya existía: se reinicia la clave del administrador');
   }
-  const A = await staffLogin('admin', temp, ADMIN_PASS);
+  A = await staffLogin('admin', temp, ADMIN_PASS);
+  }
 
   // 2. Marca y reglas del bar
   const logo = await upload('candela-mark.png', 'logo', A);
@@ -160,6 +169,7 @@ async function main() {
     const body = { name: c.name, icon: '', art: c.art, sortOrder: co, active: true };
     catId[c.key] = found ? (await call('PUT', `/admin/categories/${found.id}`, body, A)).id : (await call('POST', '/admin/categories', body, A)).id;
   }
+  await call('PUT', '/admin/categories/order', { ids: CATEGORIES.map(c => catId[c.key]) }, A);
   const have = await call('GET', '/admin/products', null, A);
   const photoUrl = {};
   const prodId = {};
@@ -175,7 +185,13 @@ async function main() {
     const found = have.find(x => x.name === name);
     prodId[name] = found ? (await call('PUT', `/admin/products/${found.id}`, body, A)).id : (await call('POST', '/admin/products', body, A)).id;
   }
-  console.log(`Carta: ${CATEGORIES.length} categorías, ${PRODUCTS.length} productos con foto`);
+  // Lo que quedó de una carta anterior sale de la carta (se conserva en el historial de ventas).
+  const keep = new Set(PRODUCTS.map(p => p[1]));
+  let removed = 0;
+  for (const old of have.filter(x => !keep.has(x.name))) { await call('DELETE', `/admin/products/${old.id}`, null, A).catch(() => {}); removed++; }
+  const keepCats = new Set(CATEGORIES.map(c => c.name));
+  for (const c of (await call('GET', '/admin/categories', null, A)).filter(x => !keepCats.has(x.name))) await call('DELETE', `/admin/categories/${c.id}`, null, A).catch(() => {});
+  console.log(`Carta: ${CATEGORIES.length} categorías, ${PRODUCTS.length} productos con foto${removed ? ` (${removed} productos anteriores retirados)` : ''}`);
 
   // 5. Banners de producto para el TV y la carta
   for (const b of await call('GET', '/admin/banners', null, A)) await call('DELETE', `/admin/banners/${b.id}`, null, A);
@@ -198,6 +214,11 @@ async function main() {
     if (u) await call('PUT', `/admin/users/${u.id}`, { name, role: 'WAITER', active: true, password: temp }, A);
     else await call('POST', '/admin/users', { name, username, password: temp, role: 'WAITER' }, A);
   }
+  const me = users.find(x => x.username === 'admin');
+  if (me) await call('PUT', `/admin/users/${me.id}`, { name: 'Valentina Ríos', role: 'ADMIN', active: true, password: null, email: me.email ?? null }, A);
+  for (const o of users.filter(x => !['admin', 'laura', 'andres'].includes(x.username) && x.active)) {
+    await call('PUT', `/admin/users/${o.id}`, { name: o.name, role: o.role, active: false, password: null, email: o.email ?? null }, A).catch(() => {});
+  }
   const L = await staffLogin('laura', temp, WAITER_PASS);
   const N = await staffLogin('andres', temp, WAITER_PASS);
   const ids = Object.fromEntries((await call('GET', '/staff/waiters', null, A)).map(w => [w.name, w.id]));
@@ -209,6 +230,15 @@ async function main() {
     await call('POST', '/admin/cash/open', { openingCash: 200000, note: 'Base del viernes' }, A);
     await call('POST', '/admin/cash/movements', { direction: 'OUT', category: 'RESTOCK', method: 'CASH', amount: 24000, description: 'Hielo y limones' }, A);
   }
+  // Cuentas que quedaron abiertas de antes: se rechazan los pedidos pendientes, se cobra lo entregado y se liberan.
+  for (const t of (await call('GET', '/staff/board', null, A)).tables.filter(x => x.tabId)) {
+    const tv = await call('GET', `/staff/tabs/${t.tabId}`, null, A);
+    for (const r of tv.rounds.filter(r => r.status === 'PENDING')) await call('POST', `/admin/rounds/${r.id}/reject`, { reason: 'Cierre de la noche anterior' }, A).catch(() => {});
+    const payable = tv.rounds.filter(r => (r.status === 'CONFIRMED' || r.status === 'DELIVERED') && !r.paid && r.total > 0).map(r => r.id);
+    if (payable.length) await call('POST', `/staff/tabs/${t.tabId}/charge`, { roundIds: payable, discount: 0, tip: 0, method: 'CASH', note: 'Cierre de la noche anterior', release: true }, A).catch(e => console.log('cuenta', t.name, e.message));
+    else await call('POST', `/staff/tabs/${t.tabId}/release`, null, A).catch(() => {});
+  }
+  for (const c of (await call('GET', '/staff/board', null, A)).calls) await call('POST', `/staff/calls/${c.id}/done`, {}, A).catch(() => {});
   const board = await call('GET', '/staff/board', null, A);
   const free = name => !board.tables.find(t => t.name === name)?.tabId;
   const item = (name, quantity, note) => ({ productId: prodId[name], quantity, note: note ?? null });
