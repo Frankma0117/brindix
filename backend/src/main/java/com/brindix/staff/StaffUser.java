@@ -32,4 +32,6 @@ public class StaffUser {
     private boolean mustChangePassword;
     /** Sube al cambiar o restablecer la contraseña: los tokens con otra versión dejan de valer. */
     private int tokenVersion;
+    /** Opcional: si lo tiene, el código de recuperación le llega directo. */
+    private String email;
 }

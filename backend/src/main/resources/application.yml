@@ -23,6 +23,19 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  # Correo saliente (Brevo: smtp-relay.brevo.com, 587, usuario y clave SMTP de la cuenta). Vacío = no envía.
+  mail:
+    host: ${BRINDIX_MAIL_HOST:}
+    port: ${BRINDIX_MAIL_PORT:587}
+    username: ${BRINDIX_MAIL_USERNAME:}
+    password: ${BRINDIX_MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: ${BRINDIX_MAIL_STARTTLS:true}
+      mail.smtp.starttls.required: ${BRINDIX_MAIL_STARTTLS:true}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 15000
+      mail.smtp.writetimeout: 15000
   servlet:
     multipart:
       max-file-size: 12MB
@@ -43,6 +56,12 @@ brindix:
   whatsapp: ${BRINDIX_WHATSAPP:573229457553}
   demo-url: ${BRINDIX_DEMO_URL:}
   recovery-key: ${BRINDIX_RECOVERY_KEY:}
+  mail:
+    host: ${BRINDIX_MAIL_HOST:}
+    from: ${BRINDIX_MAIL_FROM:no-responder@cania.app}
+    from-name: ${BRINDIX_MAIL_FROM_NAME:Brindix}
+    # Correo del súper administrador: recuperación de la plataforma y avisos de seguridad.
+    admin-email: ${BRINDIX_ADMIN_EMAIL:}
   jwt:
     # En producción SIEMPRE un secreto largo (mínimo 32 caracteres).
     secret: ${BRINDIX_JWT_SECRET:dev-only-secret-change-me-please-0123456789abcdef}

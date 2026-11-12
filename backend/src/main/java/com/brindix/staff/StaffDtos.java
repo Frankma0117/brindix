@@ -1,5 +1,6 @@
 package com.brindix.staff;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -18,10 +19,10 @@ public final class StaffDtos {
     public record LoginResponse(String token, UserView user, String venue, String venueName, boolean support) {}
 
     public record UserView(Long id, String name, String username, Role role, boolean active,
-                           Instant createdAt, Instant lastLoginAt, boolean mustChangePassword) {
+                           Instant createdAt, Instant lastLoginAt, boolean mustChangePassword, String email) {
         public static UserView of(StaffUser u) {
             return new UserView(u.getId(), u.getName(), u.getUsername(), u.getRole(), u.isActive(),
-                    u.getCreatedAt(), u.getLastLoginAt(), u.isMustChangePassword());
+                    u.getCreatedAt(), u.getLastLoginAt(), u.isMustChangePassword(), u.getEmail());
         }
     }
 
@@ -29,10 +30,12 @@ public final class StaffDtos {
                              @NotBlank @Size(min = 3, max = 60) @Pattern(regexp = "[a-zA-Z0-9._-]+",
                                      message = "solo letras, números, punto y guion") String username,
                              @NotBlank @Size(min = 8, max = 100) String password,
-                             @NotNull Role role) {}
+                             @NotNull Role role,
+                             @Email @Size(max = 160) String email) {}
 
     public record UserUpdate(@NotBlank @Size(max = 120) String name, @NotNull Role role, boolean active,
-                             @Size(min = 8, max = 100) String password) {}
+                             @Size(min = 8, max = 100) String password,
+                             @Email @Size(max = 160) String email) {}
 
     public record PasswordChange(@NotBlank String current, @NotBlank @Size(min = 8, max = 100) String next) {}
 

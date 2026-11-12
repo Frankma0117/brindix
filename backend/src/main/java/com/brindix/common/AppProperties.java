@@ -23,7 +23,8 @@ public record AppProperties(
         String secretKey,
         Seed seed,
         Storage storage,
-        Ai ai) {
+        Ai ai,
+        Mail mail) {
 
     public record Jwt(String secret, int hours) {}
 
@@ -34,6 +35,13 @@ public record AppProperties(
     public record Storage(String endpoint, String region, String bucket, String prefix, String key, String secret, String cdnUrl) {
         public boolean spaces() {
             return notBlank(key) && notBlank(secret) && notBlank(bucket) && notBlank(endpoint);
+        }
+    }
+
+    /** Correo saliente (SMTP en spring.mail.*). adminEmail = correo del súper administrador para avisos. */
+    public record Mail(String host, String from, String fromName, String adminEmail) {
+        public boolean enabled() {
+            return notBlank(host);
         }
     }
 

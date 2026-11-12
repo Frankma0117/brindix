@@ -25,13 +25,31 @@ interface VenueForm {
   @if (!auth.session() && recovering()) {
     <main class="login-wrap">
       <form class="card pad-lg box" (ngSubmit)="recover()">
-        <div><h2>Recuperar acceso</h2><p class="muted small">Para el súper administrador de Brindix. Necesitas la clave de recuperación del servidor: en <code>/opt/brindix/.env</code>, variable <code>BRINDIX_RECOVERY_KEY</code>.</p></div>
+        <div><h2>Recuperar acceso</h2><p class="muted small">Súper administrador de Brindix.</p></div>
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" [class.on]="via() === 'mail'" (click)="via.set('mail'); error.set('')">Código por correo</button>
+          <button type="button" role="tab" [class.on]="via() === 'key'" (click)="via.set('key'); error.set('')">Clave del servidor</button>
+        </div>
         <label class="field"><span>Usuario</span><input class="input" name="ru" [(ngModel)]="username" autocomplete="username" autocapitalize="none"></label>
-        <label class="field"><span>Clave de recuperación</span><input class="input" name="rk" type="password" [(ngModel)]="recoveryKey" autocomplete="off"></label>
-        <label class="field"><span>Nueva contraseña (mínimo 8)</span><input class="input" name="rn" type="password" [(ngModel)]="next" autocomplete="new-password"></label>
-        <label class="field"><span>Repite la nueva</span><input class="input" name="rr" type="password" [(ngModel)]="repeat" autocomplete="new-password"></label>
-        @if (error()) { <p class="err">{{ error() }}</p> }
-        <button class="btn primary lg block" [disabled]="busy() || !username || !recoveryKey || next.length < 8 || !repeat">Restablecer</button>
+        @if (via() === 'mail') {
+          @if (!mailSent()) {
+            <p class="small muted">Te enviamos un código de un solo uso al correo registrado del súper administrador. Vence en 15 minutos.</p>
+            @if (error()) { <p class="err">{{ error() }}</p> }
+            <button type="button" class="btn primary lg block" [disabled]="busy() || !username" (click)="sendCode()">Enviarme el código</button>
+          } @else {
+            <p class="small ok-msg">{{ mailSent() }}</p>
+            <label class="field"><span>Código del correo</span><input class="input code" name="rc" [(ngModel)]="code" autocomplete="one-time-code" placeholder="ABCD-2345" maxlength="12"></label>
+          }
+        } @else {
+          <p class="small muted">Está en el servidor: archivo <code>/opt/brindix/.env</code>, variable <code>BRINDIX_RECOVERY_KEY</code>.</p>
+          <label class="field"><span>Clave de recuperación</span><input class="input" name="rk" type="password" [(ngModel)]="recoveryKey" autocomplete="off"></label>
+        }
+        @if (via() === 'key' || mailSent()) {
+          <label class="field"><span>Nueva contraseña (mínimo 8)</span><input class="input" name="rn" type="password" [(ngModel)]="next" autocomplete="new-password"></label>
+          <label class="field"><span>Repite la nueva</span><input class="input" name="rr" type="password" [(ngModel)]="repeat" autocomplete="new-password"></label>
+          @if (error()) { <p class="err">{{ error() }}</p> }
+          <button class="btn primary lg block" [disabled]="busy() || !username || (via() === 'key' ? !recoveryKey : code.trim().length < 8) || next.length < 8 || !repeat">Restablecer</button>
+        }
         <button type="button" class="btn ghost sm" (click)="recovering.set(false); error.set('')">Volver</button>
         <p class="tiny muted">Al restablecerla se cierran todas las sesiones abiertas.</p>
       </form>
@@ -72,6 +90,11 @@ interface VenueForm {
       <div class="page-head">
         <div><h1>Bares</h1><p>Cada bar tiene su dirección, su administrador y sus datos separados.</p></div>
         <button class="btn primary" (click)="newVenue()">＋ Nuevo bar</button>
+      </div>
+      <div class="card mail-row">
+        <div class="grow"><b>Correo de Brindix</b>
+          <p class="small muted">@if (mailInfo()?.enabled) { Envía desde {{ mailInfo()!.from }}. Avisos y recuperación a {{ mailInfo()!.adminEmail || 'sin correo de administrador' }}. } @else { Sin configurar: los códigos de recuperación no se envían por correo. }</p></div>
+        <button class="btn sm" [disabled]="!mailInfo()?.enabled || busy()" (click)="mailTest()">Enviar correo de prueba</button>
       </div>
       <bx-reset-requests base="/platform" [showVenue]="true" />
       <div class="table-wrap">
@@ -134,6 +157,12 @@ interface VenueForm {
     .login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: radial-gradient(600px 400px at 30% 10%, rgba(255,178,56,.14), transparent); }
     .box { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 14px; }
     .err { color: var(--ink-red); font-weight: 600; }
+    .mail-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--bg-2); }
+    .tabs button { height: 38px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: 700 14px var(--font); cursor: pointer; }
+    .tabs button.on { background: var(--surface-3); color: var(--text); }
+    .code { letter-spacing: .14em; text-transform: uppercase; font-weight: 800; }
+    .ok-msg { color: var(--ink-green); font-weight: 650; }
     .top { border-bottom: 1px solid var(--line); padding: 12px 0; background: var(--bg-2); }
     .brand { font-size: 18px; }
     .wrap-p { padding-top: 26px; padding-bottom: 60px; }
@@ -157,6 +186,9 @@ export class PlatformComponent implements OnInit {
   changing = signal(false);
   recovering = signal(false);
   recoveryKey = '';
+  via = signal<'mail' | 'key'>('mail');
+  mailSent = signal('');
+  code = '';
   busy = signal(false);
   error = signal('');
   venues = signal<PlatformVenue[]>([]);
@@ -196,15 +228,30 @@ export class PlatformComponent implements OnInit {
     }
   }
 
+  async sendCode(): Promise<void> {
+    this.busy.set(true);
+    this.error.set('');
+    try {
+      const r = await this.api.run(this.api.post<{ message: string }>('/platform/forgot', { username: this.username.trim() }));
+      this.mailSent.set(r.message);
+    } catch (e) {
+      this.error.set(errorMessage(e));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
   async recover(): Promise<void> {
     if (this.next !== this.repeat) { this.error.set('Las dos contraseñas nuevas no coinciden'); return; }
     this.busy.set(true);
     this.error.set('');
     try {
-      await this.api.run(this.api.post('/platform/recover', { username: this.username.trim(), recoveryKey: this.recoveryKey, next: this.next, temporary: false }));
+      if (this.via() === 'key') await this.api.run(this.api.post('/platform/recover', { username: this.username.trim(), recoveryKey: this.recoveryKey, next: this.next, temporary: false }));
+      else await this.api.run(this.api.post('/platform/reset-code', { username: this.username.trim(), code: this.code, next: this.next }));
       this.toasts.ok('Contraseña restablecida. Entra con la nueva.');
       this.recovering.set(false);
-      this.recoveryKey = this.next = this.repeat = this.password = '';
+      this.recoveryKey = this.next = this.repeat = this.password = this.code = '';
+      this.mailSent.set('');
     } catch (e) {
       this.error.set(errorMessage(e));
     } finally {
@@ -223,7 +270,15 @@ export class PlatformComponent implements OnInit {
     }
   }
 
+  mailInfo = signal<{ enabled: boolean; from: string; adminEmail: string } | null>(null);
+
+  async mailTest(): Promise<void> {
+    try { const r = await this.api.run(this.api.post<{ message: string }>('/platform/mail/test', {})); this.toasts.ok(r.message); }
+    catch (e) { this.toasts.error(errorMessage(e)); }
+  }
+
   load(): void {
+    this.api.get<{ enabled: boolean; from: string; adminEmail: string }>('/platform/mail').subscribe({ next: m => this.mailInfo.set(m), error: () => {} });
     this.api.get<PlatformVenue[]>('/platform/venues').subscribe(v => this.venues.set(v));
   }
 

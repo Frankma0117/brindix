@@ -27,4 +27,9 @@ public class PlatformUser {
     private boolean mustChangePassword;
     /** Sube al cambiar o restablecer la contraseña: los tokens con otra versión dejan de valer. */
     private int tokenVersion;
+    private String email;
+    /** Código de recuperación enviado al correo (SHA-256), vencimiento e intentos. */
+    private String resetCodeHash;
+    private java.time.Instant resetExpiresAt;
+    private int resetAttempts;
 }

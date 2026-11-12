@@ -31,6 +31,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/public/**", "/api/auth/login", "/api/platform/login",
                                 "/api/auth/forgot", "/api/auth/reset", "/api/platform/recover",
+                                "/api/platform/forgot", "/api/platform/reset-code",
                                 "/api/spotify/callback", "/api/health").permitAll()
                         .requestMatchers("/api/platform/**").hasRole("SUPERADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

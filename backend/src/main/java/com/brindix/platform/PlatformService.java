@@ -41,9 +41,11 @@ public class PlatformService {
     private final VenueStarter starter;
     private final AuditService audit;
     private final com.brindix.common.AppProperties props;
+    private final com.brindix.common.MailService mail;
 
     public PlatformService(PlatformUserRepository platformUsers, VenueRepository venues, StaffUserRepository staff,
-                           PasswordEncoder encoder, JwtService jwt, LoginGuard guard, VenueStarter starter, AuditService audit, com.brindix.common.AppProperties props) {
+                           PasswordEncoder encoder, JwtService jwt, LoginGuard guard, VenueStarter starter, AuditService audit, com.brindix.common.AppProperties props,
+                           com.brindix.common.MailService mail) {
         this.platformUsers = platformUsers;
         this.venues = venues;
         this.staff = staff;
@@ -53,6 +55,7 @@ public class PlatformService {
         this.starter = starter;
         this.audit = audit;
         this.props = props;
+        this.mail = mail;
     }
 
     public record LoginRequest(@NotBlank String username, @NotBlank String password) {}
@@ -97,7 +100,66 @@ public class PlatformService {
         u.setPasswordHash(encoder.encode(in.next()));
         u.setMustChangePassword(false);
         u.setTokenVersion(u.getTokenVersion() + 1);
+        notifyChange(u, "desde «Mi contraseña»");
         return jwt.issue(JwtService.Kind.PLATFORM, u.getId(), u.getTokenVersion());
+    }
+
+    public record ForgotInput(@NotBlank String username) {}
+
+    public record CodeResetInput(@NotBlank String username, @NotBlank @Size(max = 20) String code,
+                                 @NotBlank @Size(min = 8, max = 100) String next) {}
+
+    /** Olvidé mi contraseña (súper administrador): manda un código de 8 caracteres a su correo. Respuesta siempre igual. */
+    @Transactional
+    public void forgot(ForgotInput in, String ip) {
+        String key = "pforgot:" + ip;
+        guard.check(key);
+        guard.failed(key); // 5 pedidos cada 15 minutos por IP
+        PlatformUser u = platformUsers.findByUsernameIgnoreCase(in.username().trim()).orElse(null);
+        if (u == null || !u.isActive() || u.getEmail() == null || !mail.enabled()) return;
+        String code = com.brindix.common.OneTimeCode.generate();
+        u.setResetCodeHash(com.brindix.common.OneTimeCode.hash(code));
+        u.setResetExpiresAt(Instant.now().plus(java.time.Duration.ofMinutes(15)));
+        u.setResetAttempts(0);
+        mail.send(u.getEmail(), "Tu código para entrar a la plataforma de Brindix", "Recupera tu contraseña de Brindix",
+                List.of("Alguien (ojalá tú) pidió recuperar la contraseña del súper administrador desde " + ip + ".",
+                        "Escribe este código en la plataforma. Vence en 15 minutos y sirve una sola vez."),
+                com.brindix.common.OneTimeCode.pretty(code), "Abrir la plataforma", props.publicBase() + "/plataforma");
+    }
+
+    /** Paso 2: el código del correo y la nueva contraseña. Cierra todas las sesiones. */
+    @Transactional
+    public void resetWithCode(CodeResetInput in, String ip) {
+        String key = "preset:" + in.username().trim().toLowerCase();
+        guard.check(key);
+        guard.check("preset-ip:" + ip);
+        PlatformUser u = platformUsers.findByUsernameIgnoreCase(in.username().trim()).orElse(null);
+        boolean ok = u != null && u.isActive() && u.getResetExpiresAt() != null && u.getResetExpiresAt().isAfter(Instant.now())
+                && com.brindix.common.OneTimeCode.matches(in.code(), u.getResetCodeHash());
+        if (!ok) {
+            guard.failed(key);
+            guard.failed("preset-ip:" + ip);
+            if (u != null && u.getResetCodeHash() != null) {
+                u.setResetAttempts(u.getResetAttempts() + 1);
+                if (u.getResetAttempts() >= 5) { u.setResetCodeHash(null); u.setResetExpiresAt(null); }
+            }
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El código no es válido o ya venció. Pide uno nuevo.");
+        }
+        guard.ok(key);
+        u.setPasswordHash(encoder.encode(in.next()));
+        u.setMustChangePassword(false);
+        u.setTokenVersion(u.getTokenVersion() + 1);
+        u.setResetCodeHash(null);
+        u.setResetExpiresAt(null);
+        notifyChange(u, "con un código enviado a tu correo");
+    }
+
+    private void notifyChange(PlatformUser u, String how) {
+        String to = u.getEmail() != null ? u.getEmail() : mail.adminEmail();
+        mail.send(to, "La contraseña de la plataforma Brindix cambió", "Tu contraseña de Brindix cambió",
+                List.of("La contraseña del súper administrador (" + u.getUsername() + ") se cambió " + how + ". Cerramos las demás sesiones.",
+                        "Si no fuiste tú, recupera el acceso de inmediato desde la plataforma o con la clave de recuperación del servidor."),
+                null, null, null);
     }
 
     public record RecoverInput(@NotBlank String username, @NotBlank String recoveryKey,
@@ -126,6 +188,7 @@ public class PlatformService {
         u.setPasswordHash(encoder.encode(in.next()));
         u.setMustChangePassword(in.temporary());
         u.setTokenVersion(u.getTokenVersion() + 1);
+        notifyChange(u, "con la clave de recuperación del servidor (desde " + ip + ")");
     }
 
     /**
@@ -142,7 +205,7 @@ public class PlatformService {
         audit.log(new StaffPrincipal(admin.getId(), venueId, me.username(), name, Role.ADMIN, true), venueId,
                 "Entró en modo soporte", "venue", venueId, "Como " + admin.getUsername());
         var user = new StaffDtos.UserView(admin.getId(), name, admin.getUsername(), Role.ADMIN, true,
-                admin.getCreatedAt(), admin.getLastLoginAt(), false);
+                admin.getCreatedAt(), admin.getLastLoginAt(), false, null);
         return new StaffDtos.LoginResponse(jwt.issueSupport(admin.getId(), me.id(), admin.getTokenVersion()), user, v.getSlug(), v.getName(), true);
     }
 

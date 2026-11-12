@@ -2,6 +2,8 @@ package com.brindix.staff;
 
 import com.brindix.audit.AuditService;
 import com.brindix.common.ApiException;
+import com.brindix.common.MailService;
+import com.brindix.common.OneTimeCode;
 import com.brindix.security.LoginGuard;
 import com.brindix.security.StaffPrincipal;
 import com.brindix.venue.Venue;
@@ -14,13 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,8 +38,7 @@ public class PasswordResetService {
     private static final Duration CODE_TTL = Duration.ofMinutes(30);
     private static final Duration REQUEST_TTL = Duration.ofHours(24);
     private static final int MAX_ATTEMPTS = 5;
-    private static final String ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    public static final String GENERIC = "Si el usuario existe, le avisamos al administrador del bar. Cuando la apruebe te dará un código.";
+    public static final String GENERIC = "Si el usuario existe, te enviamos un código a tu correo o le avisamos al administrador del bar para que te lo dé.";
 
     private final PasswordResetRepository resets;
     private final StaffUserRepository users;
@@ -51,10 +47,12 @@ public class PasswordResetService {
     private final PasswordEncoder encoder;
     private final LoginGuard guard;
     private final AuditService audit;
-    private final SecureRandom random = new SecureRandom();
+    private final MailService mail;
+    private final com.brindix.common.AppProperties props;
 
     public PasswordResetService(PasswordResetRepository resets, StaffUserRepository users, VenueService venues,
-                                VenueRepository venueRepo, PasswordEncoder encoder, LoginGuard guard, AuditService audit) {
+                                VenueRepository venueRepo, PasswordEncoder encoder, LoginGuard guard, AuditService audit,
+                                MailService mail, com.brindix.common.AppProperties props) {
         this.resets = resets;
         this.users = users;
         this.venues = venues;
@@ -62,6 +60,8 @@ public class PasswordResetService {
         this.encoder = encoder;
         this.guard = guard;
         this.audit = audit;
+        this.mail = mail;
+        this.props = props;
     }
 
     public record ForgotInput(@NotBlank String venue, @NotBlank @Size(max = 60) String username) {}
@@ -93,7 +93,32 @@ public class PasswordResetService {
         r.setUserId(u.getId());
         r.setRequestedIp(ip == null ? null : ip.substring(0, Math.min(ip.length(), 64)));
         resets.save(r);
+        String link = props.publicBase() + "/" + venue.getSlug() + "/recuperar?codigo=1";
+        if (u.getEmail() != null && !u.getEmail().isBlank() && mail.enabled()) {
+            // Tiene correo: el código le llega directo (la prueba es tener acceso a su buzón).
+            String code = OneTimeCode.generate();
+            approveWith(r, code, "Correo de " + u.getName());
+            mail.send(u.getEmail(), "Tu código para recuperar la contraseña · " + venue.getName(),
+                    "Recupera tu contraseña",
+                    List.of("Hola " + u.getName() + ". Pediste recuperar tu contraseña de " + venue.getName() + " en Brindix.",
+                            "Escribe este código en «Ya tengo un código». Vence en 30 minutos y sirve una sola vez."),
+                    OneTimeCode.pretty(code), "Escribir el código", link);
+            audit.log(as(u), venue.getId(), "Pidió recuperar su contraseña", "user", u.getId(), "Código enviado a su correo · desde " + ip);
+            return;
+        }
         audit.log(as(u), venue.getId(), "Pidió recuperar su contraseña", "user", u.getId(), "Desde " + ip);
+        // Sin correo: avisar a quienes pueden aprobar (otros administradores del bar y Brindix).
+        List<String> to = new java.util.ArrayList<>(users.findByVenueIdAndRoleOrderByIdAsc(venue.getId(), Role.ADMIN).stream()
+                .filter(a -> a.isActive() && !a.getId().equals(u.getId()) && a.getEmail() != null).map(StaffUser::getEmail).toList());
+        if (u.getRole() == Role.ADMIN || to.isEmpty()) to.add(mail.adminEmail());
+        String admin = props.publicBase() + "/" + venue.getSlug() + "/admin/equipo";
+        for (String email : to.stream().filter(java.util.Objects::nonNull).distinct().toList()) {
+            mail.send(email, u.getName() + " pide recuperar su contraseña · " + venue.getName(),
+                    "Solicitud de recuperación de contraseña",
+                    List.of(u.getName() + " (" + u.getUsername() + ", " + (u.getRole() == Role.ADMIN ? "administrador" : "mesero") + ") pidió recuperar su contraseña en " + venue.getName() + ".",
+                            "Si confirmas que es esa persona, apruébala en Equipo (o en la plataforma de Brindix) y dale el código de un solo uso. Si no la reconoces, recházala."),
+                    null, "Revisar la solicitud", admin);
+        }
     }
 
     /** Solicitudes abiertas de un bar (administrador) o de todos (súper administrador, venueId null). */
@@ -125,16 +150,20 @@ public class PasswordResetService {
             throw ApiException.forbidden("No puedes aprobar tu propia solicitud: pídesela a otro administrador o a Brindix");
         }
         if (!u.isActive()) throw ApiException.badRequest("El usuario está desactivado");
-        String code = newCode();
+        String code = OneTimeCode.generate();
+        approveWith(r, code, me.name());
+        audit.log(me, r.getVenueId(), "Aprobó recuperar contraseña", "user", u.getId(), u.getName() + " · código válido 30 minutos");
+        return new ApprovedCode(OneTimeCode.pretty(code), r.getExpiresAt(), u.getName(), u.getUsername());
+    }
+
+    private static void approveWith(PasswordReset r, String code, String by) {
         Instant now = Instant.now();
         r.setStatus(PasswordReset.Status.APPROVED);
-        r.setCodeHash(sha256(code));
+        r.setCodeHash(OneTimeCode.hash(code));
         r.setAttempts(0);
-        r.setApprovedBy(me.name());
+        r.setApprovedBy(by);
         r.setApprovedAt(now);
         r.setExpiresAt(now.plus(CODE_TTL));
-        audit.log(me, r.getVenueId(), "Aprobó recuperar contraseña", "user", u.getId(), u.getName() + " · código válido 30 minutos");
-        return new ApprovedCode(code.substring(0, 4) + "-" + code.substring(4), r.getExpiresAt(), u.getName(), u.getUsername());
     }
 
     @Transactional
@@ -154,9 +183,7 @@ public class PasswordResetService {
         StaffUser u = users.findByVenueIdAndUsernameIgnoreCase(venue.getId(), in.username().trim()).orElse(null);
         PasswordReset r = u == null ? null
                 : resets.findFirstByUserIdAndStatusOrderByApprovedAtDesc(u.getId(), PasswordReset.Status.APPROVED).orElse(null);
-        String code = in.code().toUpperCase().replaceAll("[^A-Z0-9]", "");
-        boolean ok = r != null && u.isActive() && !expired(r, Instant.now())
-                && MessageDigest.isEqual(sha256(code).getBytes(StandardCharsets.UTF_8), r.getCodeHash().getBytes(StandardCharsets.UTF_8));
+        boolean ok = r != null && u.isActive() && !expired(r, Instant.now()) && OneTimeCode.matches(in.code(), r.getCodeHash());
         if (!ok) {
             guard.failed(key);
             guard.failed("reset-ip:" + ip);
@@ -172,6 +199,11 @@ public class PasswordResetService {
         u.setTokenVersion(u.getTokenVersion() + 1); // cierra todas sus sesiones
         close(r, PasswordReset.Status.USED);
         audit.log(as(u), venue.getId(), "Restableció su contraseña", "user", u.getId(), "Código aprobado por " + r.getApprovedBy());
+        if (u.getEmail() != null) {
+            mail.send(u.getEmail(), "Tu contraseña de " + venue.getName() + " cambió", "Tu contraseña cambió",
+                    List.of("Hola " + u.getName() + ". Acabas de elegir una contraseña nueva en " + venue.getName() + ". Cerramos tus sesiones en otros dispositivos.",
+                            "Si no fuiste tú, avisa de inmediato al administrador del bar."), null, null, null);
+        }
     }
 
     private PasswordReset owned(StaffPrincipal me, Long id) {
@@ -192,21 +224,7 @@ public class PasswordResetService {
         r.setClosedAt(Instant.now());
     }
 
-    private String newCode() {
-        StringBuilder sb = new StringBuilder(8);
-        for (int i = 0; i < 8; i++) sb.append(ALPHABET.charAt(random.nextInt(ALPHABET.length())));
-        return sb.toString();
-    }
-
     private static StaffPrincipal as(StaffUser u) {
         return new StaffPrincipal(u.getId(), u.getVenueId(), u.getUsername(), u.getName(), u.getRole(), false);
-    }
-
-    static String sha256(String s) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(s.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
     }
 }

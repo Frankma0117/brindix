@@ -75,6 +75,7 @@ public class StaffService {
             throw ApiException.conflict("Ese usuario ya existe en este bar");
         }
         StaffUser u = newUser(venueId, in.name(), in.username(), in.password(), in.role());
+        u.setEmail(cleanEmail(in.email()));
         audit.log(me, venueId, "Creó usuario", "user", u.getId(), u.getName() + " (" + u.getRole() + ")");
         return StaffDtos.UserView.of(u);
     }
@@ -92,6 +93,10 @@ public class StaffService {
         return users.save(u);
     }
 
+    static String cleanEmail(String email) {
+        return email == null || email.isBlank() ? null : email.trim().toLowerCase();
+    }
+
     @Transactional
     public StaffDtos.UserView update(StaffPrincipal me, Long id, StaffDtos.UserUpdate in) {
         StaffUser u = get(id);
@@ -104,6 +109,7 @@ public class StaffService {
         u.setName(in.name().trim());
         u.setRole(in.role());
         u.setActive(in.active());
+        u.setEmail(cleanEmail(in.email()));
         if (in.password() != null && !in.password().isBlank()) {
             u.setPasswordHash(encoder.encode(in.password()));
             u.setMustChangePassword(true);

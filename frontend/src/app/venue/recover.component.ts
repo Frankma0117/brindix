@@ -33,11 +33,11 @@ import { IconComponent } from '../shared/icon.component';
       @if (step() === 'ask') {
         @if (sent()) {
           <p class="ok"><bx-icon name="circle-check" /> {{ sent() }}</p>
-          <p class="small muted">El administrador del bar verá tu solicitud en <b>Equipo</b>. Si eres el único administrador, la aprueba Brindix. Cuando te den el código, entra a <b>Ya tengo un código</b>.</p>
+          <p class="small muted">Revisa tu correo (también la carpeta de spam). Si no tienes correo registrado, el administrador del bar verá tu solicitud en <b>Equipo</b>. Si eres el único administrador, la aprueba Brindix. Cuando te den el código, entra a <b>Ya tengo un código</b>.</p>
           <button class="btn block" (click)="step.set('code')">Ya tengo un código</button>
         } @else {
           <form class="col" (ngSubmit)="ask()">
-            <p class="small muted">Escribe tu usuario. Le avisamos al administrador para que confirme que eres tú y te dé un código de un solo uso.</p>
+            <p class="small muted">Escribe tu usuario. Si tienes correo registrado te llega un código de un solo uso; si no, le avisamos al administrador para que confirme que eres tú y te lo dé.</p>
             <label class="field"><span>Usuario</span><input class="input" name="u" [(ngModel)]="username" autocomplete="username" autocapitalize="none" required></label>
             @if (error()) { <p class="err">{{ error() }}</p> }
             <button class="btn primary lg block" [disabled]="busy() || !username.trim()">Pedir código</button>

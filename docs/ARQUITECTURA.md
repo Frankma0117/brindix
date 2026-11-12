@@ -29,6 +29,9 @@ El súper administrador (`platform_users`) no pertenece a ningún bar.
 - **Recuperar contraseña** (personal): se pide en `/<bar>/recuperar` (respuesta igual exista o no el usuario, 5 por IP
   cada 15 min); la aprueba otro administrador del bar en Equipo o el súper administrador en la plataforma; el código
   (8 caracteres, 30 min, un solo uso, 5 intentos) se guarda como SHA-256. Súper administrador: `BRINDIX_RECOVERY_KEY`.
+- **Correo** (Brevo por SMTP, `common/MailService`, se envía en segundo plano): si el usuario tiene correo, el código de
+  recuperación le llega directo; si no, se avisa a los administradores del bar o a `BRINDIX_ADMIN_EMAIL`. El súper
+  administrador recupera con un código a su correo (15 min) o con la clave del servidor. Avisos de seguridad al cambiar contraseñas.
 - **Versión de sesión** (`token_version` en el JWT `ver`): cambiar o restablecer la contraseña cierra las demás sesiones.
 
 - **Clave temporal**: las cuentas nuevas, las claves puestas por otro y las sembradas tienen

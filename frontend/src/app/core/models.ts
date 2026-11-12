@@ -13,7 +13,7 @@ export type CashCategory = 'BILL' | 'RESTOCK' | 'WITHDRAWAL' | 'DEPOSIT' | 'TIP_
 
 export interface User {
   id: number; name: string; username: string; role: Role; active: boolean;
-  createdAt?: string; lastLoginAt?: string; mustChangePassword?: boolean;
+  createdAt?: string; lastLoginAt?: string; mustChangePassword?: boolean; email?: string;
 }
 
 export interface WaiterOption { id: number; name: string; role: Role; }

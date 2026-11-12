@@ -8,7 +8,7 @@ import { VenueContext } from '../../core/venue-context';
 import { IconComponent } from '../../shared/icon.component';
 import { ResetRequestsComponent } from '../../shared/reset-requests.component';
 
-interface UserForm { id?: number; name: string; username: string; password: string; role: Role; active: boolean; }
+interface UserForm { id?: number; name: string; username: string; password: string; role: Role; active: boolean; email: string; }
 
 @Component({
   selector: 'bx-users',
@@ -30,7 +30,7 @@ interface UserForm { id?: number; name: string; username: string; password: stri
       <tbody>
         @for (u of users(); track u.id) {
           <tr>
-            <td class="strong">{{ u.name }}</td><td class="muted">{{ u.username }}</td>
+            <td class="strong">{{ u.name }}@if (u.email) { <span class="tiny muted mail">{{ u.email }}</span> }</td><td class="muted">{{ u.username }}</td>
             <td><span class="badge" [class.amber]="u.role === 'ADMIN'" [class.teal]="u.role === 'WAITER'">{{ u.role === 'ADMIN' ? 'Administrador' : 'Mesero' }}</span></td>
             <td><span class="badge" [class.green]="u.active" [class.red]="!u.active">{{ u.active ? 'Activo' : 'Inactivo' }}</span></td>
             <td class="muted small">{{ u.lastLoginAt ? (u.lastLoginAt | date: 'd MMM, h:mm a') : 'Nunca' }}</td>
@@ -48,6 +48,7 @@ interface UserForm { id?: number; name: string; username: string; password: stri
         <div class="form-grid">
           <label class="field full"><span>Nombre</span><input class="input" [(ngModel)]="f.name"></label>
           <label class="field"><span>Usuario</span><input class="input" [(ngModel)]="f.username" [disabled]="!!f.id" autocapitalize="none"></label>
+          <label class="field full"><span>Correo (opcional: si lo tiene, el código de recuperación le llega directo)</span><input class="input" type="email" [(ngModel)]="f.email" autocomplete="off" placeholder="nombre@correo.com"></label>
           <label class="field"><span>{{ f.id ? 'Nueva contraseña (opcional)' : 'Contraseña' }}</span><input class="input" type="password" [(ngModel)]="f.password" placeholder="Mínimo 8 caracteres"></label>
           <div class="field full"><span>Perfil</span>
             <div class="row"><button class="chip" [class.active]="f.role === 'WAITER'" (click)="f.role = 'WAITER'">Mesero</button><button class="chip" [class.active]="f.role === 'ADMIN'" (click)="f.role = 'ADMIN'">Administrador</button></div>
@@ -58,7 +59,7 @@ interface UserForm { id?: number; name: string; username: string; password: stri
       </div>
     </div>
   }`,
-  styles: ['.roles { margin-bottom: 16px; }'],
+  styles: ['.roles { margin-bottom: 16px; } .mail { display: block; font-weight: 500; }'],
 })
 export class UsersComponent implements OnInit {
   private api = inject(Api);
@@ -80,16 +81,16 @@ export class UsersComponent implements OnInit {
   }
 
   edit(u?: User): void {
-    this.form.set(u ? { id: u.id, name: u.name, username: u.username, password: '', role: u.role, active: u.active }
-      : { name: '', username: '', password: '', role: 'WAITER', active: true });
+    this.form.set(u ? { id: u.id, name: u.name, username: u.username, password: '', role: u.role, active: u.active, email: u.email ?? '' }
+      : { name: '', username: '', password: '', role: 'WAITER', active: true, email: '' });
   }
 
   async save(): Promise<void> {
     const f = this.form();
     if (!f) return;
     try {
-      if (f.id) await this.api.run(this.api.put(`/admin/users/${f.id}`, { name: f.name, role: f.role, active: f.active, password: f.password || null }));
-      else await this.api.run(this.api.post('/admin/users', { name: f.name, username: f.username, password: f.password, role: f.role }));
+      if (f.id) await this.api.run(this.api.put(`/admin/users/${f.id}`, { name: f.name, role: f.role, active: f.active, password: f.password || null, email: f.email.trim() || null }));
+      else await this.api.run(this.api.post('/admin/users', { name: f.name, username: f.username, password: f.password, role: f.role, email: f.email.trim() || null }));
       this.toasts.ok('Usuario guardado');
       this.form.set(null);
       this.load();

@@ -43,6 +43,11 @@ public class DataSeeder implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         AppProperties.Seed seed = props.seed();
+        String adminEmail = props.mail() == null ? null : props.mail().adminEmail();
+        if (adminEmail != null && !adminEmail.isBlank()) {
+            platformUsers.findAll().stream().filter(u -> u.getEmail() == null)
+                    .forEach(u -> { u.setEmail(adminEmail.trim().toLowerCase()); platformUsers.save(u); });
+        }
         if (!seed.enabled()) return;
         if (platformUsers.count() == 0) {
             PlatformUser u = new PlatformUser();

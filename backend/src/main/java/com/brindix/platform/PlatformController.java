@@ -14,10 +14,12 @@ public class PlatformController {
 
     private final PlatformService service;
     private final AppProperties props;
+    private final com.brindix.common.MailService mail;
 
-    public PlatformController(PlatformService service, AppProperties props) {
+    public PlatformController(PlatformService service, AppProperties props, com.brindix.common.MailService mail) {
         this.service = service;
         this.props = props;
+        this.mail = mail;
     }
 
     @PostMapping("/api/platform/login")
@@ -43,6 +45,36 @@ public class PlatformController {
     @PostMapping("/api/platform/password")
     public Map<String, String> changePassword(@Valid @RequestBody StaffDtos.PasswordChange in) {
         return Map.of("token", service.changePassword(CurrentUser.get(), in));
+    }
+
+    /** Estado del correo saliente (para el panel de la plataforma). */
+    @GetMapping("/api/platform/mail")
+    public Map<String, Object> mailStatus() {
+        return Map.of("enabled", mail.enabled(), "from", props.mail() == null ? "" : String.valueOf(props.mail().from()),
+                "adminEmail", mail.adminEmail() == null ? "" : mail.adminEmail());
+    }
+
+    /** Correo de prueba al súper administrador. */
+    @PostMapping("/api/platform/mail/test")
+    public Map<String, String> mailTest() {
+        if (!mail.enabled()) throw com.brindix.common.ApiException.badRequest("El correo no está configurado (BRINDIX_MAIL_HOST)");
+        mail.send(mail.adminEmail(), "Prueba de correo de Brindix", "El correo de Brindix funciona",
+                java.util.List.of("Este es un correo de prueba enviado desde la plataforma. Si te llegó a la bandeja de entrada, los códigos de recuperación y los avisos de seguridad también llegarán."),
+                null, "Abrir la plataforma", props.publicBase() + "/plataforma");
+        return Map.of("message", "Correo de prueba enviado a " + mail.adminEmail());
+    }
+
+    /** Olvidé mi contraseña (súper administrador): código a su correo. */
+    @PostMapping("/api/platform/forgot")
+    public Map<String, String> forgot(@Valid @RequestBody PlatformService.ForgotInput in, jakarta.servlet.http.HttpServletRequest req) {
+        service.forgot(in, com.brindix.common.ClientIp.of(req));
+        return Map.of("message", "Si el usuario existe y tiene correo, te enviamos un código. Revisa también la carpeta de spam.");
+    }
+
+    @PostMapping("/api/platform/reset-code")
+    public Map<String, String> resetCode(@Valid @RequestBody PlatformService.CodeResetInput in, jakarta.servlet.http.HttpServletRequest req) {
+        service.resetWithCode(in, com.brindix.common.ClientIp.of(req));
+        return Map.of("message", "Contraseña restablecida. Ya puedes entrar.");
     }
 
     /** Olvidé mi contraseña (súper administrador): con la clave de recuperación del servidor. */
