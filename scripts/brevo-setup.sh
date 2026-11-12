@@ -6,7 +6,15 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 read -r -s -p "API key de Brevo (xkeysib-…, no se muestra): " BREVO_API_KEY; echo
+BREVO_API_KEY="$(printf '%s' "$BREVO_API_KEY" | tr -d '[:space:]')"
+echo "Clave recibida: empieza por '${BREVO_API_KEY:0:8}', largo ${#BREVO_API_KEY} (una API key de Brevo empieza por xkeysib- y mide unos 89)."
+case "$BREVO_API_KEY" in
+  xsmtpsib-*) echo "Esa es la clave SMTP. Necesito la API key: Brevo → Configuración → SMTP y API → pestaña «Claves API» → Generar una nueva clave."; exit 1 ;;
+  xkeysib-*) ;;
+  *) echo "No parece una API key de Brevo (deben empezar por xkeysib-). Cópiala completa al crearla; Brevo solo la muestra una vez."; exit 1 ;;
+esac
 read -r -s -p "Token de la API de Hostinger (opcional, Enter para omitir): " HOSTINGER_TOKEN; echo
+HOSTINGER_TOKEN="$(printf '%s' "$HOSTINGER_TOKEN" | tr -d '[:space:]')"
 TO=$(grep '^BRINDIX_ADMIN_EMAIL=' .env | cut -d= -f2-)
 FROM=$(grep '^BRINDIX_MAIL_FROM=' .env | cut -d= -f2-)
 
