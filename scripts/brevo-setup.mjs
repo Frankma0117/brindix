@@ -52,13 +52,13 @@ async function main() {
   const recs = Object.entries(d.dns_records || {}).map(([k, r]) => ({ key: k, ...r }));
   if (recs.length) {
     out('   Registros DNS que deben estar en Hostinger (Dominios → cania.app → DNS → Agregar registro):');
-    for (const r of recs) out(`   - ${r.type.padEnd(5)} nombre: ${r.host_name || '@'}\n           valor: ${r.value}\n           estado: ${r.status ? 'OK' : 'falta'}`);
+    for (const r of recs) out(`   - ${String(r.type || r.key).padEnd(12)} nombre: ${r.host_name || '@'}\n           valor: ${r.value ?? ''}\n           estado: ${r.status ? 'OK' : 'falta'}`);
   }
 
   // 5. Opcional: crear los registros en Hostinger
   if (HOST_TOKEN && recs.some(r => !r.status)) {
     out('\n== Creando los registros en Hostinger…');
-    const zone = recs.filter(r => !r.status).map(r => {
+    const zone = recs.filter(r => !r.status && r.type && r.value).map(r => {
       let name = (r.host_name || '@').replace(new RegExp(`\\.?${DOMAIN.replace('.', '\\.')}\\.?$`), '') || '@';
       return { name, type: r.type, ttl: 3600, records: [{ content: r.value }] };
     });
