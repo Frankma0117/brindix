@@ -4,13 +4,14 @@ import { Auth } from '../../core/auth.service';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
 import { ThemeToggleComponent } from '../../core/theme';
+import { AlertToggleComponent } from '../../core/staff-alerts';
 import { IconComponent } from '../../shared/icon.component';
 import { IconName } from '../../shared/icons';
 
 @Component({
   selector: 'bx-admin-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MascotComponent, ThemeToggleComponent, IconComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MascotComponent, ThemeToggleComponent, IconComponent, AlertToggleComponent],
   template: `
   @if (auth.isSupport()) {
     <div class="support-bar"><bx-icon name="life-buoy" /> Modo soporte: estás dentro de <b>{{ ctx.name() }}</b> como administrador. Todo queda en la bitácora.
@@ -37,6 +38,7 @@ import { IconName } from '../../shared/icons';
         <a [href]="'/' + ctx.slug() + '/pantalla'" target="_blank" class="btn block sm"><bx-icon name="tv" /> Ver pantalla</a>
         <div class="me">
           <div class="grow"><p class="strong small ellipsis">{{ auth.user()?.name }}</p><p class="tiny muted">{{ auth.isSupport() ? 'Soporte Brindix' : 'Administrador' }}</p></div>
+          <bx-alert-toggle />
           <bx-theme-toggle />
           <button class="btn ghost icon sm" (click)="auth.logout()" aria-label="Salir" title="Salir"><bx-icon name="log-out" /></button>
         </div>
@@ -47,7 +49,7 @@ import { IconName } from '../../shared/icons';
       <header class="mobile-top">
         <button class="btn icon sm" (click)="menu.set(true)" aria-label="Menú"><bx-icon name="menu" /></button>
         <span class="strong ellipsis">{{ ctx.name() }}</span>
-        <div class="row"><bx-theme-toggle /><a [routerLink]="'/' + ctx.slug() + '/mesero'" class="btn sm">Mesas</a></div>
+        <div class="row"><bx-alert-toggle /><bx-theme-toggle /><a [routerLink]="'/' + ctx.slug() + '/mesero'" class="btn sm">Mesas</a></div>
       </header>
       <div class="content"><router-outlet /></div>
     </div>

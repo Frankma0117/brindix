@@ -8,7 +8,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const dir = path.join(root, 'node_modules', 'lucide-static', 'icons');
 
 const NAMES = [
-  'arrow-left', 'armchair', 'audio-lines', 'ban', 'banknote', 'beer', 'bell-ring', 'calculator', 'camera',
+  'arrow-left', 'armchair', 'audio-lines', 'ban', 'banknote', 'beer', 'bell-off', 'bell-ring', 'calculator', 'camera',
   'chart-column', 'chart-line', 'check', 'chef-hat', 'chevron-down', 'chevron-right', 'chevrons-up', 'circle-check',
   'clock', 'credit-card', 'crown', 'cup-soda', 'eye', 'eye-off', 'footprints', 'glass-water', 'grip-vertical',
   'hand', 'hand-coins', 'headphones', 'image', 'info', 'layout-grid', 'life-buoy', 'lock', 'log-out', 'map-pin',

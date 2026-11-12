@@ -8,7 +8,7 @@ import { Auth } from '../../core/auth.service';
 import { Board, RoundView, TabView, TableBoard, WaiterOption } from '../../core/models';
 import { AgoPipe, MoneyPipe, Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
-import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
+import { WaiterHeaderComponent } from './waiter-header.component';
 import { IconComponent } from '../../shared/icon.component';
 import { Dialogs } from '../../shared/dialogs';
 
@@ -236,7 +236,7 @@ export class BoardComponent implements OnInit {
     const keys = [...b.pending.map(r => 'p' + r.id), ...b.inProgress.map(r => 'd' + r.id), ...b.calls.map(c => 'c' + c.id)];
     const fresh = keys.some(k => !this.seen.has(k));
     keys.forEach(k => this.seen.add(k));
-    if (fresh && !this.first) notifyNew();
+    // El sonido y la alerta los da StaffAlerts (core/staff-alerts.ts) en cualquier vista.
     this.first = false;
     this.board.set(b);
   }

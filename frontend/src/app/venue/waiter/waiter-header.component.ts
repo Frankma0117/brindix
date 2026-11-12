@@ -4,12 +4,13 @@ import { Auth } from '../../core/auth.service';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
 import { ThemeToggleComponent } from '../../core/theme';
+import { AlertToggleComponent } from '../../core/staff-alerts';
 import { IconComponent } from '../../shared/icon.component';
 
 @Component({
   selector: 'bx-waiter-header',
   standalone: true,
-  imports: [RouterLink, MascotComponent, ThemeToggleComponent, IconComponent],
+  imports: [RouterLink, MascotComponent, ThemeToggleComponent, IconComponent, AlertToggleComponent],
   template: `
   @if (auth.isSupport()) {
     <div class="support-bar"><bx-icon name="life-buoy" /> Modo soporte: estás dentro de <b>{{ ctx.name() }}</b> como administrador. Todo queda en la bitácora.
@@ -26,6 +27,7 @@ import { IconComponent } from '../../shared/icon.component';
         </div>
       </div>
       <div class="row">
+        <bx-alert-toggle />
         <bx-theme-toggle />
         @if (auth.isAdmin()) { <a class="btn sm" [routerLink]="'/' + ctx.slug() + '/admin'">Panel</a> }
         <button class="btn ghost icon sm" (click)="auth.logout()" aria-label="Salir" title="Salir"><bx-icon name="log-out" /></button>
