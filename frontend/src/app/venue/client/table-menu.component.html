@@ -18,19 +18,27 @@
   @if (view() === 'menu') {
     @if (banners().length) {
       <section class="container">
-        <div class="promo" [attr.data-theme]="banners()[bannerIndex()].theme">
-          @if (banners()[bannerIndex()].imageUrl) { <img [src]="banners()[bannerIndex()].imageUrl" alt=""> }
-          <div class="promo-text">
-            <span class="badge">Promo</span>
-            <h2>{{ banners()[bannerIndex()].title }}</h2>
-            @if (banners()[bannerIndex()].subtitle) { <p>{{ banners()[bannerIndex()].subtitle }}</p> }
-            @if (banners()[bannerIndex()].productPrice) { <p class="promo-price">{{ banners()[bannerIndex()].productPrice | money }}</p> }
-          </div>
-          <div class="dots">
+        <div class="promos" aria-roledescription="carrusel" aria-label="Promociones">
+          <div class="promo-track" #promoTrack (scroll)="onPromoScroll()" (pointerdown)="touchedPromo()" (touchstart)="touchedPromo()">
             @for (b of banners(); track b.id; let i = $index) {
-              <button [class.on]="i === bannerIndex()" (click)="bannerIndex.set(i)" [attr.aria-label]="'Promo ' + (i + 1)"></button>
+              <button class="promo" [attr.data-theme]="b.theme" (click)="openBanner(b)" [attr.aria-label]="b.title" [attr.aria-current]="i === bannerIndex()">
+                @if (b.imageUrl || b.productImage) { <img [src]="b.imageUrl || b.productImage" alt="" [attr.loading]="i === 0 ? 'eager' : 'lazy'"> }
+                <span class="promo-text">
+                  <span class="badge">{{ b.productId ? 'Promo · tócala para pedir' : 'Promo' }}</span>
+                  <span class="promo-title">{{ b.title }}</span>
+                  @if (b.subtitle) { <span class="promo-sub">{{ b.subtitle }}</span> }
+                  @if (b.productPrice) { <span class="promo-price">{{ b.productPrice | money }}</span> }
+                </span>
+              </button>
             }
           </div>
+          @if (banners().length > 1) {
+            <div class="dots">
+              @for (b of banners(); track b.id; let i = $index) {
+                <button [class.on]="i === bannerIndex()" (click)="goPromo(i)" [attr.aria-label]="'Ver promo ' + (i + 1)"></button>
+              }
+            </div>
+          }
         </div>
       </section>
     }

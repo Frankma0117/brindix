@@ -49,6 +49,8 @@ public class Venue {
     private String spotifyRefreshToken;
     private Instant spotifyExpiresAt;
     private String spotifyAccount;
+    /** Permisos dados por la cuenta; con "streaming" la pantalla del TV puede reproducir. */
+    private String spotifyScopes;
     private String youtubeApiKey;
 
     /** Llave de la pantalla del TV: con ella la pantalla puede reproducir y avanzar la cola (YouTube). */

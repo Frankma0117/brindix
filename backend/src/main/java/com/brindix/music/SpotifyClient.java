@@ -35,11 +35,12 @@ public class SpotifyClient {
     private static final Logger log = LoggerFactory.getLogger(SpotifyClient.class);
     private static final String ACCOUNTS = "https://accounts.spotify.com";
     private static final String API = "https://api.spotify.com/v1";
-    static final String SCOPES = "user-read-playback-state user-modify-playback-state user-read-currently-playing";
+    /** streaming + user-read-email + user-read-private: los pide el reproductor web (la pantalla del TV suena). */
+    static final String SCOPES = "user-read-playback-state user-modify-playback-state user-read-currently-playing streaming user-read-email user-read-private";
 
     public record Credentials(String clientId, String clientSecret) {}
 
-    public record Tokens(String accessToken, String refreshToken, int expiresIn) {}
+    public record Tokens(String accessToken, String refreshToken, int expiresIn, String scope) {}
 
     public record PlayerState(MusicDtos.Track track, int progressMs, boolean playing) {}
 
@@ -73,7 +74,7 @@ public class SpotifyClient {
         form.add("code", code);
         form.add("redirect_uri", redirectUri);
         JsonNode json = token(c, form);
-        return new Tokens(json.path("access_token").asText(), json.path("refresh_token").asText(null), json.path("expires_in").asInt(3600));
+        return new Tokens(json.path("access_token").asText(), json.path("refresh_token").asText(null), json.path("expires_in").asInt(3600), json.path("scope").asText(""));
     }
 
     public Tokens refresh(Credentials c, String refreshToken) {
@@ -81,7 +82,7 @@ public class SpotifyClient {
         form.add("grant_type", "refresh_token");
         form.add("refresh_token", refreshToken);
         JsonNode json = token(c, form);
-        return new Tokens(json.path("access_token").asText(), json.path("refresh_token").asText(refreshToken), json.path("expires_in").asInt(3600));
+        return new Tokens(json.path("access_token").asText(), json.path("refresh_token").asText(refreshToken), json.path("expires_in").asInt(3600), json.path("scope").asText(""));
     }
 
     public String accountName(String accessToken) {
@@ -114,6 +115,21 @@ public class SpotifyClient {
     public void addToQueue(String accessToken, String uri) {
         String url = UriComponentsBuilder.fromUriString(API + "/me/player/queue").queryParam("uri", uri).encode().build().toUriString();
         call(() -> http.post().uri(url).header("Authorization", "Bearer " + accessToken).retrieve().toBodilessEntity());
+    }
+
+    /** Pasa la reproducción al reproductor de la pantalla del TV (sin empezar a sonar). */
+    public void transfer(String accessToken, String deviceId) {
+        call(() -> http.put().uri(API + "/me/player").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).body(java.util.Map.of("device_ids", List.of(deviceId), "play", false))
+                .retrieve().toBodilessEntity());
+    }
+
+    /** Hace sonar una canción en un reproductor concreto. */
+    public void playOn(String accessToken, String deviceId, String uri) {
+        String url = UriComponentsBuilder.fromUriString(API + "/me/player/play").queryParam("device_id", deviceId).encode().build().toUriString();
+        call(() -> http.put().uri(url).header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).body(java.util.Map.of("uris", List.of(uri)))
+                .retrieve().toBodilessEntity());
     }
 
     public void skip(String accessToken) {
@@ -191,7 +207,7 @@ public class SpotifyClient {
                     : new ApiException(HttpStatus.BAD_GATEWAY, "Spotify rechazó la solicitud");
             case 401 -> new SpotifyAuthException("La sesión de Spotify venció. Conecta la cuenta de nuevo.");
             case 403 -> new ApiException(HttpStatus.BAD_GATEWAY, "Spotify no lo permite: la cuenta debe ser Premium y estar agregada en User Management de la app.");
-            case 404 -> new ApiException(HttpStatus.CONFLICT, "No hay un reproductor activo. Abre Spotify en el computador del bar y pon a sonar algo.");
+            case 404 -> new ApiException(HttpStatus.CONFLICT, "No hay un reproductor activo. Abre la Pantalla del TV (enlace con llave) y toca «Activar la música», o abre Spotify en el computador del bar.");
             case 429 -> new ApiException(HttpStatus.TOO_MANY_REQUESTS, "Spotify pidió esperar un momento. Intenta en unos segundos.");
             default -> new ApiException(HttpStatus.BAD_GATEWAY, "Spotify no respondió (" + status.value() + ")");
         };

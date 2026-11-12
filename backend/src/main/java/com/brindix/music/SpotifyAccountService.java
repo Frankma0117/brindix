@@ -49,6 +49,7 @@ public class SpotifyAccountService {
         v.setSpotifyAccessToken(crypto.encrypt(t.accessToken()));
         v.setSpotifyRefreshToken(crypto.encrypt(t.refreshToken()));
         v.setSpotifyExpiresAt(Instant.now().plusSeconds(t.expiresIn()));
+        v.setSpotifyScopes(t.scope());
         v.setSpotifyAccount(spotify.accountName(t.accessToken()));
     }
 
@@ -59,6 +60,7 @@ public class SpotifyAccountService {
             v.setSpotifyRefreshToken(null);
             v.setSpotifyExpiresAt(null);
             v.setSpotifyAccount(null);
+            v.setSpotifyScopes(null);
         });
     }
 
@@ -80,6 +82,7 @@ public class SpotifyAccountService {
             v.setSpotifyAccessToken(crypto.encrypt(t.accessToken()));
             v.setSpotifyRefreshToken(crypto.encrypt(t.refreshToken()));
             v.setSpotifyExpiresAt(Instant.now().plusSeconds(t.expiresIn()));
+            if (t.scope() != null && !t.scope().isBlank()) v.setSpotifyScopes(t.scope());
             return t.accessToken();
         } catch (SpotifyClient.SpotifyAuthException e) {
             v.setSpotifyAccessToken(null);

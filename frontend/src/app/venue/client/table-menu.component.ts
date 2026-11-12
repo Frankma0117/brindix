@@ -1,6 +1,6 @@
 import { ThemeToggleComponent } from '../../core/theme';
 import { IconComponent } from '../../shared/icon.component';
-import { Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnInit, computed, inject, input, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap, timer, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -40,6 +40,9 @@ export class TableMenuComponent implements OnInit {
   activeCategory = signal<number | null>(null);
   query = signal('');
   bannerIndex = signal(0);
+  private promoTrack = viewChild<ElementRef<HTMLElement>>('promoTrack');
+  /** Último toque al carrusel: mientras la persona lo usa, no avanza solo. */
+  private promoTouchedAt = 0;
 
   detail = signal<MenuProduct | null>(null);
   detailQty = signal(1);
@@ -97,7 +100,11 @@ export class TableMenuComponent implements OnInit {
     this.refreshTab();
 
     timer(6000, 6000).pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.banners().length > 1 && this.bannerIndex.update(i => (i + 1) % this.banners().length));
+      .subscribe(() => {
+        if (this.banners().length < 2 || Date.now() - this.promoTouchedAt < 9000 || document.hidden) return;
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        this.goPromo((this.bannerIndex() + 1) % this.banners().length);
+      });
     timer(10000, 10000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       if (this.view() === 'tab') this.refreshTab();
       if (this.view() === 'music') this.refreshQueue();
@@ -134,6 +141,32 @@ export class TableMenuComponent implements OnInit {
   }
 
   // ---------- Pedido ----------
+
+  // ---------- Promociones (carrusel que se desliza con el dedo) ----------
+
+  onPromoScroll(): void {
+    const el = this.promoTrack()?.nativeElement;
+    if (el) this.bannerIndex.set(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
+  }
+
+  touchedPromo(): void {
+    this.promoTouchedAt = Date.now();
+  }
+
+  goPromo(i: number): void {
+    const el = this.promoTrack()?.nativeElement;
+    if (!el) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
+    this.bannerIndex.set(i);
+  }
+
+  /** Una promo de producto abre el producto para pedirlo. */
+  openBanner(b: Banner): void {
+    this.touchedPromo();
+    if (!b.productId) return;
+    const p = this.menu().flatMap(c => c.products).find(x => x.id === b.productId);
+    if (p) this.openDetail(p);
+  }
 
   openDetail(p: MenuProduct): void {
     this.detail.set(p);

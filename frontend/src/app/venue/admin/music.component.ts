@@ -49,7 +49,7 @@ import { IconComponent } from '../../shared/icon.component';
         <p class="tiny faint hint">
           @switch (queue()?.provider) {
             @case ('YOUTUBE') { YouTube: la pantalla del bar reproduce la cola sola. Ábrela desde Configuración → Pantalla (enlace con llave). }
-            @case ('SPOTIFY') { Spotify: deja Spotify sonando en el computador del bar; Brindix manda la siguiente cuando falte poco. }
+            @case ('SPOTIFY') { Spotify: abre la <b>Pantalla</b> del TV (enlace con llave en Configuración) y toca «Activar la música»: esa pantalla es el parlante y Brindix le manda la cola. También sirve Spotify abierto en el computador del bar. }
             @default { Modo manual: pon la canción en tu reproductor y pulsa «Siguiente» para que la pantalla muestre la que sigue. }
           }
         </p>

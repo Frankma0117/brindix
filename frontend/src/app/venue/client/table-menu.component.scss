@@ -7,16 +7,23 @@
 .alert { border-color: rgba(255, 93, 93, .4); margin-bottom: 12px; }
 .hint { text-align: center; color: var(--muted); margin-top: 24px; }
 
-.promo { position: relative; border-radius: 22px; overflow: hidden; min-height: 150px; padding: 20px; display: flex; align-items: flex-end; margin: 6px 0 4px; background: linear-gradient(135deg, var(--p1), var(--p2)); }
-.promo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55; }
-.promo-text { position: relative; max-width: 80%; }
-.promo-text h2 { font-size: 26px; font-weight: 800; color: #fff; text-shadow: 0 2px 12px rgba(0, 0, 0, .3); }
-.promo-text p { color: rgba(255, 255, 255, .92); font-weight: 600; }
-.promo-text .badge { background: rgba(0, 0, 0, .3); color: #fff; margin-bottom: 6px; }
-.promo-price { font-family: var(--display); font-size: 22px; font-weight: 800; margin-top: 4px; }
-.promo .dots { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 6px; }
-.promo .dots button { width: 8px; height: 8px; border-radius: 99px; border: 0; background: rgba(255, 255, 255, .45); padding: 0; cursor: pointer; transition: width .2s; }
-.promo .dots button.on { width: 22px; background: #fff; }
+/* Promociones: riel que se desliza con el dedo (scroll-snap) */
+.promos { position: relative; margin: 6px 0 4px; }
+.promo-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: 22px; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.promo-track::-webkit-scrollbar { display: none; }
+.promo { position: relative; flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; min-height: 168px; padding: 20px 20px 34px; display: flex; align-items: flex-end;
+  border: 0; border-radius: 0; text-align: left; font: inherit; color: #fff; cursor: pointer; background: linear-gradient(135deg, var(--p1), var(--p2)); overflow: hidden; }
+.promo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.promo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(10,8,6,.88) 0%, rgba(10,8,6,.35) 55%, rgba(10,8,6,.05) 100%); }
+.promo-text { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 3px; max-width: 88%; }
+.promo-title { font-family: var(--display); font-size: 25px; line-height: 1.05; font-weight: 800; }
+.promo-sub { color: rgba(255, 255, 255, .92); font-weight: 600; font-size: 14.5px; }
+.promo-text .badge { align-self: flex-start; background: rgba(0, 0, 0, .35); color: #fff; margin-bottom: 4px; }
+.promo-price { font-family: var(--display); font-size: 22px; font-weight: 800; margin-top: 2px; color: #ffcf8a; }
+.promos .dots { position: absolute; right: 14px; bottom: 12px; z-index: 2; display: flex; gap: 2px; }
+.promos .dots button { position: relative; width: 22px; height: 22px; border: 0; background: none; padding: 0; cursor: pointer; }
+.promos .dots button::before { content: ''; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; transform: translate(-50%, -50%); border-radius: 99px; background: rgba(255, 255, 255, .5); transition: width 200ms var(--ease-out); }
+.promos .dots button.on::before { width: 20px; background: #fff; }
 [data-theme=amber] { --p1: #ffb238; --p2: #e2521d; }
 [data-theme=neon] { --p1: #ff5c6c; --p2: #9f1d2e; }
 [data-theme=lime] { --p1: #84cc16; --p2: #0f766e; }

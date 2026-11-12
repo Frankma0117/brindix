@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { catchError, of, switchMap, timer } from 'rxjs';
@@ -10,13 +10,17 @@ import { MascotComponent } from '../../shared/mascot.component';
 import { IconComponent } from '../../shared/icon.component';
 
 // API del reproductor oficial de YouTube (se carga bajo demanda).
+// Reproductor web de Spotify (Web Playback SDK, también bajo demanda).
 declare global {
-  interface Window { YT?: any; onYouTubeIframeAPIReady?: () => void; }
+  interface Window { YT?: any; onYouTubeIframeAPIReady?: () => void; Spotify?: any; onSpotifyWebPlaybackSDKReady?: () => void; }
 }
+
+interface ScreenSpotify { token?: string; canPlay: boolean; reason?: string; }
 
 /**
  * Pantalla del TV del bar: lo que suena, lo que sigue y publicidad rotando.
- * Con /pantalla?k=<llave> y el bar en modo YouTube, además reproduce la cola.
+ * Con /pantalla?k=<llave> además es el reproductor: con YouTube reproduce los videos; con Spotify se vuelve
+ * un parlante de Spotify (Web Playback SDK) y Brindix le manda la cola.
  */
 @Component({
   selector: 'bx-screen',
@@ -43,14 +47,25 @@ export class ScreenComponent implements OnInit {
   private playerSong: number | null = null;
   private reporting = false;
   duration = duration;
+  /** Estado del reproductor de Spotify en esta pantalla. */
+  spotifyState = signal<'off' | 'loading' | 'ready' | 'error'>('off');
+  spotifyMsg = signal('');
+  private spotifyPlayer: any = null;
+  private spotifyActivated = false;
+  /** Cuántas canciones de «Lo que sigue» caben sin cortar. */
+  rows = signal(4);
+  private nextBox = viewChild<ElementRef<HTMLElement>>('nextBox');
 
   banner = computed<Banner | null>(() => {
     const list = this.data()?.banners ?? [];
     return list.length ? list[this.bannerIndex() % list.length] : null;
   });
   now = computed(() => this.data()?.music.nowPlaying ?? null);
-  upNext = computed(() => (this.data()?.music.upNext ?? []).slice(0, 5));
+  allNext = computed(() => this.data()?.music.upNext ?? []);
+  upNext = computed(() => this.allNext().slice(0, this.allNext().length > this.rows() ? Math.max(1, this.rows() - 1) : this.rows()));
+  moreNext = computed(() => this.allNext().length - this.upNext().length);
   youtube = computed(() => !!this.data()?.controller && this.data()?.music.provider === 'YOUTUBE');
+  spotifyScreen = computed(() => !!this.data()?.controller && this.data()?.music.provider === 'SPOTIFY');
   percent = computed(() => {
     const d = this.now()?.durationMs;
     return d ? Math.min(100, (this.progress() / d) * 100) : 0;
@@ -71,7 +86,12 @@ export class ScreenComponent implements OnInit {
       }
       if (!this.bannerTimer) this.scheduleBanner();
       if (this.youtube()) this.syncPlayer();
+      if (this.spotifyScreen() && this.spotifyState() === 'off') this.initSpotify();
     });
+    // «Lo que sigue» muestra solo las filas que caben (nunca hay que desplazarse).
+    const ro = new ResizeObserver(() => this.fitRows());
+    setTimeout(() => { const el = this.nextBox()?.nativeElement; if (el) { ro.observe(el); this.fitRows(); } });
+    this.destroyRef.onDestroy(() => ro.disconnect());
     timer(0, 1000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.clock.set(new Date());
       const np = this.now();
@@ -80,6 +100,7 @@ export class ScreenComponent implements OnInit {
     this.destroyRef.onDestroy(() => {
       clearTimeout(this.bannerTimer);
       try { this.player?.destroy(); } catch { /* */ }
+      try { this.spotifyPlayer?.disconnect(); } catch { /* */ }
     });
   }
 
@@ -91,10 +112,80 @@ export class ScreenComponent implements OnInit {
   start(): void {
     this.needsTap.set(false);
     this.fullscreen();
+    if (this.spotifyPlayer) {
+      this.spotifyActivated = true;
+      try { this.spotifyPlayer.activateElement?.(); } catch { /* */ }
+      this.spotifyPlayer.resume?.().catch?.(() => {});
+    }
     if (this.player?.unMute) {
       this.player.unMute();
       this.player.playVideo();
     }
+  }
+
+  private fitRows(): void {
+    const el = this.nextBox()?.nativeElement;
+    if (!el) return;
+    const vw = window.innerWidth / 100;
+    const portrait = window.innerHeight > window.innerWidth;
+    const row = (portrait ? 40 : Math.max(3.4 * vw, 44)) + (portrait ? 10 : 0.8 * vw);
+    this.rows.set(Math.max(1, Math.floor((el.clientHeight + 0.8 * vw) / row)));
+  }
+
+  // ---------- Spotify: la pantalla es el parlante ----------
+
+  private async initSpotify(): Promise<void> {
+    this.spotifyState.set('loading');
+    const first = await this.spotifyToken();
+    if (!first) return;
+    await this.loadSpotifySdk();
+    const name = `${this.data()?.venue?.name ?? 'Bar'} · Pantalla (Brindix)`;
+    const p = new window.Spotify.Player({
+      name,
+      volume: 0.85,
+      getOAuthToken: (cb: (t: string) => void) => { this.spotifyToken().then(t => t && cb(t)); },
+    });
+    this.spotifyPlayer = p;
+    p.addListener('ready', ({ device_id }: { device_id: string }) => {
+      this.api.post(this.ctx.pub('/screen/spotify/ready'), { key: this.key, deviceId: device_id }).subscribe({
+        next: () => { this.spotifyState.set('ready'); this.spotifyMsg.set(''); if (!this.spotifyActivated) this.needsTap.set(true); },
+        error: e => this.spotifyFail(e?.error?.error ?? 'Spotify no aceptó esta pantalla como reproductor.'),
+      });
+    });
+    p.addListener('not_ready', () => this.spotifyState.set('loading'));
+    p.addListener('autoplay_failed', () => this.needsTap.set(true));
+    p.addListener('initialization_error', () => this.spotifyFail('Este navegador no puede reproducir Spotify. Usa Chrome o Edge en un computador o TV Box.'));
+    p.addListener('authentication_error', () => this.spotifyFail('La conexión con Spotify venció. Vuelve a conectar Spotify en Configuración → Música.'));
+    p.addListener('account_error', () => this.spotifyFail('Para que suene en la pantalla la cuenta de Spotify debe ser Premium.'));
+    p.addListener('playback_error', () => this.spotifyMsg.set('Spotify no pudo reproducir esa canción; pasa a la siguiente.'));
+    p.connect();
+  }
+
+  private spotifyFail(msg: string): void {
+    this.spotifyState.set('error');
+    this.spotifyMsg.set(msg);
+  }
+
+  private spotifyToken(): Promise<string | null> {
+    return new Promise(resolve => {
+      this.api.get<ScreenSpotify>(this.ctx.pub('/screen/spotify'), { key: this.key }).subscribe({
+        next: r => {
+          if (!r.canPlay || !r.token) { this.spotifyFail(r.reason ?? 'Spotify no está listo para sonar aquí.'); resolve(null); return; }
+          resolve(r.token);
+        },
+        error: e => { this.spotifyFail(e?.error?.error ?? 'No se pudo conectar con Spotify.'); resolve(null); },
+      });
+    });
+  }
+
+  private loadSpotifySdk(): Promise<void> {
+    if (window.Spotify?.Player) return Promise.resolve();
+    return new Promise(resolve => {
+      window.onSpotifyWebPlaybackSDKReady = () => resolve();
+      const s = document.createElement('script');
+      s.src = 'https://sdk.scdn.co/spotify-player.js';
+      document.head.appendChild(s);
+    });
   }
 
   private syncPlayer(): void {

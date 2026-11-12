@@ -9,6 +9,9 @@ import java.util.List;
 
 public final class MusicDtos {
 
+    /** Para el reproductor web de Spotify en la pantalla del TV. */
+    public record ScreenSpotify(String token, boolean canPlay, String reason) {}
+
     private MusicDtos() {}
 
     /** Resultado de búsqueda (Spotify o YouTube). ref = uri de Spotify o id de video. */

@@ -37,12 +37,20 @@
     </header>
 
     <div class="now">
-      <p class="label"><span class="eq"><i></i><i></i><i></i><i></i></span> Sonando ahora</p>
+      <div class="now-head">
+        <p class="label"><span class="eq" [class.still]="!now()?.playing"><i></i><i></i><i></i><i></i></span> Sonando ahora</p>
+        @if (spotifyScreen()) {
+          <span class="player-pill" [class.ok]="spotifyState() === 'ready'" [class.bad]="spotifyState() === 'error'">
+            {{ spotifyState() === 'ready' ? 'Suena en esta pantalla' : spotifyState() === 'error' ? 'Spotify sin conectar' : 'Conectando Spotify…' }}
+          </span>
+        }
+      </div>
+      @if (spotifyScreen() && spotifyMsg()) { <p class="player-msg">{{ spotifyMsg() }}</p> }
       @if (youtube()) { <div class="video"><div id="yt-player"></div></div> }
       @if (now(); as np) {
         <div class="now-main">
           @if (!youtube()) {
-            <div class="cover">@if (np.image) { <img [src]="np.image" alt=""> } @else { <bx-mascot [size]="90" mood="party" /> }</div>
+            <div class="cover">@if (np.image) { <img [src]="np.image" alt=""> } @else { <bx-mascot [size]="80" mood="party" /> }</div>
           }
           <div class="grow">
             <h2 class="title">{{ np.title }}</h2>
@@ -58,34 +66,35 @@
         }
       } @else {
         <div class="now-main">
-          <div class="cover"><bx-mascot [size]="90" /></div>
+          <div class="cover"><bx-mascot [size]="80" /></div>
           <div class="grow"><h2 class="title">La música está por empezar</h2><p class="artist">Pide la tuya desde tu mesa</p></div>
         </div>
       }
     </div>
 
     <div class="next">
-      <p class="label">Lo que sigue</p>
-      <ol>
+      <p class="label">Lo que sigue @if (allNext().length) { <span class="count">{{ allNext().length }}</span> }</p>
+      <ol #nextBox>
         @for (s of upNext(); track s.id; let i = $index) {
           <li>
             <span class="pos">{{ i + 1 }}</span>
-            @if (s.albumImage) { <img [src]="s.albumImage" alt=""> } @else { <span class="ph">♪</span> }
+            @if (s.albumImage) { <img [src]="s.albumImage" alt=""> } @else { <span class="ph"><bx-icon name="music" /></span> }
             <div class="grow"><p class="t ellipsis">{{ s.title }}</p><p class="a ellipsis">{{ s.artist }}@if (s.tableName) { · {{ s.tableName }} }</p></div>
           </li>
         } @empty { <li class="free">¡La lista está libre! Escanea el QR de tu mesa y pide tu canción</li> }
+        @if (moreNext() > 0) { <li class="more">+ {{ moreNext() }} {{ moreNext() === 1 ? 'canción más' : 'canciones más' }} en la lista</li> }
       </ol>
     </div>
 
     <footer class="cta">
-      <span class="qr-ico">▦</span>
+      <span class="qr-ico"><bx-icon name="qr-code" /></span>
       <div><p class="strong">Escanea el QR de tu mesa</p><p class="small">Mira la carta y pon tu canción</p></div>
       @if (data()?.venue?.wifiName) { <div class="wifi"><bx-icon name="audio-lines" /> {{ data()!.venue.wifiName }}<br><span>{{ data()!.venue.wifiPassword }}</span></div> }
     </footer>
   </aside>
 
   @if (needsTap()) {
-    <button class="tap" (click)="start()"><bx-mascot [size]="120" mood="party" /><span>Toca para activar la música</span></button>
+    <button class="tap" (click)="start()"><bx-mascot [size]="120" mood="party" /><span>Toca para activar la música</span><small>Los navegadores no dejan sonar nada sin un toque. Solo se hace una vez.</small></button>
   }
   @if (offline()) { <div class="offline">Reconectando…</div> }
 </div>

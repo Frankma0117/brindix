@@ -41,6 +41,8 @@ public class MusicService {
 
     /** Lo último que reportó Spotify por bar (la pantalla lo lee sin llamar a Spotify). */
     private final Map<Long, MusicDtos.NowPlaying> spotifyNow = new ConcurrentHashMap<>();
+    /** Reproductor de la pantalla del TV de cada bar (Spotify Web Playback): id del dispositivo y cuándo se vio. */
+    private final Map<Long, Object[]> screenDevices = new ConcurrentHashMap<>();
 
     public MusicService(SongRequestRepository songs, BarTableRepository tables, TableService tableService, VenueService venues,
                         SpotifyClient spotify, SpotifyAccountService accounts, YouTubeClient youtube) {
@@ -181,6 +183,12 @@ public class MusicService {
         SongRequest next = songs.findFirstByVenueIdAndStatusOrderByPositionAscIdAsc(venueId, SongStatus.QUEUED).orElse(null);
         if (venue.getMusicProvider() == Venue.MusicProvider.SPOTIFY && venue.spotifyConnected()) {
             String token = accounts.requireToken(venueId);
+            String device = screenDevice(venueId);
+            if (device != null && next != null && next.getProvider() == Venue.MusicProvider.SPOTIFY && next.getTrackRef() != null) {
+                spotify.playOn(token, device, next.getTrackRef());
+                next.setSentToPlayer(true);
+                return;
+            }
             if (next != null && next.getProvider() == Venue.MusicProvider.SPOTIFY && next.getTrackRef() != null && !next.isSentToPlayer()) {
                 spotify.addToQueue(token, next.getTrackRef());
                 next.setSentToPlayer(true);
@@ -194,6 +202,59 @@ public class MusicService {
     @Transactional
     public void stop(Long venueId) {
         finishPlaying(venueId);
+    }
+
+    // ---------- Pantalla del TV con Spotify (Web Playback SDK) ----------
+
+    /** Token para el reproductor de la pantalla (solo con la llave del TV y si la cuenta dio permiso de reproducción). */
+    public MusicDtos.ScreenSpotify screenSpotify(Venue venue) {
+        if (venue.getMusicProvider() != Venue.MusicProvider.SPOTIFY || !venue.spotifyConnected()) {
+            return new MusicDtos.ScreenSpotify(null, false, "Spotify no está conectado en Configuración → Música.");
+        }
+        String scopes = venue.getSpotifyScopes() == null ? "" : venue.getSpotifyScopes();
+        if (!scopes.contains("streaming")) {
+            return new MusicDtos.ScreenSpotify(null, false, "Para que suene en esta pantalla, vuelve a conectar Spotify en Configuración → Música (pide el permiso de reproducción).");
+        }
+        return new MusicDtos.ScreenSpotify(accounts.requireToken(venue.getId()), true, null);
+    }
+
+    /** La pantalla quedó lista como reproductor: se le pasa la reproducción y, si no suena nada, arranca la cola. */
+    @Transactional
+    public void screenReady(Venue venue, String deviceId) {
+        String token = accounts.requireToken(venue.getId());
+        screenDevices.put(venue.getId(), new Object[]{deviceId, Instant.now()});
+        spotify.transfer(token, deviceId);
+        Optional<SpotifyClient.PlayerState> state = spotify.currentlyPlaying(token);
+        if (state.isEmpty() || !state.get().playing()) startOnScreen(venue.getId(), token);
+    }
+
+    /** Dispositivo de la pantalla visto en los últimos 10 minutos. */
+    private String screenDevice(Long venueId) {
+        Object[] d = screenDevices.get(venueId);
+        if (d == null || ((Instant) d[1]).isBefore(Instant.now().minusSeconds(600))) return null;
+        return (String) d[0];
+    }
+
+    public void screenAlive(Long venueId) {
+        Object[] d = screenDevices.get(venueId);
+        if (d != null) d[1] = Instant.now();
+    }
+
+    private void startOnScreen(Long venueId, String token) {
+        String device = screenDevice(venueId);
+        if (device == null) return;
+        songs.findByVenueIdAndStatusInOrderByPositionAscIdAsc(venueId, List.of(SongStatus.QUEUED)).stream()
+                .filter(s -> s.getProvider() == Venue.MusicProvider.SPOTIFY && s.getTrackRef() != null)
+                .findFirst()
+                .ifPresent(s -> {
+                    try {
+                        spotify.playOn(token, device, s.getTrackRef());
+                        s.setSentToPlayer(true);
+                        songs.save(s);
+                    } catch (ApiException e) {
+                        log.warn("No se pudo arrancar la música en la pantalla: {}", e.getMessage());
+                    }
+                });
     }
 
     // ---------- Pantalla con YouTube ----------
@@ -232,9 +293,10 @@ public class MusicService {
             return;
         }
         Optional<SpotifyClient.PlayerState> state = spotify.currentlyPlaying(token);
-        if (state.isEmpty()) {
+        if (state.isEmpty() || (!state.get().playing() && state.get().progressMs() == 0)) {
             spotifyNow.remove(venueId);
-            return;
+            startOnScreen(venueId, token);
+            if (state.isEmpty()) return;
         }
         SpotifyClient.PlayerState ps = state.get();
         String uri = ps.track().ref();
