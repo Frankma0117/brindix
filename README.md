@@ -1,26 +1,26 @@
 # Brindix 🍸🎧
 
-Sistema para bares: **cuentas por mesa, carta digital con QR, pedidos desde el celular,
-música a pedido, pantalla del bar con publicidad e inventario**. Hecho para empezar con un bar
-y crecer a varios (todo guarda `venue_id`).
+Plataforma para bares: **carta con QR, rondas por mesa, pedidos desde la mesa, cobro por ronda
+o total, caja con cierre del día, inventario con costos y ganancia, música a pedido (Spotify,
+YouTube o manual) y pantalla del bar con publicidad**. Brindix es el servicio general y cada bar
+tiene su propio acceso: `brindix.cania.app/<bar>`.
 
-Su personaje es **Brindix**: una copa de cóctel con audífonos (tragos + música).
+Su personaje es **Brindix**: una copa de cóctel con audífonos.
 
-| Quién | Qué hace | Dónde |
+| Perfil | Qué hace | Dónde |
 |---|---|---|
-| Cliente (sin registro) | Escanea el QR de su mesa, ve la carta con fotos, pide, pide canciones, llama al mesero o pide la cuenta | `/m/<código>` |
-| Mesero | Ve las mesas, abre cuentas, carga rondas por tandas (×1, ×2, ×6…), confirma los pedidos de los clientes, cobra | `/mesero` |
-| Administrador | Todo lo del mesero + carta, inventario, mesas y QR, música, publicidad, ventas, equipo, ajustes | `/admin` |
-| Pantalla (TV) | Lo que suena, lo que sigue y banners rotando | `/pantalla` |
+| Súper administrador (dueño de Brindix) | Crea bares, los suspende, recupera la clave de su administrador | `/plataforma` |
+| Administrador del bar | Carta, precios y costos, inventario, caja y cierres, cobros y descuentos, asignar y modificar pedidos, música, pantalla, equipo, configuración. También atiende mesas. | `/<bar>/admin` |
+| Mesero | Ve mesas y carta, carga rondas por tandas, entrega lo asignado y (si el bar lo permite) cobra | `/<bar>/mesero` |
+| Cliente (sin registro) | Carta con fotos, pedir (si el bar lo activa), pedir canciones, llamar al mesero, ver su cuenta | `/<bar>/m/<código QR>` |
+| Pantalla del TV | Lo que suena, lo que sigue, publicidad; con llave reproduce YouTube | `/<bar>/pantalla` |
 
 ## Tecnologías
 
-- **backend/**: Java 17, Spring Boot 3.4 (Web, Data JPA, Security con JWT, Validation), Flyway,
-  PostgreSQL en producción y H2 en desarrollo, Lombok.
-- **frontend/**: Angular 19 (componentes standalone, signals, carga diferida por ruta), SCSS,
-  `qrcode` para generar los QR.
-- **docs/**: guías (Spotify, arquitectura). **scripts/**: arranque en Windows.
-- Despliegue: `docker-compose.yml` (PostgreSQL + backend + nginx con el frontend).
+- **backend/**: Java 17, Spring Boot 3.4 (Web, JPA, Security + JWT, Validation), Flyway, **MySQL 8**
+  (H2 en modo MySQL para desarrollo), AWS SDK S3 para **DigitalOcean Spaces**.
+- **frontend/**: Angular 19 (standalone, signals, carga diferida), CDK drag & drop, `qrcode`.
+- Despliegue: Docker Compose (MySQL + backend + nginx) detrás del nginx del servidor. Ver [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
 
 ## Arrancar en el computador
 
@@ -30,39 +30,18 @@ Requisitos: Java 17, Maven 3.9, Node 20+.
 scripts\dev.cmd
 ```
 
-o a mano, en dos consolas:
+o en dos consolas: `cd backend && mvn spring-boot:run` (puerto 8080) y `cd frontend && npx ng serve` (4200).
 
-```bash
-cd backend  && mvn spring-boot:run          # http://127.0.0.1:8080  (perfil dev, H2 en backend/data)
-cd frontend && npm install && npx ng serve  # http://localhost:4200  (proxy de /api y /uploads al 8080)
-```
+El primer arranque crea:
+- súper administrador: `brindix` / `brindix12345` en <http://localhost:4200/plataforma>
+- bar de demostración en <http://localhost:4200/demo>: `admin` / `admin12345` y `mesero` / `mesero12345`
 
-El primer arranque crea el bar de ejemplo con 27 productos, 13 mesas, 3 banners y dos usuarios:
+Para empezar de cero: `scripts\reset-dev-db.cmd`.
 
-- administrador: `admin` / `admin12345`
-- mesero: `mesero` / `mesero12345`
+## Música
 
-Cámbialos en **Equipo** antes de usarlo de verdad. Para empezar de cero: `scripts\reset-dev-db.cmd`.
+Se configura **por bar** en Configuración → Música. Guía: [docs/SPOTIFY.md](docs/SPOTIFY.md).
 
-Para probar desde el celular en la misma red Wi-Fi abre `http://<IP-del-PC>:4200` (el servidor
-de Angular escucha en todas las interfaces) y agrega esa dirección a `BRINDIX_CORS_ORIGINS` si
-llamas al backend directo.
+## Más
 
-## Producción
-
-```bash
-cp .env.example .env    # edita claves, dominio y (opcional) Spotify
-docker compose up -d --build
-```
-
-Queda escuchando en el puerto `8081`; pon delante el HTTPS del servidor (nginx + certbot o
-Caddy). Las fotos subidas viven en el volumen `uploads` y la base en `pgdata`.
-
-## Música y Spotify
-
-Sin configurar nada funciona en **modo manual**. Para conectar Spotify sigue
-[docs/SPOTIFY.md](docs/SPOTIFY.md) (incluye la advertencia sobre el uso comercial).
-
-## Cómo está organizado
-
-Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md)

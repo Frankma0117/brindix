@@ -1,33 +1,36 @@
 # CLAUDE.md — Brindix
 
-Sistema para bares (cuentas por mesa, carta QR, música a pedido, pantalla, inventario).
-Proyecto independiente de Canix y Aula Interactiva, con la misma idea de estructura
-(`backend/` + `frontend/` + `docs/` + `scripts/`). Responde siempre en español.
+Plataforma para bares (multi-bar): carta QR, rondas, cobros por ronda o total, caja con cierre,
+inventario con costos, música (Spotify/YouTube/manual), pantalla. Repo
+`git@github.com:Frankma0117/brindix.git` (commit y push en cada avance). Responde siempre en español.
 
 ## Estado
-- [x] 2026-11-11: **Fase 1 completa y probada en local.** Backend Spring Boot (todos los módulos,
-      prueba de humo de punta a punta: cuentas, rondas, pedido QR, anulación, kardex, cobro, cola
-      de música con prioridad, pantalla, tablero) y frontend Angular 19 (cliente, mesero, pantalla,
-      panel admin completo), revisado con capturas en Chrome headless. Spotify programado pero
-      **sin probar con una cuenta real** (faltan credenciales).
-- [ ] Conectar Spotify con la cuenta real (ver docs/SPOTIFY.md).
-- [ ] Desplegar en servidor (docker compose + HTTPS).
+- [x] 2026-11-11: fase 1 (un bar, PostgreSQL/H2) — reemplazada el mismo día.
+- [x] 2026-11-11: **multi-bar + MySQL + perfiles + caja + cobros + Spaces + música por bar**. Prueba de
+      punta a punta del backend (`smoke2`: 46 comprobaciones, incluye costo promedio, efectivo esperado,
+      ganancia y diferencia de caja) y revisión visual con Chrome headless.
+- [x] 2026-11-11: desplegado en `/opt/brindix` (Docker, MySQL 8.4, puerto 127.0.0.1:5710).
+- [ ] `sudo bash /opt/brindix/scripts/sudo-setup.sh` (nginx + certbot de brindix.cania.app) — lo corre el usuario.
+- [ ] Conectar Spotify/YouTube reales desde Configuración → Música (el código no se ha probado con cuentas reales).
 
-## Decisiones
-- Nombre/personaje: **Brindix**, copa de cóctel con audífonos (`shared/mascot.component.ts`).
-- Un solo bar por ahora, pero todo guarda `venue_id`; `VenueService.current()` = primer bar.
-- Pedidos del cliente quedan PENDING hasta que un mesero confirma; solo entonces descuentan inventario.
-- Inventario puede quedar negativo (no se bloquea la venta).
-- Día contable de 6:00 a 6:00 (`ReportService`, `sales.component.ts`).
-- Tiempo real con polling (sin WebSocket) para simplificar.
-- Música: la cola de Brindix manda; a Spotify solo se envía la siguiente cuando faltan ~25 s.
+## Decisiones del usuario
+- Brindix es el servicio general; cada bar entra en `brindix.cania.app/<bar>` con su propio acceso.
+- Solo el administrador modifica productos, precios, inventario, entradas de mercancía, caja y pedidos.
+- El mesero solo ve la carta y carga productos a sus mesas; entrega y (opcional) cobra.
+- Pedidos del cliente desde el QR son opcionales (los activa el administrador) y él los asigna a un mesero.
+- Cobro por ronda o total; lo puede hacer el mesero (queda pendiente de entregar en caja) o el administrador.
+- Toda configuración de integraciones (Spotify, YouTube) va en Configuración del administrador, no en el .env.
+- Imágenes en DigitalOcean Spaces (mismo bucket de Aula Interactiva, prefijo `brindix/`); imágenes de
+  prueba generadas una sola vez con fal.ai (`scripts/seed-images.py`).
 
 ## Trampas conocidas
-- Node 18 es el predeterminado del PC; Angular necesita Node 20: `C:\Users\Asus\node20` (los scripts lo ponen en el PATH).
-- Spring Data **no** detecta repositorios anidados en otra clase: un archivo por repositorio.
-- Enums usados en JPQL deben ser de nivel superior (no anidados).
+- Node 18 es el predeterminado del PC; Angular necesita Node 20: `C:\Users\Asus\node20`.
+- Spring Data no detecta repositorios anidados en otra clase: un archivo por repositorio.
+- Enums usados en JPQL deben ser de nivel superior.
+- MySQL ignora `REFERENCES` en la columna: las FK van como `CONSTRAINT ... FOREIGN KEY` de tabla.
 - `Map.of().get(null)` lanza NPE: usar `HashMap` si la clave puede ser nula.
-- Angular 19 no admite funciones flecha en plantillas; usar métodos del componente.
-- No usar `.wrap` como clase de contenedor de página: choca con `row wrap`. Se usa `.page-wrap`.
-- Chrome headless tiene ~500 px de ancho mínimo: capturas "de celular" a 412 px salen recortadas (no es un error de la página).
-- Al enviar JSON con tildes desde curl en Git Bash, escapar como `\u00f1`; si no, el backend responde «No se pudo leer la solicitud».
+- Angular 19: nada de funciones flecha ni objetos indexados (`{...}[x]`) en plantillas; usar métodos.
+- No usar `.wrap` ni `.glow` como clases de contenedor/decoración propias: chocan con `row wrap` y `card glow`.
+- Heredocs largos en Bash fallan aquí: escribir archivos con la herramienta Write o con un script.
+- Chrome headless tiene ~500 px de ancho mínimo: capturas "de celular" a menos salen recortadas.
+- JSON con tildes desde curl en Git Bash: escapar como `\u00f1`.

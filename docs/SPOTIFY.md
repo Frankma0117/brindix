@@ -1,78 +1,54 @@
-# Conectar Spotify a Brindix
+# Música en Brindix: Spotify, YouTube o manual
 
-Brindix funciona sin Spotify: en **modo manual** los clientes escriben la canción, el
-administrador ordena la cola y pulsa «Siguiente» mientras la pone en su reproductor. Con
-Spotify conectado, Brindix busca canciones con carátula y **manda solo la siguiente a la cola
-del reproductor** cuando la actual está por terminar, y lee lo que suena para la pantalla.
+Cada bar elige su música en **Panel del administrador → Configuración → Música**. Nada de esto
+va en el `.env` del servidor: cada bar pone sus propias claves (se guardan cifradas).
 
-## Antes de empezar: lo que hay que saber
+| Modo | Qué hace | Qué necesita |
+|---|---|---|
+| ✋ Manual | El cliente escribe la canción; el administrador la pone en su reproductor y pulsa «Siguiente». | Nada |
+| 🟢 Spotify | El cliente busca con carátula; Brindix manda la siguiente de la cola al Spotify del bar cuando a la actual le quedan ~25 s. | App de Spotify del bar + cuenta **Premium** |
+| 🔴 YouTube | El cliente busca en YouTube; la **pantalla del TV** (enlace con llave) reproduce los videos en orden y avanza sola. | API key de YouTube Data API v3 |
 
-1. **Cuenta Premium.** Spotify solo deja controlar la cola (agregar, saltar, pausar) desde
-   cuentas Premium.
-2. **Uso comercial.** Las cuentas normales de Spotify (Free, Premium, Familiar) son *para uso
-   personal y no comercial* según los términos de Spotify. Poner música en un bar abierto al
-   público con ellas no está permitido, y además en Colombia el bar debe pagar los derechos de
-   comunicación pública (OSA: SAYCO-ACINPRO). Opciones legales: una plataforma de música
-   comercial para negocios (por ejemplo Soundtrack Your Brand) o música con licencia. La cola
-   de Brindix no depende del reproductor: el modo manual sirve con cualquiera, y se puede
-   escribir un conector para otro servicio con API.
-3. **Modo desarrollo.** Una app nueva de Spotify queda en «Development mode»: solo la usan
-   las cuentas que agregues en *User Management* (hasta 25). Para un bar basta con la cuenta
-   del bar. Spotify cambia estas reglas de vez en cuando: revisa el dashboard al crear la app.
+## Spotify (paso a paso, una vez por bar)
 
-## Paso a paso (una sola vez)
+1. Entra a <https://developer.spotify.com/dashboard> con la cuenta Premium del bar → **Create app**.
+2. En **Redirect URI** pega exactamente la dirección que muestra Configuración → Música
+   (en producción: `https://brindix.cania.app/api/spotify/callback`). Marca **Web API** y guarda.
+3. Si la cuenta que se va a conectar no es la que creó la app, agrégala en **User Management**.
+4. En **Settings** copia **Client ID** y **Client secret** → pégalos en Configuración → Música → Spotify → «Guardar datos».
+5. Pulsa **Conectar Spotify**, acepta con la cuenta del bar y elige «Usar Spotify».
+6. En el bar: deja Spotify abierto y sonando en el computador del bar (una playlist de fondo sirve).
 
-1. Entra a <https://developer.spotify.com/dashboard> con la cuenta del bar y acepta los términos.
-2. **Create app**:
-   - *App name*: `Brindix <nombre del bar>`
-   - *App description*: `Cola de música del bar`
-   - *Redirect URI*: **exactamente** la de tu instalación, sin barra final:
-     - En el computador (pruebas): `http://127.0.0.1:8080/api/spotify/callback`
-       (Spotify ya no acepta `localhost`; usa `127.0.0.1`).
-     - En el servidor: `https://TU-DOMINIO/api/spotify/callback` (debe ser `https`).
-   - En *Which API/SDKs are you planning to use?* marca **Web API**.
-3. Guarda. En **Settings** copia el **Client ID** y, con «View client secret», el **Client secret**.
-4. En *User Management* agrega el correo de la cuenta del bar si es distinta a la que creó la app.
-5. Pon los datos en el `.env` del backend y reinicia Brindix:
+Como cada bar usa **su propia app**, el límite de 25 usuarios del «modo desarrollo» de Spotify
+no afecta a la plataforma (cada app solo conecta la cuenta de su bar).
 
-   ```env
-   SPOTIFY_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-   SPOTIFY_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-   SPOTIFY_REDIRECT_URI=http://127.0.0.1:8080/api/spotify/callback
-   SPOTIFY_MARKET=CO
-   BRINDIX_PUBLIC_URL=http://localhost:4200
-   ```
+## YouTube (paso a paso)
 
-   `SPOTIFY_REDIRECT_URI` debe ser idéntica a la del paso 2. `BRINDIX_PUBLIC_URL` es a dónde
-   vuelve el navegador después de conectar (la dirección del panel).
-6. En Brindix entra como administrador → **Música** → **Conectar Spotify**, acepta los permisos
-   con la cuenta del bar y listo: el panel dice «Conectado como …».
+1. <https://console.cloud.google.com> → crea un proyecto → habilita **YouTube Data API v3**.
+2. **Credenciales → Crear credenciales → Clave de API** (recomendado: restringirla a YouTube Data API v3).
+3. Pégala en Configuración → Música → YouTube → «Guardar key» y elige «Usar YouTube».
+4. Abre en el TV el enlace **con llave** de Configuración → Pantalla del TV y tócalo una vez para activar el sonido.
 
-## Uso diario
-
-- Abre Spotify (app de escritorio o web) **en el computador del bar** y pon a sonar algo
-  (una playlist de fondo sirve). Sin un reproductor activo, Spotify no acepta canciones en la cola.
-- Los clientes buscan y piden desde el QR; tú ordenas la cola en **Música**.
-- Cuando a la canción actual le quedan ~25 segundos, Brindix manda la primera de la cola a
-  Spotify (en la lista aparece «En Spotify»: desde ese momento ya no se puede reordenar).
-- «Siguiente de la lista» manda la siguiente y salta de inmediato.
-- Si la playlist de fondo suena porque la cola está vacía, la pantalla igual muestra esa canción.
+La cuota gratis da ~100 búsquedas al día por key; Brindix guarda 30 minutos las búsquedas repetidas.
 
 ## Problemas comunes
 
 | Mensaje | Qué hacer |
 |---|---|
-| `INVALID_CLIENT: Invalid redirect URI` | La Redirect URI del dashboard y `SPOTIFY_REDIRECT_URI` no son idénticas. |
+| `INVALID_CLIENT: Invalid redirect URI` | La Redirect URI de la app no es idéntica a la que muestra Brindix. |
 | «No hay un reproductor activo» | Abre Spotify en el computador del bar y dale play a algo. |
-| «la cuenta del bar debe ser Premium» | La cuenta conectada es Free. |
-| «La conexión con Spotify venció» | Se revocó el acceso desde Spotify: vuelve a «Conectar Spotify». |
-| La búsqueda no devuelve nada | Revisa Client ID/Secret y reinicia el backend. |
+| «la cuenta debe ser Premium…» | La cuenta es Free o no está en User Management de la app. |
+| «Se agotaron las búsquedas de YouTube por hoy» | Cuota diaria de la key agotada; vuelve mañana o usa otra key. |
 
-## Cómo está hecho (para quien mantenga el código)
+## Uso comercial
 
-- `music/SpotifyClient.java`: llamadas HTTP (OAuth Authorization Code, búsqueda, cola, saltar).
-  Para buscar sin cuenta conectada usa un token *client credentials*.
-- `music/SpotifyAccountService.java`: guarda `refresh_token` en `venues` y renueva el acceso.
-- `music/SpotifySyncJob.java`: cada 5 s lee `currently-playing`, marca la solicitud como sonando o
-  sonada y envía la siguiente cuando falta poco (`MusicService.syncSpotify`).
-- Permisos pedidos: `user-read-playback-state user-modify-playback-state user-read-currently-playing`.
+Las cuentas personales de Spotify y YouTube son para uso personal y no comercial. Para música en
+un negocio abierto al público consulten las licencias (en Colombia, comunicación pública con
+SAYCO-ACINPRO) o un servicio de música comercial. La cola de Brindix no depende del reproductor,
+así que se puede agregar otro proveedor con API.
+
+## Código
+
+- `music/SpotifyClient.java` (OAuth, búsqueda, cola, saltar), `SpotifyAccountService.java` (tokens cifrados por bar),
+  `SpotifySyncJob.java` (cada 5 s), `YouTubeClient.java` (búsqueda + duración), `MusicService.java` (cola y reglas).
+- Pantalla: `/api/public/{bar}/screen?key=` devuelve `player` (video a reproducir); `/screen/ended` avanza la cola.

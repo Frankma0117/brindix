@@ -1,63 +1,56 @@
 # Arquitectura de Brindix
 
-## Backend (`backend/src/main/java/com/brindix`)
+## Varios bares
 
-Un paquete por módulo; cada uno con su entidad, repositorio, servicio, DTOs (records) y controlador.
+Todo cuelga de `venues` (el bar) y cada fila guarda `venue_id`. Las páginas públicas usan el
+**slug** del bar (`/api/public/{slug}/...`); el personal entra con `venue + usuario + contraseña`
+y el token ya trae su bar, así que `/api/staff` y `/api/admin` nunca reciben el bar por parámetro.
+El súper administrador (`platform_users`) no pertenece a ningún bar.
+
+## Backend (`backend/src/main/java/com/brindix`)
 
 | Paquete | Qué guarda / hace |
 |---|---|
-| `venue` | El bar: nombre, Wi-Fi, reglas de música y pedidos, tokens de Spotify. Hoy `VenueService.current()` = primer bar. |
-| `staff` | Usuarios del personal (`ADMIN`, `WAITER`), login con bloqueo tras 5 intentos. |
-| `security` | JWT (`JwtService`), filtro que recarga el usuario en cada solicitud, reglas por ruta. |
-| `catalog` | Categorías (con ilustración por defecto: `art`) y productos. Productos se archivan, nunca se borran. |
-| `tables` | Mesas con `code` aleatorio para el QR (se puede regenerar). |
-| `orders` | `Tab` (cuenta por mesa) → `Round` (ronda/tanda) → `RoundItem`. Llamados (`ServiceCall`). |
-| `inventory` | Kardex `StockMovement`: ENTRY, SALE, RETURN, ADJUSTMENT, WASTE. |
-| `music` | Cola `SongRequest` (orden por `position`), Spotify (cliente HTTP, tokens, sincronización cada 5 s). |
-| `banners` | Publicidad para la pantalla y la carta; `/api/public/screen` arma todo lo de la TV. |
-| `reports` | Resumen de ventas y tablero en vivo. El día contable empieza a las 6:00 a. m. |
-| `uploads` | Subida de imágenes (valida la firma del archivo) servidas en `/uploads/`. |
-| `common` | Propiedades, errores en español, datos de ejemplo (`DataSeeder`). |
+| `platform` | Súper administrador, alta de bares (`VenueStarter`: admin, mesas y carta de ejemplo). |
+| `venue` | Datos del bar, reglas de pedidos/cobros/música, claves de Spotify/YouTube **cifradas** (`common/Crypto`), llave de la pantalla. |
+| `staff` / `security` | Perfiles `ADMIN` y `WAITER`, JWT, bloqueo tras 5 intentos, el filtro recarga usuario y bar en cada solicitud. |
+| `catalog` | Categorías y productos (precio de venta y costo), orden por arrastre, edición rápida. |
+| `orders` | `Tab` (cuenta) → `Round` (ronda) → `RoundItem`; `Payment` (cobro de una o varias rondas); llamados. |
+| `cash` | Turnos de caja (`CashShift`) y entradas/salidas (`CashMovement`). |
+| `inventory` | Kardex; costo promedio ponderado en cada entrada; entrada pagada de la caja. |
+| `music` | Cola por bar; Spotify (OAuth por bar), YouTube (búsqueda + reproductor en la pantalla), manual. |
+| `reports` | Ventas, ganancia por producto, tablero en vivo, reporte de cierre de caja. |
+| `audit` | Bitácora de todo lo delicado. |
+| `uploads` | Imágenes a Spaces (`brindix/<bar>/<carpeta>/`) o disco; reduce a 1600 px. |
+| `ai` | Descripción de producto con IA (DeepSeek, API compatible con OpenAI). |
 
-### Reglas de negocio importantes
+### Reglas importantes
 
-- **Ronda del mesero** → queda `CONFIRMED` y descuenta inventario al instante.
-- **Pedido del cliente** → `PENDING`; no suma a la cuenta ni descuenta inventario hasta que un
-  mesero lo confirma. Máximo 3 pendientes por mesa. No deja pedir agotados.
-- **Anular un producto** exige motivo, guarda quién lo anuló y devuelve el inventario (RETURN).
-- Nombre y precio quedan **congelados** en `round_items`: cambiar la carta no altera cuentas.
-- **Cobrar**: descuento, propina y medio de pago; los pedidos pendientes se rechazan solos.
-- El inventario puede quedar negativo (el bar vende aunque no haya registrado la entrada); se
-  marca como agotado/bajo para reponer.
-- **Música**: límite de canciones activas por mesa, sin duplicados, aprobación opcional,
-  prioridad (⏫), subir/bajar, fijar y quitar. Con Spotify, la siguiente se envía al reproductor
-  ~25 s antes de terminar la actual, para poder reordenar hasta el último momento.
+- **Mesero**: agrega rondas (quedan confirmadas, descuentan inventario y quedan asignadas a él),
+  entrega las suyas y cobra solo si `waiter_can_charge`. No modifica nada ni da descuentos.
+- **Pedido del cliente** (solo si `client_orders_enabled`): queda `PENDING`; el administrador lo
+  **asigna** a un mesero (pasa a `CONFIRMED` y descuenta inventario) o lo rechaza.
+- **Modificar** (cambiar cantidad, anular, reasignar) es solo del administrador, con motivo, y
+  queda en la bitácora. Lo ya **cobrado no se modifica**: primero se anula el cobro (solo en el turno abierto).
+- **Cobrar**: por ronda o todo; requiere **caja abierta**. Si cobra un mesero, el pago queda
+  `settled=false` (en su poder) hasta que el administrador lo recibe; no se cierra la caja con pendientes.
+- **Efectivo esperado** = base + cobros en efectivo recibidos + entradas en efectivo − salidas en efectivo.
+- **Ganancia** = lo cobrado (sin propina, menos descuentos) − costo congelado en `round_items.unit_cost`.
+- Día contable de 6:00 a. m. a 6:00 a. m.
 
 ### Base de datos
 
-Migraciones en `backend/src/main/resources/db/migration` (Flyway). El SQL sirve para PostgreSQL y
-para H2 en modo PostgreSQL. Nunca editar una migración ya aplicada en producción: crear `V2__…`.
-
-### API
-
-- `/api/public/**`: sin sesión (carta, mesa por código, pedidos, música, pantalla).
-- `/api/staff/**`: mesero o administrador (tablero, cuentas, rondas, llamados).
-- `/api/admin/**`: solo administrador.
-- `/api/auth/login`, `/api/auth/me`, `/api/auth/password`, `/api/spotify/callback`.
-
-Errores: siempre `{"error": "mensaje en español"}` listo para mostrar.
+Migraciones Flyway en `db/migration`, SQL compatible con MySQL 8 y H2 (modo MySQL). Fechas en UTC
+(`DATETIME(6)` + `hibernate.jdbc.time_zone=UTC`). Nunca editar una migración aplicada: crear `V2__…`.
 
 ## Frontend (`frontend/src/app`)
 
 | Carpeta | Contenido |
 |---|---|
-| `core/` | `Api` (HttpClient), `Auth` (signals + interceptor + guards), modelos, utilidades (`money`, `ago`, avisos). |
-| `shared/` | `bx-mascot` (Brindix en SVG), `bx-art` (foto o ilustración por tipo), `bx-qr`. |
-| `public/` | Inicio y carta del cliente (`/m/:code`, `/carta`). |
-| `screen/` | Pantalla del bar (`/pantalla`), se actualiza cada 4 s. |
-| `waiter/` | Tablero de mesas, cuenta y selector de productos por tandas. |
-| `admin/` | Panel completo. |
+| `landing/` | Página de ventas de Brindix (`/`). |
+| `platform/` | Panel del súper administrador (`/plataforma`). |
+| `core/` | API, sesiones (`Auth` por bar, `PlatformAuth`), `VenueContext` + `VenueShellComponent` (carga el bar de `/:slug`), modelos. |
+| `venue/client` | Carta del cliente. `venue/waiter`: tablero, cuenta, selector por tandas. `venue/admin`: panel. `venue/screen`: TV. |
+| `shared/` | `bx-mascot` (Brindix animado), `bx-art` (foto o ilustración), `bx-qr`. |
 
-Estilos: un sistema de diseño global en `src/styles.scss` (tokens, botones, tarjetas, formularios,
-modales); los componentes casi no tienen estilos propios. Tiempo real por consultas periódicas
-(5 s mesero, 4 s pantalla, 10 s cliente).
+Estilos globales en `src/styles.scss`. Tiempo real por consultas periódicas (5 s mesero, 4 s pantalla).
