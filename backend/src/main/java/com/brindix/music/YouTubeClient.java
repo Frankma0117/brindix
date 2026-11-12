@@ -28,7 +28,8 @@ public class YouTubeClient {
     private final RestClient http = RestClient.builder().requestFactory(timeouts()).build();
 
     private static org.springframework.http.client.JdkClientHttpRequestFactory timeouts() {
-        var f = new org.springframework.http.client.JdkClientHttpRequestFactory(java.net.http.HttpClient.newBuilder()
+        // HTTP/1.1: con HTTP/2 el cliente de Java a veces se queda esperando a Spotify (curl responde en 0,07 s).
+        var f = new org.springframework.http.client.JdkClientHttpRequestFactory(java.net.http.HttpClient.newBuilder().version(java.net.http.HttpClient.Version.HTTP_1_1)
                 .connectTimeout(java.time.Duration.ofSeconds(5)).build());
         f.setReadTimeout(java.time.Duration.ofSeconds(10));
         return f;

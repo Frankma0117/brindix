@@ -28,7 +28,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       DATABASE_URL: jdbc:mysql://db:3306/brindix?connectionTimeZone=UTC&characterEncoding=UTF-8&useUnicode=true&allowPublicKeyRetrieval=true&useSSL=false
       BRINDIX_UPLOADS_DIR: /data/uploads
-      JAVA_OPTS: -Xms128m -Xmx512m
+      JAVA_OPTS: -Xms128m -Xmx512m -Djava.net.preferIPv4Stack=true
     volumes:
       - uploads:/data/uploads
     depends_on:
