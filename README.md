@@ -37,10 +37,10 @@ El primer arranque crea:
 - bar de demostración en <http://localhost:4200/demo>: `admin` / `admin12345` y `mesero` / `mesero12345`
 
 Al primer ingreso cada cuenta pide cambiar su contraseña (también cuando un administrador o la
-plataforma le pone una nueva). Para empezar de cero: 
+plataforma le pone una nueva). Para empezar de cero: `scripts\reset-dev-db.cmd`.
 
 **Modo soporte:** desde `/plataforma` el súper administrador pulsa **Entrar** en cualquier bar y queda
-dentro como su administrador (banda morada arriba, 4 horas, todo queda en la bitácora del bar).`scripts\reset-dev-db.cmd`.
+dentro como su administrador (banda morada arriba, 4 horas, todo queda en la bitácora del bar).
 
 ## Música
 
