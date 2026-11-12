@@ -10,8 +10,8 @@ IMG="$(pwd)/demo-seed/img"
 [ -d "$IMG" ] || { echo "Faltan las fotos en $IMG"; exit 1; }
 
 read -r -s -p "Clave del súper administrador (usuario brindix): " SUPER_PASS; echo
-ADMIN_PASS="candela-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
-WAITER_PASS="mesero-$(tr -dc 'a-z0-9' </dev/urandom | head -c 6)"
+ADMIN_PASS="candela-$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 6 || true)"
+WAITER_PASS="mesero-$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 6 || true)"
 
 OUT=$(docker run --rm --network host -v "$(pwd)/scripts:/s:ro" -v "$IMG:/img:ro" node:22-alpine \
   node /s/seed-demo.mjs --api "http://127.0.0.1:$PORT/api" --super brindix --super-pass "$SUPER_PASS" \
