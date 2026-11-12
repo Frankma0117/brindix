@@ -22,4 +22,6 @@ public class BarTable {
     private int seats = 4;
     private int sortOrder;
     private boolean active = true;
+    /** Eliminada por el administrador: no se lista, su QR no sirve y su historial se conserva. */
+    private boolean archived;
 }

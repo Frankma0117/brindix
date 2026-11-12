@@ -64,11 +64,15 @@ interface TableForm { id?: number; name: string; zone: string; seats: number; so
           <label class="field"><span>Orden</span><input class="input" type="number" [(ngModel)]="f.sortOrder"></label>
           <label class="check full"><input type="checkbox" [(ngModel)]="f.active"> Activa</label>
         </div>
-        <div class="modal-foot"><button class="btn" (click)="form.set(null)">Cancelar</button><button class="btn primary" [disabled]="!f.name.trim()" (click)="save()">Guardar</button></div>
+        <div class="modal-foot">
+          @if (f.id) { <button class="btn danger del" (click)="remove()"><bx-icon name="trash-2" /> Eliminar mesa</button> }
+          <button class="btn" (click)="form.set(null)">Cancelar</button><button class="btn primary" [disabled]="!f.name.trim()" (click)="save()">Guardar</button>
+        </div>
       </div>
     </div>
   }`,
   styles: [`
+    .del { margin-right: auto; }
     .tgrid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
     .t { display: flex; gap: 14px; align-items: center; }
     .t.off { opacity: .5; }
@@ -109,6 +113,20 @@ export class TablesComponent implements OnInit {
   edit(t?: BarTable): void {
     this.form.set(t ? { id: t.id, name: t.name, zone: t.zone ?? '', seats: t.seats, sortOrder: t.sortOrder, active: t.active }
       : { name: `Mesa ${this.tables().length + 1}`, zone: '', seats: 4, sortOrder: this.tables().length + 1, active: true });
+  }
+
+  async remove(): Promise<void> {
+    const f = this.form();
+    if (!f?.id || !(await this.dialogs.confirm({ title: `¿Eliminar ${f.name}?`, tone: 'danger', confirm: 'Eliminar mesa',
+      message: 'Sale del tablero y su QR deja de funcionar. Las cuentas que tuvo se conservan en el historial de ventas.' }))) return;
+    try {
+      await this.api.run(this.api.delete(`/admin/tables/${f.id}`));
+      this.toasts.ok(`${f.name} eliminada`);
+      this.form.set(null);
+      this.load();
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    }
   }
 
   async save(): Promise<void> {

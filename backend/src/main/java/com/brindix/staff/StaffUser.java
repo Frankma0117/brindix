@@ -26,6 +26,8 @@ public class StaffUser {
     private Role role;
 
     private boolean active = true;
+    /** Eliminado del equipo: no se lista ni entra; sus ventas siguen en los reportes. */
+    private boolean archived;
     private Instant createdAt = Instant.now();
     private Instant lastLoginAt;
     /** Clave inicial o puesta por otra persona: debe cambiarla al entrar. */

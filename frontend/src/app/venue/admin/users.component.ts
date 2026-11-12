@@ -7,6 +7,7 @@ import { Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { IconComponent } from '../../shared/icon.component';
 import { ResetRequestsComponent } from '../../shared/reset-requests.component';
+import { Dialogs } from '../../shared/dialogs';
 
 interface UserForm { id?: number; name: string; username: string; password: string; role: Role; active: boolean; email: string; }
 
@@ -55,13 +56,17 @@ interface UserForm { id?: number; name: string; username: string; password: stri
           </div>
           @if (f.id) { <label class="check full"><input type="checkbox" [(ngModel)]="f.active"> Activo (si lo desactivas, pierde el acceso al instante)</label> }
         </div>
-        <div class="modal-foot"><button class="btn" (click)="form.set(null)">Cancelar</button><button class="btn primary" (click)="save()">Guardar</button></div>
+        <div class="modal-foot">
+          @if (f.id) { <button class="btn danger del" (click)="remove()"><bx-icon name="trash-2" /> Eliminar usuario</button> }
+          <button class="btn" (click)="form.set(null)">Cancelar</button><button class="btn primary" (click)="save()">Guardar</button>
+        </div>
       </div>
     </div>
   }`,
-  styles: ['.roles { margin-bottom: 16px; } .mail { display: block; font-weight: 500; }'],
+  styles: ['.roles { margin-bottom: 16px; } .mail { display: block; font-weight: 500; } .del { margin-right: auto; }'],
 })
 export class UsersComponent implements OnInit {
+  private dialogs = inject(Dialogs);
   private api = inject(Api);
   private toasts = inject(Toasts);
   private ctx = inject(VenueContext);
@@ -83,6 +88,20 @@ export class UsersComponent implements OnInit {
   edit(u?: User): void {
     this.form.set(u ? { id: u.id, name: u.name, username: u.username, password: '', role: u.role, active: u.active, email: u.email ?? '' }
       : { name: '', username: '', password: '', role: 'WAITER', active: true, email: '' });
+  }
+
+  async remove(): Promise<void> {
+    const f = this.form();
+    if (!f?.id || !(await this.dialogs.confirm({ title: `¿Eliminar a ${f.name} del equipo?`, tone: 'danger', confirm: 'Eliminar usuario',
+      message: 'No podrá entrar y se cierran sus sesiones. Sus ventas y su bitácora se conservan; el usuario queda libre para otra persona.' }))) return;
+    try {
+      await this.api.run(this.api.delete(`/admin/users/${f.id}`));
+      this.toasts.ok(`${f.name} ya no está en el equipo`);
+      this.form.set(null);
+      this.load();
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    }
   }
 
   async save(): Promise<void> {

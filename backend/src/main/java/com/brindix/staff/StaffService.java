@@ -58,12 +58,12 @@ public class StaffService {
 
     @Transactional(readOnly = true)
     public List<StaffDtos.UserView> list(Long venueId) {
-        return users.findByVenueIdOrderByNameAsc(venueId).stream().map(StaffDtos.UserView::of).toList();
+        return users.findByVenueIdOrderByNameAsc(venueId).stream().filter(u -> !u.isArchived()).map(StaffDtos.UserView::of).toList();
     }
 
     @Transactional(readOnly = true)
     public List<StaffDtos.WaiterOption> waiters(Long venueId) {
-        return users.findByVenueIdOrderByNameAsc(venueId).stream().filter(StaffUser::isActive)
+        return users.findByVenueIdOrderByNameAsc(venueId).stream().filter(u -> u.isActive() && !u.isArchived())
                 .map(u -> new StaffDtos.WaiterOption(u.getId(), u.getName(), u.getRole())).toList();
     }
 
@@ -91,6 +91,27 @@ public class StaffService {
         u.setRole(role);
         u.setMustChangePassword(true);
         return users.save(u);
+    }
+
+    /**
+     * Eliminar del equipo: queda archivado (sale de la lista, no entra, se cierran sus sesiones y su usuario queda libre).
+     * Sus ventas y su bitácora se conservan. No puedes eliminarte ni dejar el bar sin administrador.
+     */
+    @Transactional
+    public void delete(StaffPrincipal me, Long id) {
+        StaffUser u = get(id);
+        if (!u.getVenueId().equals(me.venueId()) || u.isArchived()) throw ApiException.notFound("Usuario no encontrado");
+        if (u.getId().equals(me.id())) throw ApiException.badRequest("No puedes eliminar tu propio usuario");
+        if (u.getRole() == Role.ADMIN && u.isActive() && users.countByVenueIdAndRoleAndActiveTrue(me.venueId(), Role.ADMIN) <= 1) {
+            throw ApiException.conflict("Debe quedar al menos un administrador activo");
+        }
+        String old = u.getUsername();
+        u.setArchived(true);
+        u.setActive(false);
+        u.setTokenVersion(u.getTokenVersion() + 1);
+        u.setUsername((old + "~" + u.getId()).substring(0, Math.min(60, (old + "~" + u.getId()).length())));
+        u.setEmail(null);
+        audit.log(me, me.venueId(), "Eliminó un usuario", "user", u.getId(), u.getName() + " (" + old + ")");
     }
 
     static String cleanEmail(String email) {

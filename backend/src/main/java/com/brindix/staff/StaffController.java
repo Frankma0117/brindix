@@ -53,6 +53,11 @@ public class StaffController {
         return service.create(CurrentUser.get(), in);
     }
 
+    @DeleteMapping("/api/admin/users/{id}")
+    public void delete(@PathVariable Long id) {
+        service.delete(CurrentUser.get(), id);
+    }
+
     @PutMapping("/api/admin/users/{id}")
     public StaffDtos.UserView update(@PathVariable Long id, @Valid @RequestBody StaffDtos.UserUpdate in) {
         return service.update(CurrentUser.get(), id, in);

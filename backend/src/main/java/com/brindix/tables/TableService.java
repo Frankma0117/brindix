@@ -11,9 +11,13 @@ import java.util.List;
 public class TableService {
 
     private final BarTableRepository tables;
+    private final com.brindix.orders.TabRepository tabs;
+    private final com.brindix.audit.AuditService audit;
 
-    public TableService(BarTableRepository tables) {
+    public TableService(BarTableRepository tables, com.brindix.orders.TabRepository tabs, com.brindix.audit.AuditService audit) {
         this.tables = tables;
+        this.tabs = tabs;
+        this.audit = audit;
     }
 
     public record TableInput(String name, String zone, Integer seats, Integer sortOrder, Boolean active) {}
@@ -26,7 +30,7 @@ public class TableService {
 
     @Transactional(readOnly = true)
     public List<BarTable> list(Long venueId) {
-        return tables.findByVenueIdOrderBySortOrderAscNameAsc(venueId);
+        return tables.findByVenueIdOrderBySortOrderAscNameAsc(venueId).stream().filter(t -> !t.isArchived()).toList();
     }
 
     /** Mesa por el código del QR, comprobando que sea de ese bar. */
@@ -39,7 +43,7 @@ public class TableService {
 
     @Transactional(readOnly = true)
     public BarTable owned(Long venueId, Long id) {
-        return tables.findById(id).filter(t -> t.getVenueId().equals(venueId))
+        return tables.findById(id).filter(t -> t.getVenueId().equals(venueId) && !t.isArchived())
                 .orElseThrow(() -> ApiException.notFound("Mesa no encontrada"));
     }
 
@@ -55,6 +59,19 @@ public class TableService {
         t.setActive(in.active() == null || in.active());
         if (t.getCode() == null) t.setCode(newCode());
         return tables.save(t);
+    }
+
+    /** Eliminar: si tiene una cuenta abierta no se puede; si no, se archiva (su QR deja de servir y el historial queda). */
+    @Transactional
+    public void delete(com.brindix.security.StaffPrincipal me, Long id) {
+        BarTable t = owned(me.venueId(), id);
+        if (tabs.findFirstByTableIdAndStatus(t.getId(), com.brindix.orders.TabStatus.OPEN).isPresent()) {
+            throw ApiException.conflict("La mesa tiene una cuenta abierta: cóbrala o pásala a otra mesa antes de eliminarla");
+        }
+        t.setArchived(true);
+        t.setActive(false);
+        t.setCode(newCode());
+        audit.log(me, me.venueId(), "Eliminó una mesa", "table", t.getId(), t.getName());
     }
 
     /** Invalida el QR impreso anterior (por ejemplo si alguien lo fotografió y pide desde fuera). */

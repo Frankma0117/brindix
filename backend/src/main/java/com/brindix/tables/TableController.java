@@ -30,6 +30,11 @@ public class TableController {
         return TableService.TableView.of(service.save(CurrentUser.venueId(), id, in));
     }
 
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        service.delete(CurrentUser.get(), id);
+    }
+
     @PostMapping("/{id}/regenerate-code")
     public TableService.TableView regenerate(@PathVariable Long id) {
         return TableService.TableView.of(service.regenerateCode(CurrentUser.venueId(), id));

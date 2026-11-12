@@ -173,7 +173,7 @@ public class SpotifyClient {
     }
 
     static ApiException translate(HttpStatusCode status, String body) {
-        log.debug("Spotify {}: {}", status, body);
+        log.warn("Spotify respondió {}: {}", status, body == null ? "" : body.length() > 400 ? body.substring(0, 400) : body);
         return switch (status.value()) {
             case 400 -> body != null && body.contains("invalid_grant")
                     ? new SpotifyAuthException("La conexión con Spotify venció. Conecta la cuenta de nuevo.")
