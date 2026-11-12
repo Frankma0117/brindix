@@ -40,7 +40,7 @@ Al primer ingreso cada cuenta pide cambiar su contraseña (también cuando un ad
 plataforma le pone una nueva). Para empezar de cero: `scripts\reset-dev-db.cmd`.
 
 **Modo soporte:** desde `/plataforma` el súper administrador pulsa **Entrar** en cualquier bar y queda
-dentro como su administrador (banda morada arriba, 4 horas, todo queda en la bitácora del bar).
+dentro como su administrador (banda ámbar arriba, 4 horas, todo queda en la bitácora del bar).
 
 ## Bar de demostración
 
