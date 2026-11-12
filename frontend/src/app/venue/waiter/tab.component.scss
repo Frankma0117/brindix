@@ -1,9 +1,11 @@
 .page-wrap { padding-top: 16px; padding-bottom: 120px; display: flex; flex-direction: column; gap: 14px; max-width: 760px; }
 .summary { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
 .cust { background: none; border: 0; padding: 0; color: var(--c-teal); font: 700 15px var(--font); cursor: pointer; }
-.totals { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; align-items: end; }
-.total { font-family: var(--display); font-size: 34px; font-weight: 800; }
-.mid { font-family: var(--display); font-size: 20px; font-weight: 800; }
+.totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end; }
+.totals > div { min-width: 0; }
+.total { font-family: var(--display); font-size: 26px; font-weight: 800; }
+.mid { font-family: var(--display); font-size: 18px; font-weight: 800; }
+@media (max-width: 420px) { .total { font-size: 22px; } .mid { font-size: 16px; } }
 .amber { color: var(--c-amber); font-weight: 700; }
 .waiter { gap: 8px; }
 .sel { max-width: 200px; height: 34px; }
@@ -22,7 +24,9 @@
 .secondary { gap: 8px; }
 .pick { padding: 10px; border: 1px solid var(--line); border-radius: 12px; width: 100%; }
 .paybar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--glass); backdrop-filter: blur(12px); border-top: 1px solid var(--line-2); padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); }
-.paybar .container { max-width: 760px; }
+.paybar .container { max-width: 760px; gap: 10px; }
+.paybar .btn.lg { padding: 0 18px; }
+.center { text-align: center; margin-top: 4px; }
 .pay-total { font-family: var(--display); font-size: 26px; font-weight: 800; }
 .big-total { font-family: var(--display); font-size: 24px; font-weight: 800; padding-top: 10px; border-top: 1px solid var(--line); }
 .field > span .btn { margin-left: 6px; }

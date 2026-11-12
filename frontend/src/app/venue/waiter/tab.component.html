@@ -26,10 +26,6 @@
       @if (t.pendingTotal) { <p class="small amber">{{ t.pendingTotal | money }} pedidos desde la mesa por asignar.</p> }
     </section>
 
-    @if (t.status === 'OPEN') {
-      <button class="btn primary lg block add" (click)="picking.set(true)">＋ Agregar ronda</button>
-    }
-
     <section class="rounds">
       @for (r of rounds(); track r.id) {
         <article class="card round" [attr.data-status]="r.status">
@@ -38,9 +34,9 @@
               <span class="badge" [class.pink]="r.status === 'PENDING'" [class.teal]="r.status === 'CONFIRMED'" [class.green]="r.status === 'DELIVERED'" [class.red]="r.status === 'REJECTED'">{{ roundLabels[r.status] }}</span>
               @if (r.paid) { <span class="badge violet">Pagada</span> }
               <span class="tiny muted">{{ r.source === 'CLIENT' ? '📱 Cliente' + (r.clientName ? ' · ' + r.clientName : '') : '🧑‍🍳 ' + (r.createdByName ?? '') }}</span>
-              @if (r.assignedToName) { <span class="tiny muted">→ {{ r.assignedToName }}</span> }
+              @if (r.assignedToName && r.assignedToName !== r.createdByName) { <span class="tiny muted">→ lleva {{ r.assignedToName }}</span> }
             </div>
-            <span class="tiny faint">{{ r.createdAt | hour }}</span>
+            <span class="tiny faint nowrap">{{ r.createdAt | hour }}</span>
           </header>
           @for (i of r.items; track i.id) {
             <div class="item" [class.voided]="i.voided">
@@ -80,7 +76,7 @@
           }
         </article>
       } @empty {
-        <div class="empty"><h3>Cuenta vacía</h3><p>Agrega la primera ronda.</p></div>
+        <div class="empty"><h3>Sin pedidos todavía</h3><p>Toca <b>＋ Pedido</b> para cargar lo que pidió la mesa.</p></div>
       }
     </section>
 
@@ -106,13 +102,17 @@
     }
   </main>
 
-  @if (t.status === 'OPEN' && t.due > 0) {
+  @if (t.status === 'OPEN') {
     <div class="paybar no-print">
       <div class="container row">
-        <div class="grow"><p class="tiny muted">Por cobrar</p><p class="pay-total num">{{ t.due | money }}</p></div>
-        @if (t.canCharge) { <button class="btn primary lg" (click)="openCharge()">Cobrar</button> }
-        @else { <span class="small muted">El administrador cobra</span> }
+        <div class="grow">
+          <p class="tiny muted">{{ t.due > 0 ? 'Por cobrar' : 'Consumo' }}</p>
+          <p class="pay-total num">{{ (t.due > 0 ? t.due : t.consumed) | money }}</p>
+        </div>
+        @if (t.due > 0 && t.canCharge) { <button class="btn success lg" (click)="openCharge()">Cobrar</button> }
+        <button class="btn primary lg" (click)="picking.set(true)">＋ Pedido</button>
       </div>
+      @if (t.due > 0 && !t.canCharge) { <p class="container tiny muted center">El administrador cobra esta cuenta.</p> }
     </div>
   }
 
@@ -177,5 +177,5 @@
 
 @if (picking()) {
   <bx-product-picker [menu]="menu()" [tableName]="tab()?.tableName ?? ''" [waiters]="auth.isAdmin() ? waiters() : []" [busy]="busy()"
-    (submit)="addRound($event)" (cancel)="picking.set(false)" />
+    (submit)="addRound($event)" (cancel)="closePicker()" />
 }

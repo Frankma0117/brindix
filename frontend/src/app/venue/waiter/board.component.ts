@@ -35,7 +35,10 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
       </section>
     }
 
-    @if (board()?.pending?.length) {
+    @if (board()?.pending?.length && !auth.isAdmin()) {
+      <div class="card waiting">🛎️ <span class="grow">@for (r of board()!.pending; track r.id; let last = $last) { <b>{{ r.tableName }}</b>@if (!last) {, } } pidió desde el QR · el administrador lo asigna</span></div>
+    }
+    @if (board()?.pending?.length && auth.isAdmin()) {
       <h2 class="sec">🛎️ Pedidos desde las mesas</h2>
       <section class="alerts">
         @for (r of board()!.pending; track r.id) {
@@ -43,7 +46,6 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
             <div class="row between"><p class="strong">{{ r.tableName }} @if (r.clientName) { <span class="muted">· {{ r.clientName }}</span> }</p><span class="tiny muted">{{ r.createdAt | ago }}</span></div>
             <ul>@for (i of r.items; track i.id) { <li><strong>{{ i.quantity }}×</strong> {{ i.productName }} @if (i.note) { <em class="muted">«{{ i.note }}»</em> }</li> }</ul>
             @if (r.note) { <p class="small muted">Nota: {{ r.note }}</p> }
-            @if (auth.isAdmin()) {
               <div class="row wrap">
                 <span class="strong num grow">{{ r.total | money }}</span>
                 @if (!auth.alone(waiters())) {
@@ -56,9 +58,7 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
                 <button class="btn sm primary" (click)="takeIt(r)">🙋 Yo lo llevo</button>
                 <button class="btn sm danger" (click)="reject(r)">Rechazar</button>
               </div>
-            } @else {
-              <p class="small muted">Esperando que el administrador lo asigne.</p>
-            }
+
           </div>
         }
       </section>
@@ -79,34 +79,33 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
       </section>
     }
 
-    <div class="row between head">
-      <div class="row wrap zones">
+    <div class="head">
+      <div class="zones">
         <button class="chip" [class.active]="zone() === null" (click)="zone.set(null)">Todas</button>
+        <button class="chip" [class.active]="zone() === mineKey" (click)="zone.set(mineKey)">⭐ Mías</button>
         @for (z of zones(); track z) { <button class="chip" [class.active]="zone() === z" (click)="zone.set(z)">{{ z }}</button> }
       </div>
-      <p class="small muted nowrap">{{ busyCount() }} ocupadas</p>
+      <p class="tiny muted nowrap">{{ busyCount() }}/{{ board()?.tables?.length ?? 0 }} ocupadas</p>
     </div>
 
     <section class="tables">
       @for (t of visible(); track t.tableId) {
         <button class="tcard" [class.busy]="t.tabId" [class.attn]="t.pendingRounds || t.calls.length" (click)="open(t)">
-          <div class="row between">
-            <span class="tname">{{ t.name }}</span>
+          <span class="tname">{{ t.name }}</span>
+          @if (t.pendingRounds || t.inProgress || t.calls.length) {
             <span class="icons">
               @if (t.pendingRounds) { <span class="badge pink">{{ t.pendingRounds }} 🛎️</span> }
               @if (t.inProgress) { <span class="badge teal">{{ t.inProgress }} 🚶</span> }
               @if (t.calls.includes('BILL')) { <span>🧾</span> }
               @if (t.calls.includes('WAITER')) { <span>🙋</span> }
             </span>
-          </div>
+          }
           @if (t.tabId) {
             <p class="ttotal num">{{ t.consumed | money }}</p>
-            <p class="tiny muted">{{ t.itemCount }} prod. · {{ t.openedAt | ago }}</p>
-            @if (t.due && t.due !== t.consumed) { <p class="tiny amber">Por cobrar {{ t.due | money }}</p> }
-            @if (t.waiterName) { <p class="tiny ellipsis cust">{{ t.waiterName }}@if (t.customerName) { · {{ t.customerName }} }</p> }
+            <p class="tiny muted ellipsis">{{ t.openedAt | ago }}@if (t.due && t.due !== t.consumed) { · <span class="amber">debe {{ t.due | money }}</span> }</p>
+            @if (t.waiterName) { <p class="tiny ellipsis cust">{{ t.customerName || t.waiterName }}</p> }
           } @else {
-            <p class="free">Libre</p>
-            <p class="tiny faint">{{ t.seats }} puestos</p>
+            <p class="free"><span class="go">＋</span> Libre</p>
           }
         </button>
       }
@@ -125,19 +124,26 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
     .alert ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
     .sel { max-width: 180px; height: 34px; }
     .big-ico { font-size: 26px; }
-    .head { margin-bottom: 12px; align-items: flex-start; }
-    .zones { gap: 8px; }
-    .tables { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-    .tcard { text-align: left; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--text); padding: 14px; min-height: 118px; cursor: pointer; display: flex; flex-direction: column; gap: 3px; font: inherit; }
+    .head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .zones { flex: 1; min-width: 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+    .zones::-webkit-scrollbar { display: none; }
+    .zones .chip { flex: none; height: 34px; }
+    .waiting { display: flex; gap: 10px; align-items: center; padding: 10px 14px; margin-bottom: 14px; font-size: 13.5px; border-color: rgba(255,79,139,.4); }
+    .tables { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    @media (max-width: 560px) { .tables { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .tcard { text-align: left; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); padding: 11px; min-height: 96px; min-width: 0; cursor: pointer; display: flex; flex-direction: column; gap: 2px; font: inherit; }
     .tcard:active { transform: scale(.97); }
     .tcard.busy { background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, var(--grad) border-box; border-color: transparent; }
     .tcard.attn { box-shadow: 0 0 0 3px rgba(255,79,139,.35); }
-    .tname { font-family: var(--display); font-weight: 800; font-size: 17px; }
-    .ttotal { font-family: var(--display); font-weight: 800; font-size: 21px; color: var(--c-amber); margin-top: auto; }
+    .tname { font-family: var(--display); font-weight: 800; font-size: 15.5px; line-height: 1.15; overflow-wrap: anywhere; }
+    .ttotal { font-family: var(--display); font-weight: 800; font-size: 18px; color: var(--c-amber); margin-top: auto; }
     .free { margin-top: auto; color: var(--faint); font-weight: 700; }
+    .free { display: flex; align-items: center; gap: 6px; }
+    .free .go { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 9px; background: var(--grad-soft); color: var(--c-pink); font-size: 18px; }
     .cust { color: var(--c-teal); }
     .amber { color: var(--c-amber); }
-    .icons { display: inline-flex; gap: 4px; align-items: center; }
+    .icons { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; font-size: 13px; }
+    .icons .badge { height: 19px; padding: 0 6px; font-size: 11px; }
   `],
 })
 export class BoardComponent implements OnInit {
@@ -156,7 +162,12 @@ export class BoardComponent implements OnInit {
   private first = true;
 
   zones = computed(() => [...new Set((this.board()?.tables ?? []).map(t => t.zone).filter((z): z is string => !!z))]);
-  visible = computed(() => (this.board()?.tables ?? []).filter(t => !this.zone() || t.zone === this.zone()));
+  readonly mineKey = '__mine__';
+  visible = computed(() => (this.board()?.tables ?? []).filter(t => {
+    const z = this.zone();
+    if (z === this.mineKey) return !!t.tabId && t.waiterName === this.auth.user()?.name;
+    return !z || t.zone === z;
+  }));
   busyCount = computed(() => (this.board()?.tables ?? []).filter(t => t.tabId).length);
 
   ngOnInit(): void {

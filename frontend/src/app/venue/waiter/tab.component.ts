@@ -57,12 +57,36 @@ export class TabComponent implements OnInit {
   ngOnInit(): void {
     this.api.get<MenuCategory[]>('/staff/menu').subscribe(m => this.menu.set(m));
     if (this.auth.isAdmin()) this.api.get<WaiterOption[]>('/staff/waiters').subscribe(w => this.waiters.set(w));
-    timer(0, 6000).pipe(
+    // Primera carga siempre, aunque se abra directo en "nuevo pedido" (el sondeo se pausa mientras tanto).
+    this.reload();
+    timer(6000, 6000).pipe(
       switchMap(() => this.charging() || this.picking() ? of(null)
         : this.api.get<TabView>(`/staff/tabs/${this.id()}`).pipe(catchError(e => { this.toasts.error(errorMessage(e)); return of(null); }))),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(t => t && this.tab.set(t));
-    if (this.route.snapshot.queryParamMap.get('agregar')) this.picking.set(true);
+    if (this.route.snapshot.queryParamMap.get('agregar')) {
+      this.justOpened = true;
+      this.picking.set(true);
+    }
+  }
+
+  /** La mesa se abrió para tomar un pedido: si se cancela sin pedir nada, se libera sola. */
+  private justOpened = false;
+
+  private reload(): void {
+    this.api.get<TabView>(`/staff/tabs/${this.id()}`).subscribe({ next: t => this.tab.set(t), error: e => this.toasts.error(errorMessage(e)) });
+  }
+
+  async closePicker(): Promise<void> {
+    this.picking.set(false);
+    const t = this.tab();
+    if (this.justOpened && t && t.status === 'OPEN' && !t.rounds.length) {
+      try { await this.api.run(this.api.post(`/staff/tabs/${this.id()}/release`)); } catch { /* queda abierta */ }
+      this.router.navigateByUrl(this.backUrl());
+      return;
+    }
+    this.justOpened = false;
+    this.reload();
   }
 
   isMine(r: RoundView): boolean {
@@ -77,7 +101,8 @@ export class TabComponent implements OnInit {
         assignedTo: e.assignedTo,
       })));
       this.picking.set(false);
-      this.toasts.ok('Ronda cargada');
+      this.justOpened = false;
+      this.toasts.ok('Pedido enviado ✓');
       this.api.get<MenuCategory[]>('/staff/menu').subscribe(m => this.menu.set(m));
     } catch (err) {
       this.toasts.error(errorMessage(err));
