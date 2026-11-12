@@ -25,6 +25,7 @@ import { IconComponent } from '../shared/icon.component';
         <h2>Recuperar tu contraseña</h2>
         <p class="muted small">{{ ctx.name() }}</p>
       </div>
+      <p class="tiny muted">¿Eres el administrador de Brindix (no de un bar)? <a routerLink="/plataforma">Recupera tu acceso en la plataforma</a>.</p>
       <div class="tabs" role="tablist">
         <button role="tab" [class.on]="step() === 'ask'" (click)="step.set('ask')">Pedir código</button>
         <button role="tab" [class.on]="step() === 'code'" (click)="step.set('code')">Ya tengo un código</button>
@@ -37,8 +38,8 @@ import { IconComponent } from '../shared/icon.component';
           <button class="btn block" (click)="step.set('code')">Ya tengo un código</button>
         } @else {
           <form class="col" (ngSubmit)="ask()">
-            <p class="small muted">Escribe tu usuario. Si tienes correo registrado te llega un código de un solo uso; si no, le avisamos al administrador para que confirme que eres tú y te lo dé.</p>
-            <label class="field"><span>Usuario</span><input class="input" name="u" [(ngModel)]="username" autocomplete="username" autocapitalize="none" required></label>
+            <p class="small muted">Escribe tu usuario del bar (o tu correo, si lo registraste). Si tienes correo registrado te llega un código de un solo uso; si no, le avisamos al administrador para que confirme que eres tú y te lo dé.</p>
+            <label class="field"><span>Usuario o correo</span><input class="input" name="u" [(ngModel)]="username" autocomplete="username" autocapitalize="none" required></label>
             @if (error()) { <p class="err">{{ error() }}</p> }
             <button class="btn primary lg block" [disabled]="busy() || !username.trim()">Pedir código</button>
           </form>

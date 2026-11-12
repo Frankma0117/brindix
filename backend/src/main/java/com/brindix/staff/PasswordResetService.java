@@ -64,9 +64,9 @@ public class PasswordResetService {
         this.props = props;
     }
 
-    public record ForgotInput(@NotBlank String venue, @NotBlank @Size(max = 60) String username) {}
+    public record ForgotInput(@NotBlank String venue, @NotBlank @Size(max = 160) String username) {}
 
-    public record ResetInput(@NotBlank String venue, @NotBlank @Size(max = 60) String username,
+    public record ResetInput(@NotBlank String venue, @NotBlank @Size(max = 160) String username,
                              @NotBlank @Size(max = 20) String code, @NotBlank @Size(min = 8, max = 100) String next) {}
 
     public record RequestView(Long id, Long venueId, String venueName, String userName, String username, Role role,
@@ -82,7 +82,7 @@ public class PasswordResetService {
         guard.check(ipKey);
         guard.failed(ipKey); // cuenta solicitudes por IP: 5 cada 15 minutos
         Venue venue = venues.bySlug(in.venue());
-        StaffUser u = users.findByVenueIdAndUsernameIgnoreCase(venue.getId(), in.username().trim()).orElse(null);
+        StaffUser u = find(venue.getId(), in.username());
         if (u == null || !u.isActive()) return;
         Instant now = Instant.now();
         List<PasswordReset> open = resets.findByUserIdAndStatusIn(u.getId(), OPEN);
@@ -180,7 +180,7 @@ public class PasswordResetService {
         String key = "reset:" + venue.getId() + ":" + in.username().trim().toLowerCase();
         guard.check(key);
         guard.check("reset-ip:" + ip);
-        StaffUser u = users.findByVenueIdAndUsernameIgnoreCase(venue.getId(), in.username().trim()).orElse(null);
+        StaffUser u = find(venue.getId(), in.username());
         PasswordReset r = u == null ? null
                 : resets.findFirstByUserIdAndStatusOrderByApprovedAtDesc(u.getId(), PasswordReset.Status.APPROVED).orElse(null);
         boolean ok = r != null && u.isActive() && !expired(r, Instant.now()) && OneTimeCode.matches(in.code(), r.getCodeHash());
@@ -204,6 +204,17 @@ public class PasswordResetService {
                     List.of("Hola " + u.getName() + ". Acabas de elegir una contraseña nueva en " + venue.getName() + ". Cerramos tus sesiones en otros dispositivos.",
                             "Si no fuiste tú, avisa de inmediato al administrador del bar."), null, null, null);
         }
+    }
+
+    /** Por usuario o, si escribió un correo, por el correo registrado (solo si es de una sola persona del bar). */
+    private StaffUser find(Long venueId, String userOrEmail) {
+        String v = userOrEmail.trim();
+        StaffUser u = users.findByVenueIdAndUsernameIgnoreCase(venueId, v).orElse(null);
+        if (u == null && v.contains("@")) {
+            List<StaffUser> byEmail = users.findByVenueIdAndEmailIgnoreCaseAndActiveTrue(venueId, v);
+            if (byEmail.size() == 1) u = byEmail.get(0);
+        }
+        return u;
     }
 
     private PasswordReset owned(StaffPrincipal me, Long id) {

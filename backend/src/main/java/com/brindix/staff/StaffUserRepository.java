@@ -18,4 +18,6 @@ public interface StaffUserRepository extends JpaRepository<StaffUser, Long> {
     long countByVenueIdAndRoleAndActiveTrue(Long venueId, Role role);
 
     long countByVenueId(Long venueId);
+
+    List<StaffUser> findByVenueIdAndEmailIgnoreCaseAndActiveTrue(Long venueId, String email);
 }
