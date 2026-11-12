@@ -24,7 +24,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class YouTubeClient {
 
     private static final String API = "https://www.googleapis.com/youtube/v3";
-    private final RestClient http = RestClient.create();
+    /** Con tiempo límite: si el servicio tarda, el cliente ve el error con «Reintentar» en vez de esperar sin fin. */
+    private final RestClient http = RestClient.builder().requestFactory(timeouts()).build();
+
+    private static org.springframework.http.client.JdkClientHttpRequestFactory timeouts() {
+        var f = new org.springframework.http.client.JdkClientHttpRequestFactory(java.net.http.HttpClient.newBuilder()
+                .connectTimeout(java.time.Duration.ofSeconds(5)).build());
+        f.setReadTimeout(java.time.Duration.ofSeconds(10));
+        return f;
+    }
     private final Map<String, Object[]> cache = new ConcurrentHashMap<>();
 
     public List<MusicDtos.Track> search(String apiKey, String query) {
@@ -85,6 +93,8 @@ public class YouTubeClient {
                 throw new ApiException(HttpStatus.BAD_GATEWAY, "YouTube rechazó la API key. Revísala en Configuración.");
             }
             throw new ApiException(HttpStatus.BAD_GATEWAY, "YouTube no respondió (" + e.getStatusCode().value() + ")");
+        } catch (org.springframework.web.client.ResourceAccessException e) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "No hay conexión con YouTube");
         }
     }
 }

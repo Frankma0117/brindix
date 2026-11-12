@@ -43,7 +43,15 @@ public class SpotifyClient {
 
     public record PlayerState(MusicDtos.Track track, int progressMs, boolean playing) {}
 
-    private final RestClient http = RestClient.create();
+    /** Con tiempo límite: si el servicio tarda, el cliente ve el error con «Reintentar» en vez de esperar sin fin. */
+    private final RestClient http = RestClient.builder().requestFactory(timeouts()).build();
+
+    private static org.springframework.http.client.JdkClientHttpRequestFactory timeouts() {
+        var f = new org.springframework.http.client.JdkClientHttpRequestFactory(java.net.http.HttpClient.newBuilder()
+                .connectTimeout(java.time.Duration.ofSeconds(5)).build());
+        f.setReadTimeout(java.time.Duration.ofSeconds(10));
+        return f;
+    }
     /** Token "de aplicación" por clientId: sirve para buscar aunque la cuenta aún no esté conectada. */
     private final Map<String, Object[]> appTokens = new ConcurrentHashMap<>();
 
