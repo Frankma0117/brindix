@@ -19,3 +19,8 @@ frontend/.angular/
 *.iml
 .DS_Store
 Thumbs.db
+
+# Servidor
+ACCESOS.txt
+backups/
+frontend/public/__shot*

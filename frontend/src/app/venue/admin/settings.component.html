@@ -1,0 +1,143 @@
+<div class="page-head"><div><h1>Configuración</h1><p>Todo lo de tu bar en un solo lugar.</p></div></div>
+
+<nav class="nav">
+  <button class="chip" (click)="scrollTo('bar')">El bar</button>
+  <button class="chip" (click)="scrollTo('pedidos')">Pedidos y cobros</button>
+  <button class="chip" (click)="scrollTo('musica')">Música</button>
+  <button class="chip" (click)="scrollTo('pantalla')">Pantalla del TV</button>
+  <button class="chip" (click)="scrollTo('cuenta')">Mi contraseña</button>
+</nav>
+
+@if (v(); as v) {
+  <!-- El bar -->
+  <section class="card pad-lg" id="bar">
+    <h2>🍸 El bar</h2>
+    <p class="lead">Así aparece en la carta, la pantalla y el ingreso del equipo.</p>
+    <div class="row top gap-lg wrap">
+      <div class="col" style="align-items: center">
+        @if (v.logoUrl) { <img class="logo-prev" [src]="v.logoUrl" alt=""> } @else { <div class="logo-prev"></div> }
+        <label class="btn xs">{{ uploading() ? 'Subiendo…' : 'Subir logo' }}<input type="file" accept="image/*" hidden (change)="uploadLogo($event)"></label>
+        @if (v.logoUrl) { <button class="btn ghost xs" (click)="v.logoUrl = undefined">Quitar</button> }
+      </div>
+      <div class="form-grid grow">
+        <label class="field"><span>Nombre</span><input class="input" [(ngModel)]="v.name"></label>
+        <label class="field"><span>Frase</span><input class="input" [(ngModel)]="v.tagline" placeholder="Buena música, mejores tragos"></label>
+        <label class="field"><span>Wi-Fi (nombre)</span><input class="input" [(ngModel)]="v.wifiName"></label>
+        <label class="field"><span>Wi-Fi (clave)</span><input class="input" [(ngModel)]="v.wifiPassword"></label>
+        <p class="full small muted">Dirección del bar: <b>{{ v.integrations.publicUrl }}</b></p>
+      </div>
+    </div>
+    <div class="row" style="margin-top: 14px"><button class="btn primary" [disabled]="busy()" (click)="saveGeneral()">Guardar</button></div>
+  </section>
+
+  <!-- Pedidos y cobros -->
+  <section class="card pad-lg" id="pedidos">
+    <h2>🛎️ Pedidos y cobros</h2>
+    <p class="lead">Decide quién pide y quién cobra.</p>
+    <div class="switches">
+      <label class="switch-row"><input type="checkbox" [(ngModel)]="v.clientOrdersEnabled">
+        <div><b>Los clientes pueden pedir desde el QR</b><p class="small muted">El pedido te llega a ti (o a quien atienda el tablero) para asignarlo a un mesero. Solo cuando se asigna suma a la cuenta y descuenta inventario. Si está apagado, el cliente solo ve la carta y puede llamar al mesero.</p></div></label>
+      <label class="switch-row"><input type="checkbox" [(ngModel)]="v.waiterCanCharge">
+        <div><b>Los meseros pueden cobrar</b><p class="small muted">El cobro queda «en poder del mesero» hasta que lo recibes en Caja. Los descuentos siempre son solo del administrador. Si está apagado, solo el administrador cobra.</p></div></label>
+    </div>
+    <div class="row" style="margin-top: 14px"><button class="btn primary" [disabled]="busy()" (click)="saveGeneral()">Guardar</button></div>
+  </section>
+
+  <!-- Música -->
+  <section class="card pad-lg" id="musica">
+    <h2>🎧 Música</h2>
+    <p class="lead">Elige con qué suena tu bar. Las claves se guardan cifradas y nunca se muestran completas.</p>
+    <div class="switches">
+      <label class="switch-row"><input type="checkbox" [(ngModel)]="v.musicEnabled"><div><b>Los clientes pueden pedir canciones</b></div></label>
+      <label class="switch-row"><input type="checkbox" [(ngModel)]="v.songApproval"><div><b>Aprobar cada canción antes de que entre a la cola</b></div></label>
+      <label class="field" style="max-width: 320px"><span>Máximo de canciones en lista por mesa</span><input class="input" type="number" min="1" max="20" [(ngModel)]="v.maxSongsPerTable"></label>
+      <div><button class="btn" [disabled]="busy()" (click)="saveGeneral()">Guardar reglas</button></div>
+    </div>
+
+    <h3 style="margin-top: 22px">¿Con qué se reproduce?</h3>
+    <div class="providers" style="margin-top: 10px">
+      <button class="prov" [class.on]="provider === 'MANUAL'" (click)="provider = 'MANUAL'"><b>✋ Manual</b><span class="small muted">Los clientes escriben la canción; tú la pones en tu reproductor y pulsas «Siguiente».</span></button>
+      <button class="prov" [class.on]="provider === 'SPOTIFY'" (click)="provider = 'SPOTIFY'"><b>🟢 Spotify</b><span class="small muted">Buscan con carátula; la cola llega sola a Spotify. Requiere cuenta Premium.</span></button>
+      <button class="prov" [class.on]="provider === 'YOUTUBE'" (click)="provider = 'YOUTUBE'"><b>🔴 YouTube</b><span class="small muted">Buscan en YouTube y la pantalla del TV reproduce los videos en orden.</span></button>
+    </div>
+
+    @if (provider === 'SPOTIFY') {
+      <div class="integ">
+        <h3>🟢 Spotify · tu app</h3>
+        <ol class="steps">
+          <li>Entra a <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> con la cuenta <b>Premium</b> del bar y pulsa <b>Create app</b>.</li>
+          <li>En <b>Redirect URI</b> pega exactamente esta dirección:
+            <div class="copy"><span>{{ v.integrations.spotifyRedirectUri }}</span><button class="btn xs" (click)="copy(v.integrations.spotifyRedirectUri)">Copiar</button></div></li>
+          <li>Marca <b>Web API</b>, acepta y guarda. Si la cuenta que vas a conectar es otra, agrégala en <b>User Management</b>.</li>
+          <li>En <b>Settings</b> copia el <b>Client ID</b> y, con «View client secret», el <b>Client secret</b>, y pégalos aquí.</li>
+        </ol>
+        <div class="form-grid">
+          <label class="field"><span>Client ID</span><input class="input" [(ngModel)]="spotifyClientId" placeholder="32 caracteres" autocomplete="off"></label>
+          <label class="field"><span>Client secret @if (v.integrations.spotifyClientSecret) { <span class="faint">(guardado: {{ v.integrations.spotifyClientSecret }})</span> }</span>
+            <input class="input" type="password" [(ngModel)]="spotifyClientSecret" [placeholder]="v.integrations.spotifyClientSecret ? 'Déjalo vacío para no cambiarlo' : 'Pega aquí el secret'" autocomplete="new-password"></label>
+        </div>
+        <div class="row wrap" style="margin-top: 12px">
+          <button class="btn" [disabled]="busy()" (click)="saveMusic()">Guardar datos</button>
+          @if (v.integrations.spotifyClientId) { <button class="btn ghost sm" (click)="clear('spotify')">Borrar</button> }
+        </div>
+        <div class="divider"></div>
+        <p class="small muted">5. Conecta la cuenta del bar (abre Spotify para aceptar los permisos):</p>
+        @if (v.integrations.spotifyConnected) {
+          <p class="status ok">✓ Conectado como {{ v.integrations.spotifyAccount }}</p>
+          <div class="row" style="margin-top: 8px"><button class="btn sm" (click)="connectSpotify()">Reconectar</button><button class="btn sm danger" (click)="disconnectSpotify()">Desconectar</button></div>
+        } @else {
+          <button class="btn spot-btn" [disabled]="!v.integrations.spotifyClientId || !v.integrations.spotifyClientSecret" (click)="connectSpotify()">Conectar Spotify</button>
+          @if (!v.integrations.spotifyClientId || !v.integrations.spotifyClientSecret) { <p class="tiny faint" style="margin-top: 6px">Primero guarda el Client ID y el Client secret.</p> }
+        }
+        <p class="tiny faint" style="margin-top: 10px">En el bar: deja Spotify abierto y sonando en el computador del bar (una playlist de fondo sirve). Brindix manda la siguiente de la cola cuando a la actual le quedan ~25 segundos.</p>
+      </div>
+    }
+
+    @if (provider === 'YOUTUBE') {
+      <div class="integ">
+        <h3>🔴 YouTube · API key</h3>
+        <ol class="steps">
+          <li>Entra a <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>, crea un proyecto (por ejemplo «Brindix bar») y pulsa <b>Habilitar</b> en «YouTube Data API v3».</li>
+          <li>Ve a <b>Credenciales → Crear credenciales → Clave de API</b> y cópiala.</li>
+          <li>Recomendado: en la clave elige <b>Restringir clave → YouTube Data API v3</b>.</li>
+          <li>Pégala aquí y guarda. La cuota gratis alcanza para unas 100 búsquedas al día (Brindix guarda las búsquedas repetidas).</li>
+        </ol>
+        <label class="field"><span>API key @if (v.integrations.youtubeApiKey) { <span class="faint">(guardada: {{ v.integrations.youtubeApiKey }})</span> }</span>
+          <input class="input" type="password" [(ngModel)]="youtubeApiKey" [placeholder]="v.integrations.youtubeApiKey ? 'Déjala vacía para no cambiarla' : 'AIza…'" autocomplete="new-password"></label>
+        <div class="row wrap" style="margin-top: 12px">
+          <button class="btn" [disabled]="busy()" (click)="saveMusic()">Guardar key</button>
+          @if (v.integrations.youtubeApiKey) { <button class="btn ghost sm" (click)="clear('youtube')">Borrar</button> }
+        </div>
+        <p class="tiny faint" style="margin-top: 10px">La música sale por el TV: abre en él el enlace de la sección «Pantalla del TV» (con llave) y tócalo una vez para activar el sonido.</p>
+      </div>
+    }
+
+    <div class="row wrap" style="margin-top: 16px; align-items: center">
+      <span class="small muted">Ahora suena con: <b>{{ providerLabel(v.musicProvider) }}</b></span>
+      @if (provider !== v.musicProvider) { <button class="btn primary" [disabled]="busy()" (click)="saveMusic(provider)">Usar {{ providerLabel(provider) }}</button> }
+    </div>
+    <p class="tiny faint" style="margin-top: 10px">Ojo: las cuentas personales de Spotify y YouTube son para uso personal. Para música en un negocio abierto al público consulta las licencias (en Colombia, SAYCO-ACINPRO) o usa un servicio de música comercial.</p>
+  </section>
+
+  <!-- Pantalla -->
+  <section class="card pad-lg" id="pantalla">
+    <h2>📺 Pantalla del TV</h2>
+    <p class="lead">Muestra lo que suena, lo que sigue y tu publicidad.</p>
+    <p class="small"><b>Solo ver</b> (cualquier pantalla):</p>
+    <div class="copy"><span>{{ v.integrations.publicUrl }}/pantalla</span><button class="btn xs" (click)="copy(v.integrations.publicUrl + '/pantalla')">Copiar</button></div>
+    <p class="small" style="margin-top: 12px"><b>TV del bar</b> (con llave: reproduce YouTube y avanza la cola sola). No la compartas:</p>
+    <div class="copy"><span>{{ screenUrl() }}</span><button class="btn xs" (click)="copy(screenUrl())">Copiar</button><a class="btn xs" [href]="screenUrl()" target="_blank">Abrir</a></div>
+    <button class="btn ghost sm" style="margin-top: 10px" (click)="newScreenKey()">Generar enlace nuevo</button>
+    <p class="tiny faint" style="margin-top: 8px">Consejo: abre el enlace en el navegador del TV y haz doble clic para pantalla completa.</p>
+  </section>
+
+  <!-- Contraseña -->
+  <section class="card pad-lg" id="cuenta">
+    <h2>🔐 Mi contraseña</h2>
+    <div class="form-grid" style="max-width: 640px; margin-top: 12px">
+      <label class="field"><span>Actual</span><input class="input" type="password" [(ngModel)]="current"></label>
+      <label class="field"><span>Nueva (mínimo 8)</span><input class="input" type="password" [(ngModel)]="next"></label>
+    </div>
+    <button class="btn" style="margin-top: 12px" [disabled]="!current || next.length < 8" (click)="changePassword()">Cambiar contraseña</button>
+  </section>
+}

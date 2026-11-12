@@ -1,70 +1,102 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
 import { Api } from './api.service';
 import { User } from './models';
+import { store } from './ui';
 
-const TOKEN_KEY = 'brindix.token';
-const USER_KEY = 'brindix.user';
+interface StaffSession { token: string; user: User; venue: string; venueName: string; }
+interface PlatformSession { token: string; name: string; }
 
-function read(key: string): string | null {
-  try { return localStorage.getItem(key); } catch { return null; }
-}
-function write(key: string, value: string | null): void {
-  try { value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch { /* modo privado */ }
-}
+const STAFF_KEY = 'brindix.session';
+const PLATFORM_KEY = 'brindix.platform';
 
+/** Sesión del personal de un bar (administrador o mesero). Una sesión a la vez por navegador. */
 @Injectable({ providedIn: 'root' })
 export class Auth {
   private api = inject(Api);
   private router = inject(Router);
 
-  readonly token = signal<string | null>(read(TOKEN_KEY));
-  readonly user = signal<User | null>(JSON.parse(read(USER_KEY) ?? 'null'));
+  readonly session = signal<StaffSession | null>(store.get<StaffSession | null>(STAFF_KEY, null));
+  readonly user = computed(() => this.session()?.user ?? null);
+  readonly venue = computed(() => this.session()?.venue ?? null);
   readonly isAdmin = computed(() => this.user()?.role === 'ADMIN');
-  readonly loggedIn = computed(() => !!this.token());
 
-  async login(username: string, password: string): Promise<User> {
-    const res = await firstValueFrom(this.api.post<{ token: string; user: User }>('/auth/login', { username, password }));
-    this.token.set(res.token);
-    this.user.set(res.user);
-    write(TOKEN_KEY, res.token);
-    write(USER_KEY, JSON.stringify(res.user));
-    return res.user;
+  /** ¿Hay sesión para este bar? */
+  inVenue(slug: string): boolean {
+    return this.session()?.venue === slug;
+  }
+
+  async login(venue: string, username: string, password: string): Promise<StaffSession> {
+    const res = await firstValueFrom(this.api.post<StaffSession>('/auth/login', { venue, username, password }));
+    this.session.set(res);
+    store.set(STAFF_KEY, res);
+    return res;
   }
 
   logout(redirect = true): void {
-    this.token.set(null);
-    this.user.set(null);
-    write(TOKEN_KEY, null);
-    write(USER_KEY, null);
-    if (redirect) this.router.navigateByUrl('/ingresar');
+    const slug = this.venue();
+    this.session.set(null);
+    try { localStorage.removeItem(STAFF_KEY); } catch { /* */ }
+    if (redirect) this.router.navigateByUrl(slug ? `/${slug}/ingresar` : '/');
   }
 
   home(): string {
-    return this.isAdmin() ? '/admin' : '/mesero';
+    const s = this.session();
+    if (!s) return '/';
+    return `/${s.venue}/${s.user.role === 'ADMIN' ? 'admin' : 'mesero'}`;
+  }
+}
+
+/** Sesión del súper administrador de Brindix. */
+@Injectable({ providedIn: 'root' })
+export class PlatformAuth {
+  private api = inject(Api);
+  readonly session = signal<PlatformSession | null>(store.get<PlatformSession | null>(PLATFORM_KEY, null));
+
+  async login(username: string, password: string): Promise<void> {
+    const res = await firstValueFrom(this.api.post<PlatformSession>('/platform/login', { username, password }));
+    this.session.set(res);
+    store.set(PLATFORM_KEY, res);
+  }
+
+  logout(): void {
+    this.session.set(null);
+    try { localStorage.removeItem(PLATFORM_KEY); } catch { /* */ }
   }
 }
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(Auth);
-  const token = auth.token();
-  const isPublic = req.url.startsWith('/api/public') || req.url.startsWith('/api/auth/login');
-  const r = token && !isPublic ? req.clone({ setHeaders: { Authorization: 'Bearer ' + token } }) : req;
+  const platform = inject(PlatformAuth);
+  const isPlatform = req.url.startsWith('/api/platform') && !req.url.endsWith('/login');
+  const isStaff = /^\/api\/(staff|admin|auth\/(me|password))/.test(req.url);
+  const token = isPlatform ? platform.session()?.token : isStaff ? auth.session()?.token : null;
+  const r = token ? req.clone({ setHeaders: { Authorization: 'Bearer ' + token } }) : req;
   return next(r).pipe(catchError(err => {
-    if (err?.status === 401 && token && !isPublic) auth.logout();
+    if (err?.status === 401 && token) {
+      if (isPlatform) platform.logout(); else auth.logout();
+    }
     return throwError(() => err);
   }));
 };
 
-export const staffGuard: CanActivateFn = () => {
+function slugOf(route: ActivatedRouteSnapshot): string {
+  let r: ActivatedRouteSnapshot | null = route;
+  while (r && !r.paramMap.get('slug')) r = r.parent;
+  return r?.paramMap.get('slug') ?? '';
+}
+
+export const staffGuard: CanActivateFn = route => {
   const auth = inject(Auth);
-  return auth.loggedIn() ? true : inject(Router).parseUrl('/ingresar');
+  const slug = slugOf(route);
+  return auth.inVenue(slug) ? true : inject(Router).parseUrl(`/${slug}/ingresar`);
 };
 
-export const adminGuard: CanActivateFn = () => {
+export const adminGuard: CanActivateFn = route => {
   const auth = inject(Auth);
-  if (!auth.loggedIn()) return inject(Router).parseUrl('/ingresar');
-  return auth.isAdmin() ? true : inject(Router).parseUrl('/mesero');
+  const slug = slugOf(route);
+  if (!auth.inVenue(slug)) return inject(Router).parseUrl(`/${slug}/ingresar`);
+  return auth.isAdmin() ? true : inject(Router).parseUrl(`/${slug}/mesero`);
 };

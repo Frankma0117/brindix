@@ -1,0 +1,68 @@
+:host { display: block; }
+.screen { position: fixed; inset: 0; display: grid; grid-template-columns: 1fr minmax(380px, 34vw); gap: 2vw; padding: 2vw; background: #08060d; overflow: hidden; }
+.bg-glow { position: absolute; inset: -20%; background: radial-gradient(40% 40% at 80% 20%, rgba(255, 79, 139, .22), transparent), radial-gradient(40% 40% at 10% 90%, rgba(255, 178, 56, .16), transparent); animation: drift 18s ease-in-out infinite alternate; pointer-events: none; }
+@keyframes drift { to { transform: translate(3%, -3%) scale(1.05); } }
+
+.ads { position: relative; border-radius: 2vw; overflow: hidden; }
+.ad { position: absolute; inset: 0; display: flex; align-items: flex-end; padding: 4vw; background: linear-gradient(135deg, var(--p1, #ffb238), var(--p2, #e2521d)); animation: adIn .9s cubic-bezier(.2, .8, .2, 1); }
+@keyframes adIn { from { opacity: 0; transform: scale(1.04); } }
+.ad-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: kenburns 14s ease-out forwards; }
+@keyframes kenburns { to { transform: scale(1.08); } }
+.ad-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, .7), rgba(0, 0, 0, .05) 60%); }
+.ad-text { position: relative; max-width: 75%; }
+.ad-kicker { text-transform: uppercase; letter-spacing: .3em; font-weight: 800; font-size: 1.1vw; opacity: .85; }
+.ad-text h1 { font-size: 6vw; line-height: .95; font-weight: 800; margin: .6vw 0 1vw; text-shadow: 0 4px 30px rgba(0, 0, 0, .35); }
+.ad-text p { font-size: 2vw; font-weight: 600; opacity: .95; }
+.ad-price { display: inline-block; margin-top: 1.4vw; padding: .6vw 1.6vw; border-radius: 99px; background: #fff; color: #120f1b; font-family: var(--display); font-weight: 800; font-size: 2.6vw; }
+.ad.idle { flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1vw; background: var(--surface); }
+.ad.idle h1 { font-size: 5vw; } .ad.idle p { font-size: 1.8vw; color: var(--muted); }
+.ad-dots { position: absolute; right: 2vw; top: 2vw; display: flex; gap: .5vw; }
+.ad-dots span { width: .7vw; height: .7vw; border-radius: 9px; background: rgba(255, 255, 255, .4); transition: width .3s; }
+.ad-dots span.on { width: 2.4vw; background: #fff; }
+[data-theme=amber] { --p1: #ffb238; --p2: #e2521d; }
+[data-theme=neon] { --p1: #ff4f8b; --p2: #6d28d9; }
+[data-theme=lime] { --p1: #84cc16; --p2: #0f766e; }
+[data-theme=berry] { --p1: #be185d; --p2: #4c1d95; }
+[data-theme=ocean] { --p1: #06b6d4; --p2: #1e3a8a; }
+
+.music { position: relative; display: flex; flex-direction: column; gap: 1.6vw; min-height: 0; }
+.logo { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; }
+.brand { font-family: var(--display); font-weight: 800; font-size: 1.5vw; }
+.clock { font-family: var(--display); font-size: 1.8vw; font-weight: 700; color: var(--muted); }
+.label { text-transform: uppercase; letter-spacing: .18em; font-size: .85vw; font-weight: 800; color: var(--pink); display: flex; align-items: center; gap: .6vw; margin-bottom: 1vw; }
+.now { background: rgba(255, 255, 255, .04); border: 1px solid var(--line); border-radius: 1.6vw; padding: 1.6vw; }
+.video { aspect-ratio: 16 / 9; border-radius: 1vw; overflow: hidden; background: #000; margin-bottom: 1vw; }
+.video ::ng-deep iframe { width: 100%; height: 100%; display: block; }
+.now-main { display: flex; gap: 1.2vw; align-items: center; }
+.cover { width: 9vw; height: 9vw; flex: none; border-radius: 1vw; overflow: hidden; display: grid; place-items: center; background: var(--surface-2); box-shadow: 0 1vw 2.4vw rgba(0, 0, 0, .45); }
+.cover img { width: 100%; height: 100%; object-fit: cover; }
+.title { font-size: 2.1vw; font-weight: 800; line-height: 1.1; }
+.artist { font-size: 1.3vw; color: var(--muted); margin-top: .3vw; }
+.bar { height: .45vw; border-radius: 9px; background: rgba(255, 255, 255, .1); margin-top: 1.2vw; overflow: hidden; }
+.fill { height: 100%; background: var(--grad); border-radius: 9px; transition: width 1s linear; }
+.times { font-size: .9vw; color: var(--faint); margin-top: .4vw; }
+.by { margin-top: 1vw; font-size: 1.05vw; color: var(--amber); }
+.eq { display: inline-flex; gap: 2px; align-items: flex-end; height: 1vw; }
+.eq i { width: 3px; background: currentColor; animation: eq .9s ease-in-out infinite; }
+.eq i:nth-child(2) { animation-delay: .15s; } .eq i:nth-child(3) { animation-delay: .3s; } .eq i:nth-child(4) { animation-delay: .45s; }
+@keyframes eq { 0%, 100% { height: 25%; } 50% { height: 100%; } }
+.next { flex: 1; min-height: 0; overflow: hidden; }
+.next ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .7vw; }
+.next li { display: flex; align-items: center; gap: .9vw; animation: adIn .5s ease; }
+.next .pos { width: 1.6vw; font-family: var(--display); font-weight: 800; font-size: 1.2vw; color: var(--faint); text-align: center; }
+.next img, .next .ph { width: 3.2vw; height: 3.2vw; border-radius: .6vw; object-fit: cover; background: var(--surface-2); display: grid; place-items: center; color: var(--faint); flex: none; }
+.next .t { font-weight: 700; font-size: 1.1vw; } .next .a { font-size: .9vw; color: var(--muted); } .next .free { font-size: 1.1vw; color: var(--muted); }
+.cta { display: flex; align-items: center; gap: 1vw; padding: 1.1vw 1.3vw; border-radius: 1.2vw; background: var(--grad); color: #1a0b12; }
+.cta .strong { font-size: 1.15vw; } .cta .small { font-size: .9vw; font-weight: 600; }
+.qr-ico { font-size: 2.6vw; line-height: 1; }
+.wifi { margin-left: auto; text-align: right; font-weight: 800; font-size: .95vw; }
+.wifi span { font-weight: 600; }
+.tap { position: absolute; inset: 0; z-index: 10; background: rgba(8, 6, 13, .82); border: 0; color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; font: 800 2.4vw var(--display); cursor: pointer; }
+.offline { position: absolute; left: 50%; top: 1vw; transform: translateX(-50%); background: rgba(255, 93, 93, .2); border: 1px solid rgba(255, 93, 93, .5); padding: .4vw 1.2vw; border-radius: 99px; font-size: .9vw; }
+@media (max-aspect-ratio: 1/1) {
+  .screen { grid-template-columns: 1fr; grid-template-rows: 45vh 1fr; }
+  .brand, .clock { font-size: 18px; } .label { font-size: 11px; } .title { font-size: 22px; } .artist, .next .t { font-size: 15px; }
+  .next .a, .times, .by, .cta .small, .wifi { font-size: 12px; } .cta .strong { font-size: 14px; }
+  .next img, .next .ph { width: 40px; height: 40px; } .next .pos { width: 20px; font-size: 14px; } .ad-text h1 { font-size: 40px; } .ad-text p { font-size: 18px; }
+  .cover { width: 80px; height: 80px; }
+}

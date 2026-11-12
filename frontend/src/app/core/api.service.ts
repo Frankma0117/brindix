@@ -36,10 +36,10 @@ export class Api {
     return firstValueFrom(obs);
   }
 
-  upload(file: File): Promise<{ url: string }> {
+  upload(file: File, folder = 'products'): Promise<{ url: string }> {
     const form = new FormData();
     form.append('file', file);
-    return firstValueFrom(this.http.post<{ url: string }>('/api/admin/uploads', form));
+    return firstValueFrom(this.http.post<{ url: string }>('/api/admin/uploads?folder=' + folder, form));
   }
 }
 

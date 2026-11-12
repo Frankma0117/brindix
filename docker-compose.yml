@@ -1,20 +1,24 @@
-# Brindix en un servidor: PostgreSQL + backend + frontend (nginx).
-# Uso: cp .env.example .env  (editar)  &&  docker compose up -d --build
-# Delante va el HTTPS del servidor (nginx/certbot o Caddy) apuntando al puerto 8081.
+# Brindix en el servidor: MySQL + backend (Spring Boot) + frontend (nginx con Angular).
+# Uso: bash scripts/init-env.sh && bash scripts/deploy.sh
+# Queda en 127.0.0.1:${BRINDIX_PORT:-5710}; el nginx del servidor publica el dominio con HTTPS (scripts/sudo-setup.sh).
 services:
   db:
-    image: postgres:16-alpine
+    image: mysql:8.4
     restart: unless-stopped
     environment:
-      POSTGRES_DB: brindix
-      POSTGRES_USER: ${DATABASE_USER:-brindix}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?pon DATABASE_PASSWORD en .env}
+      MYSQL_DATABASE: brindix
+      MYSQL_USER: ${DATABASE_USER:-brindix}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:?pon DATABASE_PASSWORD en .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?pon MYSQL_ROOT_PASSWORD en .env}
+      TZ: UTC
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci", "--max-connections=60"]
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mysql:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-brindix}"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s
-      retries: 10
+      timeout: 5s
+      retries: 30
 
   backend:
     build: ./backend
@@ -22,8 +26,9 @@ services:
     env_file: .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DATABASE_URL: jdbc:postgresql://db:5432/brindix
+      DATABASE_URL: jdbc:mysql://db:3306/brindix?connectionTimeZone=UTC&characterEncoding=UTF-8&useUnicode=true&allowPublicKeyRetrieval=true&useSSL=false
       BRINDIX_UPLOADS_DIR: /data/uploads
+      JAVA_OPTS: -Xms128m -Xmx512m
     volumes:
       - uploads:/data/uploads
     depends_on:
@@ -34,10 +39,10 @@ services:
     build: ./frontend
     restart: unless-stopped
     ports:
-      - "8081:80"
+      - "127.0.0.1:${BRINDIX_PORT:-5710}:80"
     depends_on:
       - backend
 
 volumes:
-  pgdata:
+  mysql:
   uploads:

@@ -1,0 +1,198 @@
+<div class="page-head no-print">
+  <div><h1>Caja y cierre</h1><p>Abre con la base, registra lo que sale y entra, y al final cuenta el dinero.</p></div>
+  @if (shift()) {
+    <div class="row">
+      <button class="btn" (click)="viewReport()">Ver reporte parcial</button>
+      <button class="btn primary" (click)="closing.set(true)">Cerrar caja</button>
+    </div>
+  }
+</div>
+
+@if (state() && !shift()) {
+  <div class="card pad-lg open-box no-print">
+    <h2>Abrir caja</h2>
+    <p class="muted">¿Con cuánto efectivo empieza el turno? (la base para dar vueltas)</p>
+    <label class="field"><span>Base inicial</span><input class="input" type="number" min="0" step="1000" [(ngModel)]="openingCash" placeholder="Ej: 200000"></label>
+    <label class="field"><span>Nota (opcional)</span><input class="input" [(ngModel)]="openingNote" placeholder="Ej: billetes de 2.000 y monedas"></label>
+    <button class="btn primary lg" [disabled]="busy() || openingCash === null" (click)="open()">Abrir caja</button>
+  </div>
+}
+
+@if (shift(); as s) {
+  <section class="grid cols-4 no-print">
+    <div class="card stat glow"><span class="label">Efectivo esperado</span><span class="value grad-text">{{ s.expectedCash | money }}</span><span class="hint">en el cajón ahora</span></div>
+    <div class="card stat"><span class="label">Ventas del turno</span><span class="value">{{ s.salesTotal | money }}</span><span class="hint">{{ s.payments }} cobros · todos los medios</span></div>
+    <div class="card stat"><span class="label">Propinas</span><span class="value">{{ s.tips | money }}</span></div>
+    <div class="card stat" [style.border-color]="s.unsettledCount ? 'rgba(255,178,56,.5)' : ''"><span class="label">Con meseros</span><span class="value">{{ s.unsettledTotal | money }}</span><span class="hint">{{ s.unsettledCount }} cobro(s) por entregar</span></div>
+  </section>
+
+  <div class="layout no-print">
+    <div class="col gap-lg">
+      <div class="card">
+        <h3>Cómo va el efectivo</h3>
+        <div class="flow">
+          <div class="fl"><span>Base inicial ({{ s.openedAt | hour }}, {{ s.openedByName }})</span><span>{{ s.openingCash | money }}</span></div>
+          <div class="fl"><span>+ Ventas en efectivo recibidas</span><span class="pos">{{ s.cashSales | money }}</span></div>
+          <div class="fl"><span>+ Entradas de dinero</span><span class="pos">{{ s.cashIn | money }}</span></div>
+          <div class="fl"><span>− Salidas en efectivo</span><span class="neg">{{ s.cashOut | money }}</span></div>
+          <div class="fl total"><span>Debe haber</span><span>{{ s.expectedCash | money }}</span></div>
+        </div>
+      </div>
+
+      @if (state()!.unsettled.length) {
+        <div class="card" style="border-color: rgba(255,178,56,.5)">
+          <h3>Dinero que tienen los meseros</h3>
+          <p class="small muted">Recíbelo cuando te lo entreguen. No puedes cerrar la caja mientras haya pendientes.</p>
+          @for (p of state()!.unsettled; track p.id) {
+            <div class="mv">
+              <div class="grow"><p class="strong">{{ p.collectedByName }} · {{ p.tableName }}</p><p class="tiny muted">{{ p.collectedAt | hour }} · {{ payLabels[p.method] }}</p></div>
+              <span class="strong num">{{ p.total | money }}</span>
+              <button class="btn sm success" (click)="settle(p)">Recibido</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="col gap-lg">
+      <div class="card">
+        <h3>Registrar salida o entrada</h3>
+        <div class="row" style="margin-bottom: 10px">
+          <button class="chip" [class.active]="mv.direction === 'OUT'" (click)="mv.direction = 'OUT'">− Sale dinero</button>
+          <button class="chip" [class.active]="mv.direction === 'IN'" (click)="mv.direction = 'IN'">+ Entra dinero</button>
+        </div>
+        <div class="form-grid">
+          <label class="field full"><span>Concepto</span>
+            <select class="input" [(ngModel)]="mv.category">@for (c of categories; track c[0]) { <option [ngValue]="c[0]">{{ c[1] }}</option> }</select>
+          </label>
+          <label class="field"><span>Valor</span><input class="input" type="number" min="1" step="500" [(ngModel)]="mv.amount"></label>
+          <label class="field"><span>¿Cómo?</span>
+            <select class="input" [(ngModel)]="mv.method">@for (m of methods; track m[0]) { <option [ngValue]="m[0]">{{ m[1] }}</option> }</select>
+          </label>
+          <label class="field full"><span>Descripción</span><input class="input" [(ngModel)]="mv.description" placeholder="Ej: recibo de la luz, hielo, pago a DJ"></label>
+        </div>
+        <p class="tiny muted" style="margin-top: 6px">Solo lo que es en efectivo cambia lo que debe haber en el cajón.</p>
+        <button class="btn primary block" style="margin-top: 10px" [disabled]="busy() || !mv.amount || !mv.description.trim()" (click)="addMovement()">Registrar</button>
+      </div>
+
+      <div class="card">
+        <h3>Movimientos del turno</h3>
+        @for (m of s.movements.slice().reverse(); track m.id) {
+          <div class="mv">
+            <span>{{ m.direction === 'IN' ? '🟢' : '🔴' }}</span>
+            <div class="grow"><p class="strong small">{{ m.description }}</p><p class="tiny muted">{{ cashLabels[m.category] }} · {{ payLabel(m.method) }} · {{ m.createdAt | hour }} · {{ m.createdByName }}</p></div>
+            <span class="num strong" [class.neg]="m.direction === 'OUT'" [class.pos]="m.direction === 'IN'">{{ m.direction === 'OUT' ? '−' : '+' }}{{ m.amount | money }}</span>
+            <button class="btn xs ghost" (click)="deleteMovement(m.id)">✕</button>
+          </div>
+        } @empty { <p class="muted small">Sin movimientos todavía.</p> }
+      </div>
+    </div>
+  </div>
+}
+
+<h2 class="no-print" style="margin: 30px 0 12px">Turnos anteriores</h2>
+<div class="table-wrap no-print">
+  <table class="table">
+    <thead><tr><th>Apertura</th><th>Cierre</th><th>Abrió / cerró</th><th class="right">Base</th><th class="right">Ventas</th><th class="right">Esperado</th><th class="right">Contado</th><th class="right">Diferencia</th><th></th></tr></thead>
+    <tbody>
+      @for (h of history(); track h.id) {
+        <tr>
+          <td class="nowrap">{{ h.openedAt | date: 'EEE d MMM, h:mm a' }}</td>
+          <td class="nowrap muted">{{ h.closedAt ? (h.closedAt | date: 'h:mm a') : 'Abierta' }}</td>
+          <td class="small muted">{{ h.openedByName }} @if (h.closedByName) { / {{ h.closedByName }} }</td>
+          <td class="right num">{{ h.openingCash | money }}</td>
+          <td class="right num strong">{{ h.sales | money }}</td>
+          <td class="right num">{{ h.expectedCash !== undefined && h.expectedCash !== null ? (h.expectedCash | money) : '—' }}</td>
+          <td class="right num">{{ h.countedCash !== undefined && h.countedCash !== null ? (h.countedCash | money) : '—' }}</td>
+          <td class="right num" [class.neg]="(h.difference ?? 0) < 0" [class.pos]="(h.difference ?? 0) > 0">{{ h.difference !== undefined && h.difference !== null ? (h.difference | money) : '—' }}</td>
+          <td class="right"><button class="btn xs" (click)="viewReport(h.id)">Reporte</button></td>
+        </tr>
+      } @empty { <tr><td colspan="9" class="muted">Aún no hay turnos.</td></tr> }
+    </tbody>
+  </table>
+</div>
+
+<!-- Cerrar caja -->
+@if (closing() && shift(); as s) {
+  <div class="backdrop no-print" (click)="closing.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-head"><h2>Cerrar caja</h2><button class="btn icon sm" (click)="closing.set(false)">✕</button></div>
+      <div class="col">
+        <div class="fl"><span>Debe haber en efectivo</span><span class="strong">{{ s.expectedCash | money }}</span></div>
+        @if (s.unsettledCount) { <p class="small" style="color: var(--amber)">Primero recibe los {{ s.unsettledCount }} cobro(s) que tienen los meseros.</p> }
+        <label class="field"><span>¿Cuánto contaste?</span><input class="input" type="number" min="0" step="500" [(ngModel)]="counted" autofocus></label>
+        @if (difference() !== null) {
+          <p class="diff" [class.neg]="difference()! < 0" [class.pos]="difference()! > 0">
+            {{ difference() === 0 ? '¡Cuadrada! 🎉' : (difference()! > 0 ? 'Sobran ' : 'Faltan ') + ((difference()! < 0 ? -difference()! : difference()!) | money) }}
+          </p>
+        }
+        <label class="field"><span>Nota del cierre</span><input class="input" [(ngModel)]="closingNote" placeholder="Ej: faltó un billete, se explicará mañana"></label>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" (click)="closing.set(false)">Volver</button>
+        <button class="btn primary lg" [disabled]="busy() || counted === null" (click)="close()">Cerrar y ver reporte</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Reporte del turno -->
+@if (report(); as r) {
+  <div class="backdrop report-wrap" (click)="report.set(null)">
+    <div class="modal wide report" (click)="$event.stopPropagation()">
+      <div class="head-print"><h2>{{ ctx.name() }} · Cierre de caja</h2></div>
+      <div class="modal-head no-print">
+        <h2>{{ r.status === 'CLOSED' ? 'Cierre de caja' : 'Reporte parcial' }}</h2>
+        <div class="row"><button class="btn sm" (click)="print()">🖨️ Imprimir</button><button class="btn icon sm" (click)="report.set(null)">✕</button></div>
+      </div>
+      <p class="muted small">{{ r.openedAt | date: 'EEEE d MMM y, h:mm a' }} → {{ r.closedAt ? (r.closedAt | date: 'h:mm a') : 'abierto' }} · abrió {{ r.openedBy }}@if (r.closedBy) {, cerró {{ r.closedBy }} }</p>
+
+      <h3>Efectivo</h3>
+      <div class="fl"><span>Base inicial</span><span>{{ r.cash.openingCash | money }}</span></div>
+      <div class="fl"><span>Ventas en efectivo</span><span>{{ r.cash.cashSales | money }}</span></div>
+      <div class="fl"><span>Entradas</span><span>{{ r.cash.cashIn | money }}</span></div>
+      <div class="fl"><span>Salidas</span><span>− {{ r.cash.cashOut | money }}</span></div>
+      <div class="fl strong"><span>Esperado</span><span>{{ r.cash.expectedCash | money }}</span></div>
+      @if (r.countedCash !== undefined && r.countedCash !== null) {
+        <div class="fl strong"><span>Contado</span><span>{{ r.countedCash | money }}</span></div>
+        <div class="fl strong"><span>Diferencia</span><span [class.neg]="(r.difference ?? 0) < 0" [class.pos]="(r.difference ?? 0) > 0">{{ r.difference | money }}</span></div>
+      }
+      @if (r.closingNote) { <p class="small muted">Nota: {{ r.closingNote }}</p> }
+
+      <h3>Ventas</h3>
+      <div class="grid cols-4">
+        <div class="stat"><span class="label">Total cobrado</span><span class="value">{{ r.totals.sales | money }}</span></div>
+        <div class="stat"><span class="label">Costo</span><span class="value">{{ r.totals.cost | money }}</span></div>
+        <div class="stat"><span class="label">Ganancia</span><span class="value">{{ r.totals.profit | money }}</span><span class="hint">{{ r.totals.marginPct }} %</span></div>
+        <div class="stat"><span class="label">Propinas · desc.</span><span class="value">{{ r.totals.tips | money }}</span><span class="hint">descuentos {{ r.totals.discounts | money }}</span></div>
+      </div>
+      <div class="grid cols-2" style="margin-top: 10px">
+        <div>@for (b of r.byPayment; track b.key) { <div class="fl"><span>{{ payLabel(b.key) }} ({{ b.count }})</span><span>{{ b.total | money }}</span></div> }</div>
+        <div>@for (b of r.byWaiter; track b.key) { <div class="fl"><span>Cobró {{ b.key }} ({{ b.count }})</span><span>{{ b.total | money }}</span></div> }</div>
+      </div>
+
+      @if (r.cash.movements.length) {
+        <h3>Recibos, compras y otros</h3>
+        @for (m of r.cash.movements; track m.id) {
+          <div class="fl"><span>{{ m.direction === 'OUT' ? '−' : '+' }} {{ m.description }} <span class="muted small">({{ cashLabels[m.category] }} · {{ payLabel(m.method) }})</span></span><span>{{ m.amount | money }}</span></div>
+        }
+      }
+
+      <h3>Productos vendidos</h3>
+      <table class="table">
+        <thead><tr><th>Producto</th><th class="right">Cant.</th><th class="right">Venta</th><th class="right">Costo</th><th class="right">Ganancia</th></tr></thead>
+        <tbody>
+          @for (p of r.products; track p.productId) {
+            <tr><td>{{ p.name }}</td><td class="right">{{ p.quantity }}</td><td class="right num">{{ p.revenue | money }}</td><td class="right num muted">{{ p.cost | money }}</td><td class="right num strong">{{ p.profit | money }}</td></tr>
+          } @empty { <tr><td colspan="5" class="muted">Sin ventas.</td></tr> }
+        </tbody>
+      </table>
+
+      @if (r.sensitive.length) {
+        <h3>Anulaciones y cambios</h3>
+        @for (a of r.sensitive; track a.id) { <div class="fl"><span class="small">{{ a.createdAt | hour }} · <b>{{ a.action }}</b> · {{ a.details }}</span><span class="small muted">{{ a.userName }}</span></div> }
+      }
+      @if (r.openTabs) { <p class="small" style="margin-top: 14px; color: var(--amber)">Quedan {{ r.openTabs }} mesa(s) abierta(s) con {{ r.openDue | money }} por cobrar.</p> }
+    </div>
+  </div>
+}
