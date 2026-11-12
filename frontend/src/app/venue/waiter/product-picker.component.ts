@@ -80,7 +80,7 @@ export interface PickedLine { product: MenuProduct; quantity: number; note?: str
     .tile.off { opacity: .45; }
     .ti-img { height: 84px; margin-bottom: 8px; }
     .ti-name { padding: 0 10px; font-weight: 700; font-size: 13.5px; line-height: 1.2; }
-    .ti-price { padding: 2px 10px 0; color: var(--amber); font-weight: 800; font-size: 13px; }
+    .ti-price { padding: 2px 10px 0; color: var(--c-amber); font-weight: 800; font-size: 13px; }
     .ti-stock { position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,.6); border-radius: 99px; padding: 1px 8px; font-size: 11px; font-weight: 700; }
     .ti-stock.low { background: rgba(255,93,93,.85); }
     .ti-qty { position: absolute; top: 6px; right: 6px; min-width: 30px; height: 30px; border-radius: 99px; background: var(--grad); color: #1a0b12; font-weight: 800; display: grid; place-items: center; }

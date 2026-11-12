@@ -35,7 +35,7 @@ import { VenueContext } from '../../core/venue-context';
     .copy { display: flex; gap: 8px; align-items: center; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 10px; padding: 6px 6px 6px 12px; font-family: ui-monospace, monospace; font-size: 13px; word-break: break-all; }
     .copy span { flex: 1; }
     .status { padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-weight: 600; font-size: 14px; }
-    .status.ok { background: rgba(74,222,128,.12); color: var(--green); }
+    .status.ok { background: rgba(74,222,128,.12); color: var(--ink-green); }
     .logo-prev { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; background: var(--surface-2); }
     .spot-btn { background: #1ed760; color: #06210f; border-color: transparent; font-weight: 800; }
   `],

@@ -1,3 +1,4 @@
+import { ThemeToggleComponent } from '../core/theme';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -9,7 +10,7 @@ import { ProductArtComponent } from '../shared/product-art.component';
 @Component({
   selector: 'bx-landing',
   standalone: true,
-  imports: [FormsModule, MascotComponent, ProductArtComponent],
+  imports: [FormsModule, MascotComponent, ProductArtComponent, ThemeToggleComponent],
   templateUrl: './landing.component.html',
   styleUrl: './landing.component.scss',
 })

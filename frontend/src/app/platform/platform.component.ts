@@ -7,6 +7,7 @@ import { Auth, PlatformAuth, StaffSession } from '../core/auth.service';
 import { PlatformVenue } from '../core/models';
 import { Toasts } from '../core/ui';
 import { MascotComponent } from '../shared/mascot.component';
+import { ThemeToggleComponent } from '../core/theme';
 
 interface VenueForm {
   id?: number; name: string; slug: string; contactName: string; contactPhone: string; active: boolean;
@@ -17,8 +18,9 @@ interface VenueForm {
 @Component({
   selector: 'bx-platform',
   standalone: true,
-  imports: [FormsModule, DatePipe, MascotComponent],
+  imports: [FormsModule, DatePipe, MascotComponent, ThemeToggleComponent],
   template: `
+  @if (!auth.session() || auth.session()!.mustChangePassword || changing()) { <bx-theme-toggle class="theme-corner" /> }
   @if (!auth.session()) {
     <main class="login-wrap">
       <form class="card pad-lg box" (ngSubmit)="login()">
@@ -47,7 +49,7 @@ interface VenueForm {
     <header class="top">
       <div class="container row between">
         <div class="row"><bx-mascot [size]="38" [animate]="false" /><b class="brand">Brindix · Plataforma</b></div>
-        <div class="row"><span class="muted small">{{ auth.session()!.name }}</span><button class="btn ghost sm" (click)="changing.set(true)">Mi contraseña</button><button class="btn ghost sm" (click)="auth.logout()">Salir</button></div>
+        <div class="row"><span class="muted small">{{ auth.session()!.name }}</span><bx-theme-toggle /><button class="btn ghost sm" (click)="changing.set(true)">Mi contraseña</button><button class="btn ghost sm" (click)="auth.logout()">Salir</button></div>
       </div>
     </header>
     <main class="container wrap-p">
@@ -114,11 +116,11 @@ interface VenueForm {
   styles: [`
     .login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: radial-gradient(600px 400px at 30% 10%, rgba(139,92,246,.2), transparent); }
     .box { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 14px; }
-    .err { color: #ff9a9a; font-weight: 600; }
+    .err { color: var(--ink-red); font-weight: 600; }
     .top { border-bottom: 1px solid var(--line); padding: 12px 0; background: var(--bg-2); }
     .brand { font-family: var(--display); font-size: 18px; }
     .wrap-p { padding-top: 26px; padding-bottom: 60px; }
-    .sec { margin-top: 6px; font-size: 15px; color: var(--amber); }
+    .sec { margin-top: 6px; font-size: 15px; color: var(--c-amber); }
     .slug { display: flex; align-items: center; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg-2); }
     .slug span { padding-left: 14px; color: var(--faint); font-size: 14px; white-space: nowrap; }
     .slug .input { border: 0; background: transparent; padding-left: 2px; }

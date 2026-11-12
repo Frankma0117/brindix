@@ -10,6 +10,7 @@
         <button (click)="scroll('preguntas')">Preguntas</button>
       </nav>
       <div class="row">
+        <bx-theme-toggle />
         @if (auth.session()) {
           <a class="btn sm" [href]="auth.home()">Mi panel</a>
         } @else {

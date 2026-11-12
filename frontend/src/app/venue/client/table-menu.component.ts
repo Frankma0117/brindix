@@ -1,3 +1,4 @@
+import { ThemeToggleComponent } from '../../core/theme';
 import { Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap, timer } from 'rxjs';
@@ -16,7 +17,7 @@ type View = 'menu' | 'music' | 'tab';
 @Component({
   selector: 'bx-table-menu',
   standalone: true,
-  imports: [FormsModule, MoneyPipe, AgoPipe, MascotComponent, ProductArtComponent],
+  imports: [FormsModule, MoneyPipe, AgoPipe, MascotComponent, ProductArtComponent, ThemeToggleComponent],
   templateUrl: './table-menu.component.html',
   styleUrl: './table-menu.component.scss',
 })

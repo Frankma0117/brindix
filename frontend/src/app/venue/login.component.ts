@@ -5,13 +5,15 @@ import { errorMessage } from '../core/api.service';
 import { Auth } from '../core/auth.service';
 import { VenueContext } from '../core/venue-context';
 import { MascotComponent } from '../shared/mascot.component';
+import { ThemeToggleComponent } from '../core/theme';
 
 /** Entrada del personal del bar: administrador y meseros con su usuario y contraseña. */
 @Component({
   selector: 'bx-login',
   standalone: true,
-  imports: [FormsModule, MascotComponent],
+  imports: [FormsModule, MascotComponent, ThemeToggleComponent],
   template: `
+  <bx-theme-toggle class="theme-corner" />
   <main class="wrap">
     <form class="card pad-lg box" (ngSubmit)="submit()">
       <div class="head">
@@ -42,8 +44,8 @@ import { MascotComponent } from '../shared/mascot.component';
     .box { width: 100%; max-width: 410px; display: flex; flex-direction: column; gap: 14px; }
     .head { display: flex; gap: 14px; align-items: center; margin-bottom: 6px; }
     .logo { width: 84px; height: 84px; border-radius: 20px; object-fit: cover; }
-    .kicker { color: var(--pink); font-weight: 800; letter-spacing: .2em; font-size: 11px; text-transform: uppercase; }
-    .err { color: #ff9a9a; font-weight: 600; font-size: 14px; }
+    .kicker { color: var(--c-pink); font-weight: 800; letter-spacing: .2em; font-size: 11px; text-transform: uppercase; }
+    .err { color: var(--ink-red); font-weight: 600; font-size: 14px; }
     .note { background: var(--surface-2); border-radius: 10px; padding: 8px 12px; color: var(--muted); }
     .back { text-align: center; color: var(--muted); }
   `],

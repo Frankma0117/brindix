@@ -119,7 +119,7 @@
       <div class="modal-head"><h2>Cerrar caja</h2><button class="btn icon sm" (click)="closing.set(false)">✕</button></div>
       <div class="col">
         <div class="fl"><span>Debe haber en efectivo</span><span class="strong">{{ s.expectedCash | money }}</span></div>
-        @if (s.unsettledCount) { <p class="small" style="color: var(--amber)">Primero recibe los {{ s.unsettledCount }} cobro(s) que tienen los meseros.</p> }
+        @if (s.unsettledCount) { <p class="small" style="color: var(--c-amber)">Primero recibe los {{ s.unsettledCount }} cobro(s) que tienen los meseros.</p> }
         <label class="field"><span>¿Cuánto contaste?</span><input class="input" type="number" min="0" step="500" [(ngModel)]="counted" autofocus></label>
         @if (difference() !== null) {
           <p class="diff" [class.neg]="difference()! < 0" [class.pos]="difference()! > 0">
@@ -192,7 +192,7 @@
         <h3>Anulaciones y cambios</h3>
         @for (a of r.sensitive; track a.id) { <div class="fl"><span class="small">{{ a.createdAt | hour }} · <b>{{ a.action }}</b> · {{ a.details }}</span><span class="small muted">{{ a.userName }}</span></div> }
       }
-      @if (r.openTabs) { <p class="small" style="margin-top: 14px; color: var(--amber)">Quedan {{ r.openTabs }} mesa(s) abierta(s) con {{ r.openDue | money }} por cobrar.</p> }
+      @if (r.openTabs) { <p class="small" style="margin-top: 14px; color: var(--c-amber)">Quedan {{ r.openTabs }} mesa(s) abierta(s) con {{ r.openDue | money }} por cobrar.</p> }
     </div>
   </div>
 }

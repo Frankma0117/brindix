@@ -21,7 +21,7 @@ interface EntryLine { productId: number | null; quantity: number | null; unitCos
   @if (summary(); as s) {
     <section class="grid cols-4">
       <div class="card stat"><span class="label">Con inventario</span><span class="value">{{ s.products }}</span></div>
-      <div class="card stat"><span class="label">Bajos · agotados</span><span class="value"><span style="color: var(--amber)">{{ s.lowStock }}</span> · <span style="color: var(--red)">{{ s.soldOut }}</span></span></div>
+      <div class="card stat"><span class="label">Bajos · agotados</span><span class="value"><span style="color: var(--c-amber)">{{ s.lowStock }}</span> · <span style="color: var(--c-red)">{{ s.soldOut }}</span></span></div>
       <div class="card stat"><span class="label">Valor a costo</span><span class="value">{{ s.inventoryValue | money }}</span><span class="hint">lo que pagaste</span></div>
       <div class="card stat"><span class="label">Valor a precio de venta</span><span class="value">{{ s.saleValue | money }}</span><span class="hint">ganancia potencial {{ s.saleValue - s.inventoryValue | money }}</span></div>
     </section>

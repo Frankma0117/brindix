@@ -27,7 +27,7 @@ import { MoneyPipe } from '../../core/ui';
     <section class="grid cols-4">
       <div class="card stat glow"><span class="label">Ventas</span><span class="value grad-text">{{ s.totals.sales | money }}</span><span class="hint">{{ s.totals.tabs }} cuentas · {{ s.totals.itemsSold }} productos</span></div>
       <div class="card stat"><span class="label">Costo de lo vendido</span><span class="value">{{ s.totals.cost | money }}</span></div>
-      <div class="card stat"><span class="label">Ganancia</span><span class="value" style="color: var(--green)">{{ s.totals.profit | money }}</span><span class="hint">margen {{ s.totals.marginPct }} %</span></div>
+      <div class="card stat"><span class="label">Ganancia</span><span class="value" style="color: var(--c-green)">{{ s.totals.profit | money }}</span><span class="hint">margen {{ s.totals.marginPct }} %</span></div>
       <div class="card stat"><span class="label">Ticket promedio</span><span class="value">{{ s.totals.averageTicket | money }}</span><span class="hint">propinas {{ s.totals.tips | money }} · desc. {{ s.totals.discounts | money }}</span></div>
     </section>
 
@@ -60,7 +60,7 @@ import { MoneyPipe } from '../../core/ui';
         <tbody>
           @for (p of s.products; track p.productId) {
             <tr><td class="strong">{{ p.name }}</td><td class="right">{{ p.quantity }}</td><td class="right num">{{ p.revenue | money }}</td>
-              <td class="right num muted">{{ p.cost ? (p.cost | money) : 'sin costo' }}</td><td class="right num strong" style="color: var(--green)">{{ p.profit | money }}</td>
+              <td class="right num muted">{{ p.cost ? (p.cost | money) : 'sin costo' }}</td><td class="right num strong" style="color: var(--c-green)">{{ p.profit | money }}</td>
               <td class="right muted">{{ p.revenue ? ((p.profit / p.revenue) * 100).toFixed(0) + ' %' : '' }}</td></tr>
           } @empty { <tr><td colspan="6" class="muted">Sin ventas en el rango.</td></tr> }
         </tbody>

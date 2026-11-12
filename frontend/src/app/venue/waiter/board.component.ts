@@ -133,10 +133,10 @@ import { WaiterHeaderComponent, notifyNew } from './waiter-header.component';
     .tcard.busy { background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, var(--grad) border-box; border-color: transparent; }
     .tcard.attn { box-shadow: 0 0 0 3px rgba(255,79,139,.35); }
     .tname { font-family: var(--display); font-weight: 800; font-size: 17px; }
-    .ttotal { font-family: var(--display); font-weight: 800; font-size: 21px; color: var(--amber); margin-top: auto; }
+    .ttotal { font-family: var(--display); font-weight: 800; font-size: 21px; color: var(--c-amber); margin-top: auto; }
     .free { margin-top: auto; color: var(--faint); font-weight: 700; }
-    .cust { color: var(--teal); }
-    .amber { color: var(--amber); }
+    .cust { color: var(--c-teal); }
+    .amber { color: var(--c-amber); }
     .icons { display: inline-flex; gap: 4px; align-items: center; }
   `],
 })

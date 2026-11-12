@@ -3,11 +3,12 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { Auth } from '../../core/auth.service';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
+import { ThemeToggleComponent } from '../../core/theme';
 
 @Component({
   selector: 'bx-admin-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MascotComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MascotComponent, ThemeToggleComponent],
   template: `
   @if (auth.isSupport()) {
     <div class="support-bar">🛟 Modo soporte: estás dentro de <b>{{ ctx.name() }}</b> como administrador. Todo queda en la bitácora.
@@ -34,6 +35,7 @@ import { MascotComponent } from '../../shared/mascot.component';
         <a [href]="'/' + ctx.slug() + '/pantalla'" target="_blank" class="btn block sm">📺 Ver pantalla</a>
         <div class="me">
           <div class="grow"><p class="strong small ellipsis">{{ auth.user()?.name }}</p><p class="tiny muted">{{ auth.isSupport() ? 'Soporte Brindix' : 'Administrador' }}</p></div>
+          <bx-theme-toggle />
           <button class="btn ghost xs" (click)="auth.logout()">Salir</button>
         </div>
       </div>
@@ -43,7 +45,7 @@ import { MascotComponent } from '../../shared/mascot.component';
       <header class="mobile-top">
         <button class="btn icon sm" (click)="menu.set(true)" aria-label="Menú">☰</button>
         <span class="strong ellipsis">{{ ctx.name() }}</span>
-        <a [routerLink]="'/' + ctx.slug() + '/mesero'" class="btn sm">Mesas</a>
+        <div class="row"><bx-theme-toggle /><a [routerLink]="'/' + ctx.slug() + '/mesero'" class="btn sm">Mesas</a></div>
       </header>
       <div class="content"><router-outlet /></div>
     </div>
@@ -64,11 +66,11 @@ import { MascotComponent } from '../../shared/mascot.component';
     .main { flex: 1; min-width: 0; }
     .content { padding: 26px 28px 60px; max-width: 1240px; }
     .mobile-top { display: none; }
-    .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 35; }
+    .scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 35; }
     @media (max-width: 900px) {
       .side { position: fixed; left: 0; transform: translateX(-100%); transition: transform .2s ease; }
       .side.open { transform: none; }
-      .mobile-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; position: sticky; top: 0; z-index: 30; background: rgba(12,10,18,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+      .mobile-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; position: sticky; top: 0; z-index: 30; background: var(--glass); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
       .content { padding: 18px 16px 60px; }
     }
   `],

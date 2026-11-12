@@ -1,9 +1,11 @@
 /* =====================================================================
-   Brindix — sistema de diseño. Oscuro, cálido y con acentos neón de bar.
-   Los componentes usan estas clases; casi no tienen estilos propios.
+   Brindix — sistema de diseño. Oscuro, cálido y con acentos neón de bar, con modo claro.
+   Los componentes usan estas clases y variables; nada de colores fijos para fondos o textos.
+   El modo va en <html data-mode="light|dark"> (core/theme.ts). .force-dark mantiene oscuro
+   un bloque (la pantalla del TV).
    ===================================================================== */
 
-:root {
+:root, .force-dark {
   --bg: #0c0a12;
   --bg-2: #120f1b;
   --surface: #191524;
@@ -14,6 +16,25 @@
   --text: #f6f1ff;
   --muted: #a69cbd;
   --faint: #6f6687;
+  --link: var(--amber);
+  /* Barras translúcidas (cabeceras pegadas, barra inferior) */
+  --glass: rgba(12, 10, 18, .88);
+  --hover: rgba(255, 255, 255, .03);
+  --scrim: rgba(5, 3, 10, .72);
+  /* Texto sobre fondos de color suave (insignias, botones de estado) */
+  --ink-pink: #ff8fb5;
+  --ink-red: #ff9a9a;
+  --ink-green: #8ef0b0;
+  --ink-violet: #c4b0ff;
+  --ink-amber: var(--amber);
+  --ink-teal: var(--teal);
+  --chip-on: #120f1b;
+  /* Acentos usados como color de texto (más oscuros en modo claro para que se lean) */
+  --c-amber: var(--amber);
+  --c-pink: var(--pink);
+  --c-teal: var(--teal);
+  --c-green: var(--green);
+  --c-red: var(--red);
 
   --amber: #ffb238;
   --amber-2: #ff8a3d;
@@ -31,10 +52,46 @@
   --r: 16px;
   --r-lg: 24px;
   --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, .5);
   --font: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --display: 'Bricolage Grotesque', 'Manrope', system-ui, sans-serif;
   color-scheme: dark;
 }
+
+/* ---------- Modo claro ---------- */
+:root[data-mode="light"] {
+  --bg: #faf7f2;
+  --bg-2: #f3eee6;
+  --surface: #ffffff;
+  --surface-2: #f5f1f9;
+  --surface-3: #ebe4f3;
+  --line: rgba(30, 16, 60, .09);
+  --line-2: rgba(30, 16, 60, .17);
+  --text: #1d1628;
+  --muted: #5d5470;
+  --faint: #8d84a0;
+  --link: #c2410c;
+  --glass: rgba(255, 252, 247, .88);
+  --hover: rgba(30, 16, 60, .035);
+  --scrim: rgba(30, 20, 45, .45);
+  --ink-pink: #c2185b;
+  --ink-red: #c62828;
+  --ink-green: #15803d;
+  --ink-violet: #6d28d9;
+  --ink-amber: #b45309;
+  --ink-teal: #0f766e;
+  --chip-on: #ffffff;
+  --c-amber: #b45309;
+  --c-pink: #d6336c;
+  --c-teal: #0f766e;
+  --c-green: #15803d;
+  --c-red: #c62828;
+  --grad-soft: linear-gradient(135deg, rgba(255, 178, 56, .2), rgba(255, 79, 139, .16));
+  --shadow: 0 10px 30px rgba(40, 20, 70, .1);
+  --shadow-lg: 0 16px 40px rgba(40, 20, 70, .18);
+  color-scheme: light;
+}
+.force-dark { color: var(--text); color-scheme: dark; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
@@ -52,7 +109,7 @@ h1 { font-size: clamp(26px, 4vw, 34px); font-weight: 800; }
 h2 { font-size: 22px; font-weight: 700; }
 h3 { font-size: 17px; font-weight: 700; }
 p { margin: 0; }
-a { color: var(--amber); text-decoration: none; }
+a { color: var(--link); text-decoration: none; }
 img { max-width: 100%; }
 ::selection { background: var(--pink); color: #fff; }
 
@@ -121,8 +178,8 @@ img { max-width: 100%; }
 .btn.primary:hover { filter: brightness(1.06); }
 .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
 .btn.ghost:hover { color: var(--text); background: var(--surface-2); }
-.btn.danger { background: rgba(255, 93, 93, .12); border-color: rgba(255, 93, 93, .35); color: #ff9a9a; }
-.btn.success { background: rgba(74, 222, 128, .14); border-color: rgba(74, 222, 128, .4); color: #8ef0b0; }
+.btn.danger { background: rgba(255, 93, 93, .12); border-color: rgba(255, 93, 93, .35); color: var(--ink-red); }
+.btn.success { background: rgba(74, 222, 128, .14); border-color: rgba(74, 222, 128, .4); color: var(--ink-green); }
 .btn.sm { height: 34px; padding: 0 12px; font-size: 13.5px; border-radius: 10px; }
 .btn.xs { height: 28px; padding: 0 9px; font-size: 12.5px; border-radius: 8px; }
 .btn.lg { height: 52px; padding: 0 22px; font-size: 16px; border-radius: 14px; }
@@ -135,18 +192,20 @@ img { max-width: 100%; }
   border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface);
   color: var(--muted); font: 600 14px var(--font); cursor: pointer; white-space: nowrap;
 }
-.chip.active { background: var(--text); color: #120f1b; border-color: var(--text); }
+.chip.active { background: var(--text); color: var(--chip-on); border-color: var(--text); }
 
 .badge {
   display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 999px;
   font-size: 11.5px; font-weight: 700; letter-spacing: .02em; background: var(--surface-3); color: var(--muted);
 }
-.badge.amber { background: rgba(255, 178, 56, .16); color: var(--amber); }
-.badge.pink { background: rgba(255, 79, 139, .16); color: #ff8fb5; }
-.badge.green { background: rgba(74, 222, 128, .14); color: var(--green); }
-.badge.red { background: rgba(255, 93, 93, .15); color: #ff9a9a; }
-.badge.teal { background: rgba(62, 224, 208, .14); color: var(--teal); }
-.badge.violet { background: rgba(139, 92, 246, .18); color: #c4b0ff; }
+.badge.amber { background: rgba(255, 178, 56, .16); color: var(--ink-amber); }
+.badge.pink { background: rgba(255, 79, 139, .16); color: var(--ink-pink); }
+.badge.green { background: rgba(74, 222, 128, .16); color: var(--ink-green); }
+.badge.red { background: rgba(255, 93, 93, .15); color: var(--ink-red); }
+.badge.teal { background: rgba(62, 224, 208, .16); color: var(--ink-teal); }
+.badge.violet { background: rgba(139, 92, 246, .18); color: var(--ink-violet); }
+.amber { color: var(--ink-amber); }
+.pink { color: var(--ink-pink); }
 
 /* ---------- Formularios ---------- */
 .field { display: flex; flex-direction: column; gap: 6px; }
@@ -183,11 +242,11 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th { text-align: left; color: var(--muted); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .table td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 .table tr:last-child td { border-bottom: 0; }
-.table tr:hover td { background: rgba(255, 255, 255, .02); }
+.table tr:hover td { background: var(--hover); }
 .table .right { text-align: right; }
 
 /* ---------- Modal / hoja inferior ---------- */
-.backdrop { position: fixed; inset: 0; background: rgba(5, 3, 10, .72); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; animation: fade .15s ease; }
+.backdrop { position: fixed; inset: 0; background: var(--scrim); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; animation: fade .15s ease; }
 .modal { width: 100%; max-width: 560px; max-height: calc(100vh - 32px); overflow: auto; background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-lg); padding: 22px; box-shadow: var(--shadow); animation: pop .18s ease; }
 .modal.wide { max-width: 820px; }
 .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -204,7 +263,7 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .toasts { position: fixed; z-index: 100; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; width: min(440px, calc(100vw - 32px)); pointer-events: none; }
 .toast { pointer-events: auto; padding: 12px 16px; border-radius: 14px; background: var(--surface-3); border: 1px solid var(--line-2); box-shadow: var(--shadow); font-weight: 600; animation: up .2s ease; }
 .toast.ok { border-color: rgba(74, 222, 128, .45); }
-.toast.error { border-color: rgba(255, 93, 93, .55); color: #ffc2c2; }
+.toast.error { border-color: rgba(255, 93, 93, .55); color: var(--ink-red); }
 
 .empty { text-align: center; padding: 40px 16px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .empty h3 { color: var(--text); }
@@ -219,6 +278,9 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
   body { background: #fff; color: #000; }
   .no-print { display: none !important; }
 }
+
+/* Botón de tema fijo en una esquina (pantallas de ingreso) */
+.theme-corner { position: fixed; top: 12px; right: 12px; z-index: 60; }
 
 /* Modo soporte: el súper administrador dentro de un bar */
 .support-bar { position: sticky; top: 0; z-index: 70; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px;

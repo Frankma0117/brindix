@@ -3,11 +3,12 @@ import { Router, RouterLink } from '@angular/router';
 import { Auth } from '../../core/auth.service';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
+import { ThemeToggleComponent } from '../../core/theme';
 
 @Component({
   selector: 'bx-waiter-header',
   standalone: true,
-  imports: [RouterLink, MascotComponent],
+  imports: [RouterLink, MascotComponent, ThemeToggleComponent],
   template: `
   @if (auth.isSupport()) {
     <div class="support-bar">🛟 Modo soporte: estás dentro de <b>{{ ctx.name() }}</b> como administrador. Todo queda en la bitácora.
@@ -24,13 +25,14 @@ import { MascotComponent } from '../../shared/mascot.component';
         </div>
       </div>
       <div class="row">
+        <bx-theme-toggle />
         @if (auth.isAdmin()) { <a class="btn sm" [routerLink]="'/' + ctx.slug() + '/admin'">Panel</a> }
         <button class="btn ghost sm" (click)="auth.logout()">Salir</button>
       </div>
     </div>
   </header>`,
   styles: [`
-    .wh { position: sticky; top: 0; z-index: 25; background: rgba(12,10,18,.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 10px 0; }
+    .wh { position: sticky; top: 0; z-index: 25; background: var(--glass); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding: 10px 0; }
     .t { font-family: var(--display); font-weight: 800; font-size: 18px; }
   `],
 })

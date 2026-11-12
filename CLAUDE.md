@@ -30,6 +30,12 @@ inventario con costos, música (Spotify/YouTube/manual), pantalla. Repo
 - Imágenes en DigitalOcean Spaces (mismo bucket de Aula Interactiva, prefijo `brindix/`); imágenes de
   prueba generadas una sola vez con fal.ai (`scripts/seed-images.py`).
 
+## Tema claro / oscuro
+- `core/theme.ts`: Automático (sigue al dispositivo) → Claro → Oscuro; se guarda en `brindix.theme`; `index.html`
+  aplica `<html data-mode>` antes de Angular. La pantalla del TV es siempre oscura (`.force-dark`).
+- Nada de colores fijos para fondos o textos: usar `--glass`, `--scrim`, `--hover`, `--ink-*` (texto sobre
+  fondo de color suave) y `--c-*` (acento como color de texto). Revisar ambos modos con capturas.
+
 ## Trampas conocidas
 - Node 18 es el predeterminado del PC; Angular necesita Node 20: `C:\Users\Asus\node20`.
 - Spring Data no detecta repositorios anidados en otra clase: un archivo por repositorio.

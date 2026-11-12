@@ -1,10 +1,10 @@
 .page-wrap { padding-top: 16px; padding-bottom: 120px; display: flex; flex-direction: column; gap: 14px; max-width: 760px; }
 .summary { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
-.cust { background: none; border: 0; padding: 0; color: var(--teal); font: 700 15px var(--font); cursor: pointer; }
+.cust { background: none; border: 0; padding: 0; color: var(--c-teal); font: 700 15px var(--font); cursor: pointer; }
 .totals { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; align-items: end; }
 .total { font-family: var(--display); font-size: 34px; font-weight: 800; }
 .mid { font-family: var(--display); font-size: 20px; font-weight: 800; }
-.amber { color: var(--amber); font-weight: 700; }
+.amber { color: var(--c-amber); font-weight: 700; }
 .waiter { gap: 8px; }
 .sel { max-width: 200px; height: 34px; }
 .add { height: 56px; }
@@ -14,14 +14,14 @@
 .round[data-status=REJECTED] { opacity: .55; }
 .tags { gap: 6px; }
 .item { display: flex; align-items: center; gap: 8px; font-size: 14.5px; }
-.item .q { font-weight: 800; color: var(--amber); min-width: 30px; }
+.item .q { font-weight: 800; color: var(--c-amber); min-width: 30px; }
 .item.voided { color: var(--faint); }
 .item.voided > .grow > span:first-child, .item.voided .num { text-decoration: line-through; }
 .actions { padding-top: 8px; border-top: 1px solid var(--line); gap: 8px; }
 .pay { padding: 7px 0; border-bottom: 1px solid var(--line); }
 .secondary { gap: 8px; }
 .pick { padding: 10px; border: 1px solid var(--line); border-radius: 12px; width: 100%; }
-.paybar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(18, 15, 27, .95); backdrop-filter: blur(12px); border-top: 1px solid var(--line-2); padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); }
+.paybar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--glass); backdrop-filter: blur(12px); border-top: 1px solid var(--line-2); padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); }
 .paybar .container { max-width: 760px; }
 .pay-total { font-family: var(--display); font-size: 26px; font-weight: 800; }
 .big-total { font-family: var(--display); font-size: 24px; font-weight: 800; padding-top: 10px; border-top: 1px solid var(--line); }

@@ -19,7 +19,7 @@ interface CashState { open: boolean; shift: ShiftStatus | Record<string, never>;
     .flow { display: grid; gap: 8px; }
     .fl { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--line); font-variant-numeric: tabular-nums; }
     .fl.total { border: 0; font-family: var(--display); font-size: 22px; font-weight: 800; }
-    .neg { color: #ff9a9a; } .pos { color: var(--green); }
+    .neg { color: var(--ink-red); } .pos { color: var(--ink-green); }
     .mv { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
     .mv:last-child { border: 0; }
     .layout { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; align-items: start; margin-top: 16px; }

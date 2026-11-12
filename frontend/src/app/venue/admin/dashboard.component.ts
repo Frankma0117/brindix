@@ -70,7 +70,7 @@ import { MascotComponent } from '../../shared/mascot.component';
     a.stat:hover { border-color: var(--line-2); }
     .stat.attn { border-color: rgba(255,79,139,.55); }
     .stat.warn { border-color: rgba(255,178,56,.45); }
-    .amber { color: var(--amber); }
+    .amber { color: var(--c-amber); }
     .warn-box { display: block; margin-bottom: 14px; border-color: rgba(255,178,56,.5); color: var(--text); }
     .sec { margin: 28px 0 12px; font-size: 18px; }
     .two { margin-top: 14px; }

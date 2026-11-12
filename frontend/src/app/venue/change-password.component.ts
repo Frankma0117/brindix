@@ -5,13 +5,15 @@ import { errorMessage } from '../core/api.service';
 import { Auth } from '../core/auth.service';
 import { VenueContext } from '../core/venue-context';
 import { MascotComponent } from '../shared/mascot.component';
+import { ThemeToggleComponent } from '../core/theme';
 
 /** Primer ingreso (o clave puesta por otra persona): hay que cambiarla antes de seguir. */
 @Component({
   selector: 'bx-change-password',
   standalone: true,
-  imports: [FormsModule, MascotComponent],
+  imports: [FormsModule, MascotComponent, ThemeToggleComponent],
   template: `
+  <bx-theme-toggle class="theme-corner" />
   <main class="wrap">
     <form class="card pad-lg box" (ngSubmit)="submit()">
       <div class="head">
@@ -41,8 +43,8 @@ import { MascotComponent } from '../shared/mascot.component';
       background: radial-gradient(600px 400px at 20% 10%, rgba(255,79,139,.18), transparent), radial-gradient(500px 400px at 90% 90%, rgba(255,178,56,.14), transparent); }
     .box { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 14px; }
     .head { display: flex; gap: 14px; align-items: center; margin-bottom: 6px; }
-    .kicker { color: var(--pink); font-weight: 800; letter-spacing: .2em; font-size: 11px; text-transform: uppercase; }
-    .err { color: #ff9a9a; font-weight: 600; font-size: 14px; }
+    .kicker { color: var(--c-pink); font-weight: 800; letter-spacing: .2em; font-size: 11px; text-transform: uppercase; }
+    .err { color: var(--ink-red); font-weight: 600; font-size: 14px; }
   `],
 })
 export class ChangePasswordComponent {
