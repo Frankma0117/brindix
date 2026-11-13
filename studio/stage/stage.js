@@ -132,9 +132,7 @@
           <div class="device ${dev}" style="left:${L.device.cx - w / 2}px;top:${L.device.cy - h / 2}px;width:${w}px;height:${h}px">${deviceHtml(dev, D.captures[s.shot])}</div>`;
       } else {
         const box = kind === 'intro' ? L.hero : L.outro;
-        const extra = kind === 'intro'
-          ? (D.eyebrow ? `<div class="tag" style="position:static">${esc(D.eyebrow)}</div>` : '')
-          : `<div class="cta-card">${D.qr ? `<img src="${D.qr}" alt="">` : ''}<div><b>brindix.cania.app</b><span>Escanea y pide tu demo gratis</span></div></div>`;
+        const extra = kind === 'intro' ? '' : `<div class="cta-card">${D.qr ? `<img src="${D.qr}" alt="">` : ''}<div><b>brindix.cania.app</b><span>Escanea y pide tu demo gratis</span></div></div>`;
         el.innerHTML = `<div class="hero ${kind}" style="top:${box.content}px;bottom:auto;justify-content:flex-start">
           ${kind === 'intro' ? extra : ''}
           <h1 class="big" style="font-size:${box.big}px">${words(s.headline)}</h1>

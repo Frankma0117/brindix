@@ -52,7 +52,7 @@ def run(job: dict, progress) -> dict:
         style = job.get("music") if job.get("music") in MUSIC else "fiesta"
         music = media.music(style, MUSIC[style], work)
 
-        stage = {"format": fmt, "eyebrow": KINDS.get(job.get("kind"), {}).get("name", ""), "width": size[0], "height": size[1], "fps": media.FPS, "total": total,
+        stage = {"format": fmt, "width": size[0], "height": size[1], "fps": media.FPS, "total": total,
                  "scenes": timeline, "captures": caps, "qr": media.qr("https://brindix.cania.app"),
                  "posterAt": round(min(total - 0.5, timeline[1]["voiceAt"] + 1.2 if len(timeline) > 1 else 1.5), 2)}
         video, poster = os.path.join(work, "video.mp4"), os.path.join(work, "poster.jpg")

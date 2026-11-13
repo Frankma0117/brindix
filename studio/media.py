@@ -257,7 +257,7 @@ def soundtrack(clips: list[tuple[str, float]], music_path: str | None, total: fl
         mix = "[mix]"
     chains.append(f"{mix}atrim=0:{total:.2f},loudnorm=I=-16:TP=-1.5[out]")
     subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", *inputs, "-filter_complex", ";".join(chains), "-map", "[out]",
-                    "-c:a", "aac", "-b:a", "160k", out_path], check=True)
+                    "-c:a", "aac", "-ar", "48000", "-b:a", "160k", out_path], check=True)
 
 
 def mux(video: str, audio: str, out: str) -> None:
