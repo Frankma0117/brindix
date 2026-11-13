@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Subject, catchError, debounceTime, of, switchMap, timer } from 'rxjs';
 import { Api, errorMessage } from '../../core/api.service';
-import { Queue, Song, Track } from '../../core/models';
+import { AdminVenue, Queue, Song, Track } from '../../core/models';
 import { AgoPipe, Toasts, duration } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
@@ -21,7 +21,7 @@ import { IconComponent } from '../../shared/icon.component';
     <div class="row">
       <span class="badge" [class.green]="queue()?.provider !== 'MANUAL'">{{ providerName() }}</span>
       <a class="btn sm" routerLink="../configuracion" fragment="musica">Configurar</a>
-      <a class="btn sm" [href]="'/' + ctx.slug() + '/pantalla'" target="_blank"><bx-icon name="tv" /> Pantalla</a>
+      <a class="btn sm" [href]="screenUrl()" target="_blank" title="Abre la pantalla del TV como reproductor (con su llave)"><bx-icon name="tv" /> Pantalla</a>
     </div>
   </div>
 
@@ -48,8 +48,8 @@ import { IconComponent } from '../../shared/icon.component';
         </div>
         <p class="tiny faint hint">
           @switch (queue()?.provider) {
-            @case ('YOUTUBE') { YouTube: la pantalla del bar reproduce la cola sola. Ábrela desde Configuración → Pantalla (enlace con llave). }
-            @case ('SPOTIFY') { Spotify: abre la <b>Pantalla</b> del TV (enlace con llave en Configuración) y toca «Activar la música»: esa pantalla es el parlante y Brindix le manda la cola. También sirve Spotify abierto en el computador del bar. }
+            @case ('YOUTUBE') { YouTube: la pantalla del bar reproduce la cola sola. Ábrela con el botón <b>Pantalla</b> de arriba (ya lleva la llave) o desde Configuración → Pantalla. }
+            @case ('SPOTIFY') { Spotify: abre la pantalla con el botón <b>Pantalla</b> de arriba (ya lleva la llave) en Chrome o Edge y toca «Activar la música»: esa pantalla es el parlante y Brindix le manda la cola. Necesita cuenta Premium. También sirve Spotify abierto en el computador del bar. }
             @default { Modo manual: pon la canción en tu reproductor y pulsa «Siguiente» para que la pantalla muestre la que sigue. }
           }
         </p>
@@ -142,6 +142,8 @@ export class MusicComponent implements OnInit {
   ctx = inject(VenueContext);
 
   queue = signal<Queue | null>(null);
+  /** Enlace de la pantalla con su llave: así el TV se vuelve reproductor (sin llave solo muestra). */
+  screenUrl = signal('/' + this.ctx.slug() + '/pantalla');
   history = signal<Song[]>([]);
   tracks = signal<Track[]>([]);
   q = '';
@@ -155,6 +157,7 @@ export class MusicComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.api.get<AdminVenue>('/admin/venue').subscribe({ next: v => this.screenUrl.set(`/${v.slug}/pantalla?k=${v.screenKey}`), error: () => {} });
     this.api.get<Song[]>('/admin/music/history', { hours: 12 }).subscribe(h => this.history.set(h));
     timer(0, 4000).pipe(
       switchMap(() => this.api.get<Queue>('/admin/music/queue').pipe(catchError(() => of(null)))),
