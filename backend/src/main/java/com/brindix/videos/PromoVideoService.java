@@ -46,7 +46,7 @@ public class PromoVideoService {
 
     public record VideoCreate(@NotBlank @Pattern(regexp = "[a-z_]+") String kind,
                               @NotEmpty List<@Pattern(regexp = "vertical|horizontal|cuadrado") String> formats,
-                              @NotBlank @Pattern(regexp = "[HM][0-9]") String voice,
+                              @NotBlank @Pattern(regexp = "[HM][0-9]{1,2}") String voice,
                               @NotBlank @Pattern(regexp = "[a-z]+") String music,
                               @Size(max = 600) String idea) {}
 

@@ -20,7 +20,7 @@ interface Options {
   enabled: boolean;
   kinds?: { key: string; name: string; about: string; seconds: number }[];
   formats?: { key: string; width: number; height: number }[];
-  voices?: { key: string; name: string; style: string }[];
+  voices?: { key: string; name: string; style: string; gender?: 'male' | 'female' }[];
   music?: string[];
   voiceReady?: boolean;
   aiReady?: boolean;
@@ -31,7 +31,10 @@ const FORMAT_NAMES: Record<string, { name: string; where: string }> = {
   horizontal: { name: 'Horizontal', where: 'YouTube, TV, computador' },
   cuadrado: { name: 'Cuadrado', where: 'Feed de Instagram y Facebook' },
 };
-const MUSIC_NAMES: Record<string, string> = { fiesta: 'Fiesta', lounge: 'Lounge', ninguna: 'Sin música' };
+const MUSIC_NAMES: Record<string, string> = {
+  fiesta: 'Fiesta', lounge: 'Lounge', salsa: 'Salsa', vallenato: 'Vallenato', reggaeton: 'Reguetón', tropical: 'Tropical',
+  rock: 'Rock', jazz: 'Jazz', acustico: 'Acústico', electronica: 'Electrónica', romantico: 'Romántico', urbano: 'Urbano', ninguna: 'Sin música',
+};
 
 /**
  * Estudio de videos del súper administrador: elige el tipo, el formato y la voz, escribe la idea y el estudio
@@ -92,9 +95,14 @@ const MUSIC_NAMES: Record<string, string> = { fiesta: 'Fiesta', lounge: 'Lounge'
                 <button type="button" class="chip" [class.active]="music() === m" (click)="music.set(m)">{{ musicName(m) }}</button>
               }
             </div>
-            <span class="lbl" style="margin-top: 14px">Voz de la copa</span>
+            <span class="lbl" style="margin-top: 14px">Voz de la copa ({{ visibleVoices().length }})</span>
+            <div class="chips" role="group" aria-label="Filtrar voces">
+              <button type="button" class="chip" [class.active]="voiceFilter() === 'all'" (click)="voiceFilter.set('all')">Todas</button>
+              <button type="button" class="chip" [class.active]="voiceFilter() === 'male'" (click)="voiceFilter.set('male')">Hombres</button>
+              <button type="button" class="chip" [class.active]="voiceFilter() === 'female'" (click)="voiceFilter.set('female')">Mujeres</button>
+            </div>
             <div class="voices">
-              @for (v of o.voices; track v.key) {
+              @for (v of visibleVoices(); track v.key) {
                 <div class="voice" [class.on]="voice() === v.key">
                   <button type="button" class="pick-voice" (click)="voice.set(v.key)" [attr.aria-pressed]="voice() === v.key">
                     <b>{{ v.name }}</b><span>{{ v.style }}</span>
@@ -267,6 +275,8 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   kind = signal('anuncio');
   formats = signal<string[]>(['vertical', 'horizontal', 'cuadrado']);
   voice = signal('H3');
+  voiceFilter = signal<'all' | 'male' | 'female'>('all');
+  visibleVoices = computed(() => (this.options()?.voices ?? []).filter(v => this.voiceFilter() === 'all' || v.gender === this.voiceFilter()));
   music = signal('fiesta');
   idea = '';
   busy = signal(false);

@@ -42,7 +42,7 @@ def options(x_studio_token: str | None = Header(None)):
     _auth(x_studio_token)
     return {"kinds": [{"key": k, "name": v["name"], "about": v["about"], "seconds": v["seconds"]} for k, v in KINDS.items()],
             "formats": [{"key": k, "width": w, "height": h} for k, (w, h) in FORMATS.items()],
-            "voices": [{k: v[k] for k in ("key", "name", "style")} for v in VOICES],
+            "voices": [{k: v[k] for k in ("key", "name", "style", "gender")} for v in VOICES],
             "music": list(MUSIC.keys()),
             "voiceReady": bool(os.environ.get("FISH_API_KEY")), "aiReady": bool(os.environ.get("AI_API_KEY"))}
 
