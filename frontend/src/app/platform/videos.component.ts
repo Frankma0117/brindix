@@ -31,6 +31,16 @@ const FORMAT_NAMES: Record<string, { name: string; where: string }> = {
   horizontal: { name: 'Horizontal', where: 'YouTube, TV, computador' },
   cuadrado: { name: 'Cuadrado', where: 'Feed de Instagram y Facebook' },
 };
+/** Lowercase without accents, to search "Andrés" with "andres". */
+const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+const MUSIC_GROUPS: { name: string; keys: string[] }[] = [
+  { name: 'Latina y de fiesta', keys: ['fiesta', 'salsa', 'merengue', 'vallenato', 'champeta', 'tropical', 'bachata', 'reggaeton', 'urbano'] },
+  { name: 'Tranquila', keys: ['lounge', 'jazz', 'acustico', 'lofi', 'bolero', 'romantico'] },
+  { name: 'Con energía', keys: ['rock', 'electronica', 'funk'] },
+  { name: 'Sin música', keys: ['ninguna'] },
+];
+
 const MUSIC_NAMES: Record<string, string> = {
   fiesta: 'Fiesta', lounge: 'Lounge', salsa: 'Salsa', vallenato: 'Vallenato', reggaeton: 'Reguetón', tropical: 'Tropical',
   rock: 'Rock', jazz: 'Jazz', acustico: 'Acústico', electronica: 'Electrónica', romantico: 'Romántico', urbano: 'Urbano',
@@ -62,23 +72,23 @@ const MUSIC_NAMES: Record<string, string> = {
           @else if (!o.aiReady) { <span class="badge amber">Guion de plantilla (sin IA)</span> }
         </div>
 
-        <div class="pick">
-          <span class="lbl">Qué video</span>
-          <div class="kinds" role="radiogroup" aria-label="Tipo de video">
-            @for (k of o.kinds; track k.key) {
-              <button type="button" role="radio" class="kind" [attr.aria-checked]="kind() === k.key" [class.on]="kind() === k.key" (click)="kind.set(k.key)">
-                <bx-icon [name]="kindIcon(k.key)" [size]="18" />
-                <b>{{ k.name }}</b>
-                <span>{{ k.about }}</span>
-                <em>~{{ k.seconds }} s</em>
-              </button>
-            }
-          </div>
-        </div>
+        <ol class="steps">
+          <li class="step">
+            <div class="step-head"><span class="num">1</span><h3>¿Qué video?</h3></div>
+            <div class="kinds" role="radiogroup" aria-label="Tipo de video">
+              @for (k of o.kinds; track k.key) {
+                <button type="button" role="radio" class="kind" [attr.aria-checked]="kind() === k.key" [class.on]="kind() === k.key" (click)="kind.set(k.key)">
+                  <bx-icon [name]="kindIcon(k.key)" [size]="18" />
+                  <b>{{ k.name }}</b>
+                  <span>{{ k.about }}</span>
+                  <em>~{{ k.seconds }} s</em>
+                </button>
+              }
+            </div>
+          </li>
 
-        <div class="pick two">
-          <div>
-            <span class="lbl">Formatos <span class="muted">(uno o varios: sale un video por cada uno)</span></span>
+          <li class="step">
+            <div class="step-head"><span class="num">2</span><h3>Formatos</h3><span class="hint">Sale un video por cada uno</span></div>
             <div class="formats" role="group" aria-label="Formatos">
               @for (f of o.formats; track f.key) {
                 <button type="button" role="checkbox" class="fmt" [attr.aria-checked]="hasFormat(f.key)" [class.on]="hasFormat(f.key)" (click)="toggleFormat(f.key)">
@@ -88,24 +98,42 @@ const MUSIC_NAMES: Record<string, string> = {
                 </button>
               }
             </div>
-          </div>
-          <div>
-            <span class="lbl">Música</span>
-            <div class="chips">
-              @for (m of o.music; track m) {
-                <button type="button" class="chip" [class.active]="music() === m" (click)="music.set(m)">{{ musicName(m) }}</button>
+          </li>
+
+          <li class="step">
+            <div class="step-head"><span class="num">3</span><h3>Música</h3><span class="hint">{{ musicName(music()) }}</span></div>
+            <div class="mgroups">
+              @for (g of musicGroups(); track g.name) {
+                <div class="mgroup">
+                  <span class="mlabel">{{ g.name }}</span>
+                  <div class="chips" role="radiogroup" [attr.aria-label]="'Música: ' + g.name">
+                    @for (m of g.keys; track m) {
+                      <button type="button" role="radio" class="chip" [attr.aria-checked]="music() === m" [class.active]="music() === m" (click)="music.set(m)">{{ musicName(m) }}</button>
+                    }
+                  </div>
+                </div>
               }
             </div>
-            <span class="lbl" style="margin-top: 14px">Voz de la copa ({{ visibleVoices().length }})</span>
-            <div class="chips" role="group" aria-label="Filtrar voces">
-              <button type="button" class="chip" [class.active]="voiceFilter() === 'all'" (click)="voiceFilter.set('all')">Todas</button>
-              <button type="button" class="chip" [class.active]="voiceFilter() === 'male'" (click)="voiceFilter.set('male')">Hombres</button>
-              <button type="button" class="chip" [class.active]="voiceFilter() === 'female'" (click)="voiceFilter.set('female')">Mujeres</button>
+          </li>
+
+          <li class="step">
+            <div class="step-head"><span class="num">4</span><h3>Voz de la copa</h3><span class="hint">{{ selectedVoice()?.name }}</span></div>
+            <div class="vtools">
+              <label class="vsearch">
+                <bx-icon name="search" [size]="16" />
+                <input class="input" type="search" placeholder="Buscar: paisa, locutor, narradora, mexicana…" aria-label="Buscar voz"
+                       [ngModel]="voiceQuery()" (ngModelChange)="voiceQuery.set($event)" />
+              </label>
+              <div class="seg" role="group" aria-label="Filtrar voces">
+                <button type="button" [attr.aria-pressed]="voiceFilter() === 'all'" [class.on]="voiceFilter() === 'all'" (click)="voiceFilter.set('all')">Todas</button>
+                <button type="button" [attr.aria-pressed]="voiceFilter() === 'male'" [class.on]="voiceFilter() === 'male'" (click)="voiceFilter.set('male')">Hombres</button>
+                <button type="button" [attr.aria-pressed]="voiceFilter() === 'female'" [class.on]="voiceFilter() === 'female'" (click)="voiceFilter.set('female')">Mujeres</button>
+              </div>
             </div>
-            <div class="voices">
+            <div class="voices" role="radiogroup" aria-label="Voz de la copa">
               @for (v of visibleVoices(); track v.key) {
                 <div class="voice" [class.on]="voice() === v.key">
-                  <button type="button" class="pick-voice" (click)="voice.set(v.key)" [attr.aria-pressed]="voice() === v.key">
+                  <button type="button" role="radio" class="pick-voice" (click)="voice.set(v.key)" [attr.aria-checked]="voice() === v.key">
                     <b>{{ v.name }}</b><span>{{ v.style }}</span>
                   </button>
                   <button type="button" class="hear" (click)="hear(v.key)" [disabled]="!o.voiceReady"
@@ -114,18 +142,25 @@ const MUSIC_NAMES: Record<string, string> = {
                     @else { <bx-icon [name]="playingVoice() === v.key ? 'pause' : 'play'" [size]="15" /> }
                   </button>
                 </div>
+              } @empty {
+                <p class="small muted vnone">Ninguna voz coincide. Prueba con otra palabra o quita el filtro.</p>
               }
             </div>
+            <p class="small muted vcount">{{ visibleVoices().length }} de {{ o.voices?.length ?? 0 }} voces · toca ▶ para escuchar una muestra</p>
+          </li>
+
+          <li class="step">
+            <div class="step-head"><span class="num">5</span><h3>Idea o enfoque</h3><span class="hint">Opcional</span></div>
+            <textarea class="input idea" rows="2" maxlength="600" aria-label="Idea o enfoque" [(ngModel)]="idea" [placeholder]="ideaHint()"></textarea>
+          </li>
+        </ol>
+
+        <div class="summary">
+          <div class="sum-text">
+            <b>{{ summaryTitle() }}</b>
+            <span>{{ summaryLine() }}</span>
+            <span class="faint">{{ activeJobs() }} pedidos en proceso · máximo 3 a la vez</span>
           </div>
-        </div>
-
-        <label class="field">
-          <span>Idea o enfoque <span class="muted">(opcional)</span></span>
-          <textarea class="input" rows="2" maxlength="600" [(ngModel)]="idea" [placeholder]="ideaHint()"></textarea>
-        </label>
-
-        <div class="row between wrap foot">
-          <p class="small muted">{{ activeJobs() }} pedidos en proceso · máximo 3 a la vez</p>
           <button class="btn primary lg" [disabled]="busy() || !o.voiceReady || activeJobs() >= 3 || !formats().length" (click)="create()">
             <bx-icon name="sparkles" [size]="18" /> {{ busy() ? 'Enviando…' : (formats().length > 1 ? 'Crear ' + formats().length + ' videos' : 'Crear el video') }}
           </button>
@@ -201,7 +236,7 @@ const MUSIC_NAMES: Record<string, string> = {
     .kinds { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
     .kind, .fmt, .voice { text-align: left; cursor: pointer; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--text); border-radius: 14px;
       font-family: var(--font); transition: border-color 150ms ease, background-color 150ms ease, transform 140ms var(--ease-out); }
-    .kind:hover, .fmt:hover, .voice:hover { border-color: var(--faint); }
+    @media (hover: hover) and (pointer: fine) { .kind:hover, .fmt:hover, .voice:hover { border-color: var(--faint); } }
     .kind:active, .fmt:active, .voice:active { transform: scale(.985); }
     .kind.on, .fmt.on, .voice.on { border-color: var(--amber); background: rgba(255, 178, 56, .1); }
     .kind { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; padding: 12px 14px; align-items: center; }
@@ -234,6 +269,40 @@ const MUSIC_NAMES: Record<string, string> = {
     @keyframes spin { to { transform: rotate(360deg); } }
     .field textarea { resize: vertical; min-height: 56px; line-height: 1.45; }
     .foot { gap: 10px; }
+    .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 22px; }
+    .step { display: flex; flex-direction: column; gap: 10px; }
+    .step-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .step-head h3 { font-size: 15px; margin: 0; }
+    .step-head .num { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 800;
+      background: rgba(255, 178, 56, .16); color: var(--ink-amber); font-variant-numeric: tabular-nums; }
+    .step-head .hint { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+    .mgroups { display: flex; flex-direction: column; gap: 10px; }
+    .mgroup { display: grid; grid-template-columns: 9.5rem 1fr; gap: 10px; align-items: start; }
+    .mlabel { font-size: 12.5px; font-weight: 700; color: var(--muted); padding-top: 7px; }
+    @media (max-width: 640px) { .mgroup { grid-template-columns: 1fr; gap: 6px; } .mlabel { padding-top: 0; } }
+    .vtools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .vsearch { position: relative; flex: 1 1 260px; display: block; }
+    .vsearch bx-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--faint); pointer-events: none; }
+    .vsearch .input { padding-left: 36px; width: 100%; }
+    .seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--line-2); }
+    .seg button { border: 0; background: transparent; color: var(--muted); font: 600 13px var(--font); padding: 6px 14px; border-radius: 999px; cursor: pointer;
+      transition: background-color 150ms ease, color 150ms ease, transform 140ms var(--ease-out); }
+    .seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+    .seg button:active { transform: scale(.97); }
+    .voices { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); max-height: 340px; overflow-y: auto; padding: 2px 4px 2px 0;
+      overscroll-behavior: contain; scrollbar-gutter: stable; }
+    .voice { min-height: 58px; }
+    .vnone { grid-column: 1 / -1; padding: 12px 2px; }
+    .vcount { margin: 0; }
+    .idea { resize: vertical; min-height: 56px; line-height: 1.45; width: 100%; }
+    .summary { position: sticky; bottom: 12px; z-index: 5; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 14px;
+      border: 1px solid var(--line-2); border-radius: 18px; background: var(--surface); box-shadow: 0 12px 30px -16px rgba(0, 0, 0, .35); }
+    .sum-text { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .sum-text b { font-size: 14.5px; }
+    .sum-text span { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sum-text .faint { color: var(--faint); }
+    @media (max-width: 640px) { .summary .btn { width: 100%; justify-content: center; } }
+    @media (hover: hover) and (pointer: fine) { .seg button:not(.on):hover { color: var(--text); } }
     .btn bx-icon { margin-right: 6px; }
 
     .gallery { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
@@ -277,7 +346,30 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   formats = signal<string[]>(['vertical', 'horizontal', 'cuadrado']);
   voice = signal('H3');
   voiceFilter = signal<'all' | 'male' | 'female'>('all');
-  visibleVoices = computed(() => (this.options()?.voices ?? []).filter(v => this.voiceFilter() === 'all' || v.gender === this.voiceFilter()));
+  voiceQuery = signal('');
+  /** Voices by gender and by any word of their name or style ("paisa", "locutor", "narradora"). */
+  visibleVoices = computed(() => {
+    const words = fold(this.voiceQuery()).split(/\s+/).filter(Boolean);
+    return (this.options()?.voices ?? []).filter(v =>
+      (this.voiceFilter() === 'all' || v.gender === this.voiceFilter()) && words.every(w => fold(v.name + ' ' + v.style).includes(w)));
+  });
+  selectedVoice = computed(() => this.options()?.voices?.find(v => v.key === this.voice()));
+  /** Music in groups that read at a glance; a style the studio adds later lands in «Otras». */
+  musicGroups = computed(() => {
+    const all = this.options()?.music ?? [];
+    const groups = MUSIC_GROUPS.map(g => ({ name: g.name, keys: g.keys.filter(k => all.includes(k)) })).filter(g => g.keys.length);
+    const placed = new Set(groups.flatMap(g => g.keys));
+    const rest = all.filter(k => !placed.has(k));
+    return rest.length ? [...groups, { name: 'Otras', keys: rest }] : groups;
+  });
+  summaryTitle = computed(() => {
+    const n = this.formats().length;
+    const kind = this.options()?.kinds?.find(k => k.key === this.kind())?.name ?? 'Video';
+    return `${kind} · ${n === 1 ? '1 video' : n + ' videos'}`;
+  });
+  summaryLine = computed(() =>
+    [this.formats().map(f => this.fmtName(f).name).join(', ') || 'Elige al menos un formato', this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : '']
+      .filter(Boolean).join(' · '));
   music = signal('fiesta');
   idea = '';
   busy = signal(false);
