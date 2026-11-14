@@ -33,7 +33,8 @@ const FORMAT_NAMES: Record<string, { name: string; where: string }> = {
 };
 const MUSIC_NAMES: Record<string, string> = {
   fiesta: 'Fiesta', lounge: 'Lounge', salsa: 'Salsa', vallenato: 'Vallenato', reggaeton: 'Reguetón', tropical: 'Tropical',
-  rock: 'Rock', jazz: 'Jazz', acustico: 'Acústico', electronica: 'Electrónica', romantico: 'Romántico', urbano: 'Urbano', ninguna: 'Sin música',
+  rock: 'Rock', jazz: 'Jazz', acustico: 'Acústico', electronica: 'Electrónica', romantico: 'Romántico', urbano: 'Urbano',
+  bachata: 'Bachata', merengue: 'Merengue', champeta: 'Champeta', lofi: 'Lo-fi', funk: 'Funk', bolero: 'Bolero', ninguna: 'Sin música',
 };
 
 /**
