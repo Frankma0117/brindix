@@ -14,6 +14,7 @@ inventario con costos, música (Spotify/YouTube/manual), pantalla. Repo
 - [x] 2026-11-12: rediseño con impeccable + taste + Emil (ver DESIGN.md/PRODUCT.md): íconos Lucide (`bx-icon`),
       paleta sin violeta ni crema, landing nueva, resumen del admin sin tarjetas de métricas; detector 50 → 0-1.
 - [x] 2026-11-12: bar demo «Candela Brava» (`scripts/seed-demo.mjs`), fotos de Wikimedia Commons con créditos en `/creditos`.
+- [x] 2026-11-14: **publicador de redes** dentro de /plataforma (YouTube, Instagram, Facebook, TikTok; uno solo para Brindix): contenedor `publisher` (copia de publisher-app en `publisher/`), nginx `/publicador/`, ticket de entrada sin otro login (`com.brindix.publisher`), los videos del estudio llegan a «Por validar». Rama `publicador`. Falta: que el usuario corra `bash scripts/set-publisher.sh` en el servidor y cree las cuentas/apps de las redes (docs/PUBLICADOR.md).
 - [ ] Conectar Spotify/YouTube reales desde Configuración → Música (el código no se ha probado con cuentas reales).
 
 ## Decisiones del usuario

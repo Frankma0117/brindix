@@ -1,0 +1,12 @@
+# Ejemplo: el publicador de UN proyecto. Copia este archivo junto al proyecto, ajusta el nombre y el puerto
+# (cada proyecto usa el suyo) y crea su .env a partir de .env.example.
+services:
+  publisher:
+    build: .
+    container_name: publisher-brindix
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:3100:3100" # nginx publica este puerto en el subdominio del publicador
+    volumes:
+      - ./data:/app/data # base de datos, archivos subidos y la clave de cifrado: respáldalo

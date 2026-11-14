@@ -25,7 +25,8 @@ public record AppProperties(
         Storage storage,
         Ai ai,
         Mail mail,
-        Studio studio) {
+        Studio studio,
+        Publisher publisher) {
 
     public record Jwt(String secret, int hours) {}
 
@@ -50,6 +51,13 @@ public record AppProperties(
     public record Studio(String url, String token) {
         public boolean enabled() {
             return notBlank(url) && notBlank(token);
+        }
+    }
+
+    /** Publicador de redes (contenedor interno "publisher", sección «Publicador» de /plataforma). Sin los tres valores queda apagado. */
+    public record Publisher(String url, String apiKey, String embedSecret) {
+        public boolean enabled() {
+            return notBlank(url) && notBlank(apiKey) && notBlank(embedSecret);
         }
     }
 

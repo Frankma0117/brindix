@@ -96,6 +96,11 @@ brindix:
     # Estudio de videos de tutoriales y publicidad (contenedor "studio"). El token debe ser el mismo STUDIO_TOKEN del estudio.
     url: ${BRINDIX_STUDIO_URL:}
     token: ${STUDIO_TOKEN:}
+  publisher:
+    # Publicador de redes (contenedor "publisher"): recibe los videos del estudio para que tú elijas cuál publicar.
+    url: ${BRINDIX_PUBLISHER_URL:}
+    api-key: ${PUBLISHER_API_KEY:}
+    embed-secret: ${PUBLISHER_EMBED_SECRET:}
 
 ---
 spring:

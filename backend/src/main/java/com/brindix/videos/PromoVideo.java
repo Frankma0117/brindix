@@ -41,6 +41,8 @@ public class PromoVideo {
     private String videoUrl;
     private String posterUrl;
     private Double seconds;
+    /** Ya se envió al publicador de redes (bandeja «Por validar»). */
+    private boolean publisherSent;
     private Instant createdAt = Instant.now();
     private Instant finishedAt;
 }

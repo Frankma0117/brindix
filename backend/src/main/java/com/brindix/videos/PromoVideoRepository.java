@@ -9,4 +9,6 @@ public interface PromoVideoRepository extends JpaRepository<PromoVideo, Long> {
     List<PromoVideo> findAllByOrderByIdDesc();
 
     List<PromoVideo> findByStatusIn(List<PromoVideo.Status> statuses);
+
+    List<PromoVideo> findByStatusAndPublisherSentFalseOrderByIdAsc(PromoVideo.Status status);
 }

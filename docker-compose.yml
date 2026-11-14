@@ -30,6 +30,7 @@ services:
       BRINDIX_UPLOADS_DIR: /data/uploads
       JAVA_OPTS: -Xms128m -Xmx512m -Djava.net.preferIPv4Stack=true
       BRINDIX_STUDIO_URL: http://studio:8000
+      BRINDIX_PUBLISHER_URL: http://publisher:3100
     volumes:
       - uploads:/data/uploads
     depends_on:
@@ -51,6 +52,44 @@ services:
     depends_on:
       - frontend
 
+  # Publicador de redes (YouTube, Instagram, Facebook y TikTok), como sección de /plataforma. Va por la red interna:
+  # el nginx del frontend lo publica en /publicador/ y el acceso lo da el ticket del backend (sin otro login).
+  # Solo recibe las variables que necesita (no el .env completo). Configurar: bash scripts/set-publisher.sh
+  publisher:
+    build: ./publisher
+    restart: unless-stopped
+    environment:
+      EMBEDDED: "true"
+      BASE_PATH: /publicador
+      PORT: "3100"
+      PROJECT_NAME: Brindix
+      PUBLIC_URL: ${BRINDIX_PUBLIC_URL:-https://brindix.cania.app}
+      EMBED_RETURN_URL: ${BRINDIX_PUBLIC_URL:-https://brindix.cania.app}/plataforma
+      EMBED_SECRET: ${PUBLISHER_EMBED_SECRET:?corre bash scripts/set-publisher.sh}
+      PUBLISHER_API_KEY: ${PUBLISHER_API_KEY:?corre bash scripts/set-publisher.sh}
+      PUBLISHER_SECRET: ${PUBLISHER_SECRET:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.deepseek.com}
+      AI_MODEL: ${AI_MODEL:-deepseek-chat}
+      FAL_KEY: ${FAL_KEY:-}
+      CANIX_URL: ${CANIX_URL:-}
+      CANIX_API_KEY: ${CANIX_API_KEY:-}
+      CANIX_WEBHOOK_SECRET: ${CANIX_WEBHOOK_SECRET:-}
+      GOOGLE_CLIENT_ID: ${PUBLISHER_GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${PUBLISHER_GOOGLE_CLIENT_SECRET:-}
+      META_APP_ID: ${PUBLISHER_META_APP_ID:-}
+      META_APP_SECRET: ${PUBLISHER_META_APP_SECRET:-}
+      META_PAGE_ID: ${PUBLISHER_META_PAGE_ID:-}
+      TIKTOK_CLIENT_KEY: ${PUBLISHER_TIKTOK_CLIENT_KEY:-}
+      TIKTOK_CLIENT_SECRET: ${PUBLISHER_TIKTOK_CLIENT_SECRET:-}
+      YOUTUBE_PRIVACY: ${PUBLISHER_YOUTUBE_PRIVACY:-private}
+      TIKTOK_PRIVACY: ${PUBLISHER_TIKTOK_PRIVACY:-SELF_ONLY}
+    volumes:
+      - publisher-data:/app/data
+    cpus: "1.5"
+    mem_limit: 2g
+    shm_size: 512m
+
   frontend:
     build: ./frontend
     restart: unless-stopped
@@ -62,3 +101,4 @@ services:
 volumes:
   mysql:
   uploads:
+  publisher-data:
