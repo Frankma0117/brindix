@@ -70,14 +70,17 @@ public class ShareController {
 
     public record VenueHit(String slug, String name, String logoUrl) {}
 
-    /** Buscador del ingreso: bares activos por nombre o dirección (mínimo 2 letras, máximo 6). */
+    /**
+     * Ingreso: confirma UN bar por su dirección exacta (brindix.cania.app/&lt;dirección&gt;).
+     * Nunca lista ni sugiere bares: quien no conoce la dirección no puede ver qué bares existen.
+     */
     @GetMapping("/api/public/venues")
     public List<VenueHit> search(@RequestParam(defaultValue = "") String q) {
-        String needle = norm(q);
-        if (needle.length() < 2) return List.of();
+        String slug = norm(q).replace(' ', '-');
+        if (slug.length() < 3) return List.of();
         return venues.findAllByOrderByNameAsc().stream().filter(Venue::isActive)
-                .filter(v -> norm(v.getName()).contains(needle) || v.getSlug().contains(needle.replace(' ', '-')))
-                .limit(6).map(v -> new VenueHit(v.getSlug(), v.getName(), v.getLogoUrl())).toList();
+                .filter(v -> v.getSlug().equals(slug))
+                .limit(1).map(v -> new VenueHit(v.getSlug(), v.getName(), v.getLogoUrl())).toList();
     }
 
     private static String norm(String s) {

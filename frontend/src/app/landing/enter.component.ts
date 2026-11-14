@@ -12,7 +12,7 @@ import { MascotComponent } from '../shared/mascot.component';
 
 interface VenueHit { slug: string; name: string; logoUrl?: string; }
 
-/** Ingreso en un solo paso: el bar (se busca por nombre y se recuerda), usuario y contraseña. */
+/** Ingreso en un solo paso: el bar (por su dirección exacta, sin listados; se recuerda), usuario y contraseña. */
 @Component({
   selector: 'bx-enter',
   standalone: true,
@@ -25,7 +25,7 @@ interface VenueHit { slug: string; name: string; logoUrl?: string; }
       <h1>Ingresar</h1>
 
       <div class="field">
-        <span>Tu bar</span>
+        <span>Dirección de tu bar</span>
         @if (venue(); as v) {
           <div class="picked">
             @if (v.logoUrl) { <img [src]="v.logoUrl" alt=""> } @else { <bx-icon name="store" /> }
@@ -34,7 +34,7 @@ interface VenueHit { slug: string; name: string; logoUrl?: string; }
           </div>
         } @else {
           <div class="search-box">
-            <input class="input" name="bar" [ngModel]="query()" (ngModelChange)="onQuery($event)" placeholder="Escribe el nombre del bar"
+            <input class="input" name="bar" [ngModel]="query()" (ngModelChange)="onQuery($event)" placeholder="Dirección de tu bar, ej. mi-bar"
                    autocomplete="off" autocapitalize="none" (keydown.enter)="$event.preventDefault(); pickFirst()" role="combobox" [attr.aria-expanded]="hits().length > 0">
             @if (hits().length) {
               <ul class="hits" role="listbox">
@@ -46,7 +46,7 @@ interface VenueHit { slug: string; name: string; logoUrl?: string; }
                 }
               </ul>
             } @else if (query().trim().length >= 2 && searched()) {
-              <p class="tiny muted none">No encontramos ese bar. Revisa el nombre o pídele la dirección al administrador.</p>
+              <p class="tiny muted none">No encontramos esa dirección. Escríbela completa, como aparece en brindix.cania.app/…, o pídesela al administrador.</p>
             }
           </div>
         }
