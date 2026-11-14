@@ -7,11 +7,12 @@ import { ThemeToggleComponent } from '../../core/theme';
 import { AlertToggleComponent } from '../../core/staff-alerts';
 import { IconComponent } from '../../shared/icon.component';
 import { IconName } from '../../shared/icons';
+import { BarSwitcherComponent } from '../../shared/bar-switcher.component';
 
 @Component({
   selector: 'bx-admin-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MascotComponent, ThemeToggleComponent, IconComponent, AlertToggleComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MascotComponent, ThemeToggleComponent, IconComponent, AlertToggleComponent, BarSwitcherComponent],
   template: `
   @if (auth.isSupport()) {
     <div class="support-bar"><bx-icon name="life-buoy" /> Modo soporte: estás dentro de <b>{{ ctx.name() }}</b> como administrador. Todo queda en la bitácora.
@@ -19,18 +20,26 @@ import { IconName } from '../../shared/icons';
   }
   <div class="shell" [class.with-bar]="auth.isSupport()">
     <aside class="side" [class.open]="menu()">
-      <a routerLink="." class="logo" (click)="menu.set(false)">
-        @if (ctx.venue()?.logoUrl) { <img [src]="ctx.venue()!.logoUrl" alt=""> } @else { <bx-mascot [size]="40" [animate]="false" /> }
-        <span class="ellipsis">{{ ctx.name() }}</span>
-      </a>
+      @if (auth.isSupport()) {
+        <bx-bar-switcher [current]="ctx.name()" [slug]="ctx.slug()" />
+      } @else {
+        <a routerLink="." class="logo" (click)="menu.set(false)">
+          @if (ctx.venue()?.logoUrl) { <img [src]="ctx.venue()!.logoUrl" alt=""> } @else { <bx-mascot [size]="40" [animate]="false" /> }
+          <span class="ellipsis">{{ ctx.name() }}</span>
+        </a>
+      }
       <nav>
         @for (g of groups; track g.title) {
-          <p class="group">{{ g.title }}</p>
-          @for (l of g.links; track l.path) {
-            <a [routerLink]="l.path" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: l.path === '.' }" (click)="menu.set(false)">
-              <bx-icon class="ico" [name]="l.icon" />{{ l.label }}
-            </a>
-          }
+          <button type="button" class="group" [attr.aria-expanded]="!closed().includes(g.title)" (click)="fold(g.title)">
+            {{ g.title }}<bx-icon class="chev" [class.shut]="closed().includes(g.title)" name="chevron-down" />
+          </button>
+          <div class="fold" [class.shut]="closed().includes(g.title)"><div class="fold-in">
+            @for (l of g.links; track l.path) {
+              <a [routerLink]="l.path" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: l.path === '.' }" [attr.tabindex]="closed().includes(g.title) ? -1 : null" (click)="menu.set(false)">
+                <bx-icon class="ico" [name]="l.icon" />{{ l.label }}
+              </a>
+            }
+          </div></div>
         }
       </nav>
       <div class="side-foot">
@@ -60,7 +69,13 @@ import { IconName } from '../../shared/icons';
     .logo { display: flex; align-items: center; gap: 10px; color: var(--text); font-weight: 800; font-size: 17px; padding: 0 6px; min-width: 0; }
     .logo img { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; }
     nav { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
-    .group { font-size: 12px; color: var(--faint); font-weight: 700; padding: 14px 12px 4px; }
+    .group { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: 0; text-align: left; font: inherit; font-size: 12px; color: var(--faint); font-weight: 700; padding: 14px 12px 4px; cursor: pointer; }
+    .group .chev { --icon-size: 14px; transition: transform 200ms var(--ease-out); }
+    .group .chev.shut { transform: rotate(-90deg); }
+    .fold { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 200ms var(--ease-out); }
+    .fold.shut { grid-template-rows: 0fr; }
+    .fold-in { overflow: hidden; display: flex; flex-direction: column; gap: 2px; }
+    @media (prefers-reduced-motion: reduce) { .fold, .group .chev { transition: none; } }
     nav a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 10px; color: var(--muted); font-weight: 600; font-size: 14.5px; transition: background-color 150ms ease, color 150ms ease; }
     @media (hover: hover) and (pointer: fine) { nav a:hover { background: var(--surface); color: var(--text); } }
     nav a.on { background: var(--surface-2); color: var(--text); font-weight: 750; }
@@ -86,10 +101,22 @@ export class AdminShellComponent {
   auth = inject(Auth);
   ctx = inject(VenueContext);
   menu = signal(false);
+  /** Grupos del menú plegados; se recuerdan en este navegador. */
+  closed = signal<string[]>(this.readClosed());
   private router = inject(Router);
 
   constructor() {
     if (!this.auth.isSupport()) this.auth.rememberAdminHome('admin');
+  }
+
+  fold(title: string): void {
+    const next = this.closed().includes(title) ? this.closed().filter(x => x !== title) : [...this.closed(), title];
+    this.closed.set(next);
+    try { localStorage.setItem('brindix.menu-closed', JSON.stringify(next)); } catch { /* sin almacenamiento: no se recuerda */ }
+  }
+
+  private readClosed(): string[] {
+    try { return JSON.parse(localStorage.getItem('brindix.menu-closed') ?? '[]'); } catch { return []; }
   }
 
   /** Sale del bar y vuelve al panel de la plataforma (la sesión de la plataforma sigue abierta). */
