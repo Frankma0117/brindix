@@ -20,6 +20,8 @@ public class PromoVideo {
     private Long id;
 
     private Long createdBy;
+    /** Pedido del estudio: los formatos de un mismo clic comparten jobId. */
+    private String jobId;
     private String kind;
     private String kindName;
     private String format;

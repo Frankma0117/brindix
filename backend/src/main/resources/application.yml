@@ -65,7 +65,8 @@ brindix:
   jwt:
     # En producción SIEMPRE un secreto largo (mínimo 32 caracteres).
     secret: ${BRINDIX_JWT_SECRET:dev-only-secret-change-me-please-0123456789abcdef}
-    hours: ${BRINDIX_JWT_HOURS:14}
+    # Duración de la sesión; al vencer, el navegador la cierra solo.
+    hours: ${BRINDIX_JWT_HOURS:24}
   # Cifra las claves que cada bar guarda en su configuración (Spotify, YouTube).
   secret-key: ${BRINDIX_SECRET_KEY:dev-only-encryption-key-change-me-0123456789}
   seed:

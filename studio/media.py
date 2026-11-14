@@ -6,7 +6,9 @@ import json
 import logging
 import os
 import struct
+import shutil
 import subprocess
+import tempfile
 import time
 from urllib.parse import urlparse
 
@@ -96,6 +98,28 @@ def remove(folder: str) -> int:
     if keys:
         s3.delete_objects(Bucket=bucket, Delete={"Objects": [{"Key": k} for k in keys]})
     return len(keys)
+
+
+def voice_sample(v: dict, text: str) -> str | None:
+    """URL pública de la muestra de una voz; la graba la primera vez y la deja en Spaces."""
+    model = os.environ.get("FISH_MODEL", "s2-pro")
+    prefix = os.environ.get("SPACES_PREFIX", "brindix").strip("/")
+    key = f"voices/{v['key']}-{model}.mp3"
+    url = public_url(f"{prefix}/studio/{key}" if prefix else f"studio/{key}")
+    try:
+        if requests.head(url, timeout=10).ok:
+            return url
+    except requests.RequestException:
+        pass
+    tmp = tempfile.mkdtemp(prefix="voice-")
+    try:
+        path = os.path.join(tmp, "sample.mp3")
+        if not voice(text, v["id"], path):
+            return None
+        with open(path, "rb") as f:
+            return put(key, f.read(), "audio/mpeg")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 # ---------------- Música ----------------

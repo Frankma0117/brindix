@@ -33,14 +33,21 @@ public class PromoVideoController {
                 "music", o.path("music"), "voiceReady", o.path("voiceReady").asBoolean(false), "aiReady", o.path("aiReady").asBoolean(false));
     }
 
+    /** Un pedido: devuelve un registro por formato. */
     @PostMapping
-    public PromoVideoService.VideoRow create(@Valid @RequestBody PromoVideoService.VideoCreate in) {
+    public List<PromoVideoService.VideoRow> create(@Valid @RequestBody PromoVideoService.VideoCreate in) {
         return service.create(CurrentUser.get().id(), in);
     }
 
     @PostMapping("/{id}/retry")
-    public PromoVideoService.VideoRow retry(@PathVariable Long id) {
+    public List<PromoVideoService.VideoRow> retry(@PathVariable Long id) {
         return service.retry(CurrentUser.get().id(), id);
+    }
+
+    /** Muestra de una voz para escucharla antes de elegir. */
+    @GetMapping("/voices/{key}/sample")
+    public JsonNode voiceSample(@PathVariable String key) {
+        return service.voiceSample(key);
     }
 
     @DeleteMapping("/{id}")

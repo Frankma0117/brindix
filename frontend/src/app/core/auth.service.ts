@@ -4,7 +4,7 @@ import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
 import { Api } from './api.service';
 import { User, WaiterOption } from './models';
-import { store } from './ui';
+import { Toasts, store } from './ui';
 
 /** support = el súper administrador entró al bar desde la plataforma (modo soporte). */
 export interface StaffSession { token: string; user: User; venue: string; venueName: string; support?: boolean; }
@@ -17,11 +17,24 @@ const ADMIN_HOME_KEY = 'brindix.adminHome';
 export const LAST_VENUE_KEY = 'brindix.lastVenue';
 export interface LastVenue { slug: string; name: string; logoUrl?: string; }
 
+/** Vencimiento del token (ms) leído del JWT; null si no se puede leer. */
+export function tokenExpiry(token: string | undefined): number | null {
+  try {
+    const payload = JSON.parse(atob(token!.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+const EXPIRED_MSG = 'Tu sesión venció por seguridad. Entra de nuevo.';
+
 /** Sesión del personal de un bar (administrador o mesero). Una sesión a la vez por navegador. */
 @Injectable({ providedIn: 'root' })
 export class Auth {
   private api = inject(Api);
   private router = inject(Router);
+  private toasts = inject(Toasts);
 
   readonly session = signal<StaffSession | null>(store.get<StaffSession | null>(STAFF_KEY, null));
   readonly user = computed(() => this.session()?.user ?? null);
@@ -64,6 +77,19 @@ export class Auth {
     if (redirect) this.router.navigateByUrl(slug ? `/${slug}/ingresar` : '/');
   }
 
+  /** ¿El token ya venció? (la sesión dura lo que diga el servidor, BRINDIX_JWT_HOURS). */
+  expired(): boolean {
+    const exp = tokenExpiry(this.session()?.token);
+    return exp != null && Date.now() > exp;
+  }
+
+  /** Cierra la sesión vencida y avisa: se usa desde el vigilante y cuando el servidor responde 401. */
+  expire(): void {
+    if (!this.session()) return;
+    this.logout();
+    this.toasts.show(EXPIRED_MSG, 'info', 7000);
+  }
+
   home(): string {
     const s = this.session();
     if (!s) return '/';
@@ -96,7 +122,19 @@ export class Auth {
 @Injectable({ providedIn: 'root' })
 export class PlatformAuth {
   private api = inject(Api);
+  private toasts = inject(Toasts);
   readonly session = signal<PlatformSession | null>(store.get<PlatformSession | null>(PLATFORM_KEY, null));
+
+  expired(): boolean {
+    const exp = tokenExpiry(this.session()?.token);
+    return exp != null && Date.now() > exp;
+  }
+
+  expire(): void {
+    if (!this.session()) return;
+    this.logout();
+    this.toasts.show(EXPIRED_MSG, 'info', 7000);
+  }
 
   async login(username: string, password: string): Promise<void> {
     const res = await firstValueFrom(this.api.post<PlatformSession>('/platform/login', { username, password }));
@@ -130,7 +168,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const r = token ? req.clone({ setHeaders: { Authorization: 'Bearer ' + token } }) : req;
   return next(r).pipe(catchError(err => {
     if (err?.status === 401 && token) {
-      if (isPlatform) platform.logout(); else auth.logout();
+      if (isPlatform) platform.expire(); else auth.expire();
     }
     if (err?.status === 403 && err.error?.code === 'PASSWORD_CHANGE_REQUIRED' && isStaff && auth.venue()) {
       const s = auth.session()!;
@@ -140,6 +178,20 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return throwError(() => err);
   }));
 };
+
+/**
+ * Vigilante de sesiones: cada medio minuto (y al volver a la pestaña) comprueba si el token venció y, si es así,
+ * cierra la sesión aunque nadie haya tocado nada. Así un celular olvidado en la barra no queda abierto para siempre.
+ */
+export function watchSessions(auth: Auth, platform: PlatformAuth): void {
+  const check = () => {
+    if (auth.expired()) auth.expire();
+    if (platform.expired()) platform.expire();
+  };
+  check();
+  setInterval(check, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+}
 
 function slugOf(route: ActivatedRouteSnapshot): string {
   let r: ActivatedRouteSnapshot | null = route;

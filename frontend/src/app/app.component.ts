@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { Toasts } from './core/ui';
 import { DialogHostComponent } from './shared/dialogs';
 import { StaffAlertsComponent } from './core/staff-alerts';
+import { Auth, PlatformAuth, watchSessions } from './core/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -20,4 +21,8 @@ import { StaffAlertsComponent } from './core/staff-alerts';
 })
 export class AppComponent {
   toasts = inject(Toasts);
+
+  constructor() {
+    watchSessions(inject(Auth), inject(PlatformAuth));
+  }
 }

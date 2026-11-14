@@ -10,7 +10,7 @@ import { MascotComponent } from '../shared/mascot.component';
 type Status = 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED';
 
 export interface PromoVideo {
-  id: number; kind: string; kindName?: string; format: 'vertical' | 'horizontal' | 'cuadrado'; voice: string; music: string; idea?: string;
+  id: number; jobId?: string; kind: string; kindName?: string; format: 'vertical' | 'horizontal' | 'cuadrado'; voice: string; music: string; idea?: string;
   status: Status; progress: number; detail?: string; title?: string; caption?: string;
   script?: { shot: string; headline: string; say: string }[]; videoUrl?: string; posterUrl?: string; seconds?: number;
   createdAt: string; finishedAt?: string;
@@ -74,12 +74,13 @@ const MUSIC_NAMES: Record<string, string> = { fiesta: 'Fiesta', lounge: 'Lounge'
 
         <div class="pick two">
           <div>
-            <span class="lbl">Formato</span>
-            <div class="formats" role="radiogroup" aria-label="Formato">
+            <span class="lbl">Formatos <span class="muted">(uno o varios: sale un video por cada uno)</span></span>
+            <div class="formats" role="group" aria-label="Formatos">
               @for (f of o.formats; track f.key) {
-                <button type="button" role="radio" class="fmt" [attr.aria-checked]="format() === f.key" [class.on]="format() === f.key" (click)="format.set(f.key)">
+                <button type="button" role="checkbox" class="fmt" [attr.aria-checked]="hasFormat(f.key)" [class.on]="hasFormat(f.key)" (click)="toggleFormat(f.key)">
                   <i [class]="'shape ' + f.key"></i>
                   <b>{{ fmtName(f.key).name }}</b><span>{{ fmtName(f.key).where }}</span>
+                  <bx-icon class="tick" name="check" [size]="14" />
                 </button>
               }
             </div>
@@ -94,9 +95,16 @@ const MUSIC_NAMES: Record<string, string> = { fiesta: 'Fiesta', lounge: 'Lounge'
             <span class="lbl" style="margin-top: 14px">Voz de la copa</span>
             <div class="voices">
               @for (v of o.voices; track v.key) {
-                <button type="button" class="voice" [class.on]="voice() === v.key" (click)="voice.set(v.key)">
-                  <b>{{ v.name }}</b><span>{{ v.style }}</span>
-                </button>
+                <div class="voice" [class.on]="voice() === v.key">
+                  <button type="button" class="pick-voice" (click)="voice.set(v.key)" [attr.aria-pressed]="voice() === v.key">
+                    <b>{{ v.name }}</b><span>{{ v.style }}</span>
+                  </button>
+                  <button type="button" class="hear" (click)="hear(v.key)" [disabled]="!o.voiceReady"
+                          [attr.aria-label]="(playingVoice() === v.key ? 'Detener ' : 'Escuchar a ') + v.name" [title]="playingVoice() === v.key ? 'Detener' : 'Escuchar'">
+                    @if (loadingVoice() === v.key) { <span class="dotty"></span> }
+                    @else { <bx-icon [name]="playingVoice() === v.key ? 'pause' : 'play'" [size]="15" /> }
+                  </button>
+                </div>
               }
             </div>
           </div>
@@ -108,9 +116,9 @@ const MUSIC_NAMES: Record<string, string> = { fiesta: 'Fiesta', lounge: 'Lounge'
         </label>
 
         <div class="row between wrap foot">
-          <p class="small muted">{{ activeCount() }} en proceso · máximo 3 a la vez</p>
-          <button class="btn primary lg" [disabled]="busy() || !o.voiceReady || activeCount() >= 3" (click)="create()">
-            <bx-icon name="sparkles" [size]="18" /> {{ busy() ? 'Enviando…' : 'Crear el video' }}
+          <p class="small muted">{{ activeJobs() }} pedidos en proceso · máximo 3 a la vez</p>
+          <button class="btn primary lg" [disabled]="busy() || !o.voiceReady || activeJobs() >= 3 || !formats().length" (click)="create()">
+            <bx-icon name="sparkles" [size]="18" /> {{ busy() ? 'Enviando…' : (formats().length > 1 ? 'Crear ' + formats().length + ' videos' : 'Crear el video') }}
           </button>
         </div>
       </section>
@@ -193,7 +201,9 @@ const MUSIC_NAMES: Record<string, string> = { fiesta: 'Fiesta', lounge: 'Lounge'
     .kind span { grid-column: 2; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
     .kind em { grid-column: 2; font-style: normal; font-size: 11.5px; color: var(--faint); margin-top: 4px; font-variant-numeric: tabular-nums; }
     .formats { display: grid; gap: 8px; grid-template-columns: repeat(3, 1fr); }
-    .fmt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; text-align: center; }
+    .fmt { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; text-align: center; }
+    .fmt .tick { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--amber); color: #1c0f08; opacity: 0; transform: scale(.6); transition: opacity 150ms ease, transform 180ms var(--ease-out); }
+    .fmt.on .tick { opacity: 1; transform: scale(1); }
     .fmt b { font-size: 13.5px; }
     .fmt span { font-size: 11.5px; color: var(--muted); line-height: 1.3; }
     .shape { display: block; border: 2px solid currentColor; border-radius: 4px; opacity: .55; }
@@ -203,9 +213,16 @@ const MUSIC_NAMES: Record<string, string> = { fiesta: 'Fiesta', lounge: 'Lounge'
     .shape.cuadrado { width: 26px; height: 26px; margin: 2px 0; }
     .chips { display: flex; gap: 6px; flex-wrap: wrap; }
     .voices { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-    .voice { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 11px; }
-    .voice b { font-size: 13px; }
-    .voice span { font-size: 11px; color: var(--muted); line-height: 1.3; }
+    .voice { display: flex; align-items: stretch; border-radius: 11px; overflow: hidden; }
+    .pick-voice { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 0; background: transparent; color: inherit; text-align: left; font-family: var(--font); cursor: pointer; }
+    .pick-voice b { font-size: 13px; }
+    .pick-voice span { font-size: 11px; color: var(--muted); line-height: 1.3; }
+    .hear { flex: none; width: 36px; border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; transition: background-color 150ms ease, color 150ms ease; }
+    .hear:hover { background: var(--surface-3); color: var(--text); }
+    .hear:disabled { opacity: .4; cursor: default; }
+    .voice.on .hear { color: var(--ink-amber); }
+    .dotty { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--ink-amber); animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .field textarea { resize: vertical; min-height: 56px; line-height: 1.45; }
     .foot { gap: 10px; }
     .btn bx-icon { margin-right: 6px; }
@@ -248,7 +265,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   options = signal<Options | null>(null);
   videos = signal<PromoVideo[]>([]);
   kind = signal('anuncio');
-  format = signal('vertical');
+  formats = signal<string[]>(['vertical', 'horizontal', 'cuadrado']);
   voice = signal('H3');
   music = signal('fiesta');
   idea = '';
@@ -256,6 +273,12 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   playing = signal<number | null>(null);
   openScript = signal<number | null>(null);
   activeCount = computed(() => this.videos().filter(v => v.status === 'QUEUED' || v.status === 'RUNNING').length);
+  /** Pedidos (no videos) en proceso: un clic con tres formatos es un solo pedido. */
+  activeJobs = computed(() => new Set(this.videos().filter(v => v.status === 'QUEUED' || v.status === 'RUNNING').map(v => v.jobId ?? String(v.id))).size);
+  playingVoice = signal<string | null>(null);
+  loadingVoice = signal<string | null>(null);
+  private audio: HTMLAudioElement | null = null;
+  private samples = new Map<string, string>();
   private timer: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
@@ -273,6 +296,45 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.timer) clearInterval(this.timer);
+    this.stopVoice();
+  }
+
+  hasFormat(key: string): boolean {
+    return this.formats().includes(key);
+  }
+
+  toggleFormat(key: string): void {
+    this.formats.update(f => (f.includes(key) ? f.filter(x => x !== key) : [...f, key]));
+  }
+
+  /** Reproduce la muestra de una voz (se trae una vez del estudio); el mismo botón la detiene. */
+  async hear(key: string): Promise<void> {
+    if (this.playingVoice() === key) { this.stopVoice(); return; }
+    this.stopVoice();
+    this.loadingVoice.set(key);
+    try {
+      let url = this.samples.get(key);
+      if (!url) {
+        const r = await this.api.run(this.api.get<{ url: string }>(`/platform/videos/voices/${key}/sample`));
+        url = r.url;
+        this.samples.set(key, url);
+      }
+      const a = new Audio(url);
+      this.audio = a;
+      a.onended = () => { if (this.audio === a) this.playingVoice.set(null); };
+      await a.play();
+      this.playingVoice.set(key);
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    } finally {
+      this.loadingVoice.set(null);
+    }
+  }
+
+  private stopVoice(): void {
+    try { this.audio?.pause(); } catch { /* */ }
+    this.audio = null;
+    this.playingVoice.set(null);
   }
 
   load(): void {
@@ -320,12 +382,12 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   async create(): Promise<void> {
     this.busy.set(true);
     try {
-      const v = await this.api.run(this.api.post<PromoVideo>('/platform/videos', {
-        kind: this.kind(), format: this.format(), voice: this.voice(), music: this.music(), idea: this.idea.trim() || null,
+      const made = await this.api.run(this.api.post<PromoVideo[]>('/platform/videos', {
+        kind: this.kind(), formats: this.formats(), voice: this.voice(), music: this.music(), idea: this.idea.trim() || null,
       }));
-      this.videos.update(list => [v, ...list]);
+      this.videos.update(list => [...made, ...list]);
       this.idea = '';
-      this.toasts.ok('El estudio empezó a armar el video. Tarda unos minutos.');
+      this.toasts.ok(made.length > 1 ? `El estudio empezó a armar ${made.length} videos. Tardan unos minutos.` : 'El estudio empezó a armar el video. Tarda unos minutos.');
     } catch (e) {
       this.toasts.error(errorMessage(e));
     } finally {
@@ -335,9 +397,8 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
 
   async retry(v: PromoVideo): Promise<void> {
     try {
-      const n = await this.api.run(this.api.post<PromoVideo>(`/platform/videos/${v.id}/retry`, {}));
-      this.videos.update(list => [n, ...list.filter(x => x.id !== v.id)]);
-      await this.api.run(this.api.delete(`/platform/videos/${v.id}`));
+      const n = await this.api.run(this.api.post<PromoVideo[]>(`/platform/videos/${v.id}/retry`, {}));
+      this.videos.update(list => [...n, ...list.filter(x => x.id !== v.id)]);
     } catch (e) {
       this.toasts.error(errorMessage(e));
     }

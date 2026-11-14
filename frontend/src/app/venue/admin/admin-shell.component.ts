@@ -17,7 +17,7 @@ import { IconName } from '../../shared/icons';
     <div class="support-bar"><bx-icon name="life-buoy" /> Modo soporte: estás dentro de <b>{{ ctx.name() }}</b> como administrador. Todo queda en la bitácora.
       <button class="btn xs" (click)="leaveSupport()">Volver a la plataforma</button></div>
   }
-  <div class="shell">
+  <div class="shell" [class.with-bar]="auth.isSupport()">
     <aside class="side" [class.open]="menu()">
       <a routerLink="." class="logo" (click)="menu.set(false)">
         @if (ctx.venue()?.logoUrl) { <img [src]="ctx.venue()!.logoUrl" alt=""> } @else { <bx-mascot [size]="40" [animate]="false" /> }
@@ -40,8 +40,8 @@ import { IconName } from '../../shared/icons';
           <div class="grow"><p class="strong small ellipsis">{{ auth.user()?.name }}</p><p class="tiny muted">{{ auth.isSupport() ? 'Soporte Brindix' : 'Administrador' }}</p></div>
           <bx-alert-toggle />
           <bx-theme-toggle />
-          <button class="btn ghost icon sm" (click)="auth.logout()" aria-label="Salir" title="Salir"><bx-icon name="log-out" /></button>
         </div>
+        <button class="btn block sm" (click)="auth.logout()"><bx-icon name="log-out" /> Cerrar sesión</button>
       </div>
     </aside>
     @if (menu()) { <div class="scrim" (click)="menu.set(false)"></div> }
@@ -56,10 +56,10 @@ import { IconName } from '../../shared/icons';
   </div>`,
   styles: [`
     .shell { display: flex; min-height: 100vh; }
-    .side { width: 250px; flex: none; background: var(--bg-2); border-right: 1px solid var(--line); padding: 18px 14px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 40; }
+    .side { width: 250px; flex: none; background: var(--bg-2); border-right: 1px solid var(--line); padding: 18px 14px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; height: 100vh; overflow: hidden; z-index: 40; }
     .logo { display: flex; align-items: center; gap: 10px; color: var(--text); font-weight: 800; font-size: 17px; padding: 0 6px; min-width: 0; }
     .logo img { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; }
-    nav { display: flex; flex-direction: column; gap: 2px; }
+    nav { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
     .group { font-size: 12px; color: var(--faint); font-weight: 700; padding: 14px 12px 4px; }
     nav a { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 10px; color: var(--muted); font-weight: 600; font-size: 14.5px; transition: background-color 150ms ease, color 150ms ease; }
     @media (hover: hover) and (pointer: fine) { nav a:hover { background: var(--surface); color: var(--text); } }
@@ -72,6 +72,8 @@ import { IconName } from '../../shared/icons';
     .content { padding: 26px 28px 60px; max-width: 1240px; }
     .mobile-top { display: none; }
     .scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 35; }
+    /* En modo soporte la franja de arriba (44 px) empuja el menú: se acorta para que «Cerrar sesión» siga a la vista. */
+    .shell.with-bar .side { top: 44px; height: calc(100vh - 44px); }
     @media (max-width: 900px) {
       .side { position: fixed; left: 0; transform: translateX(-100%); transition: transform 240ms var(--ease-drawer); }
       .side.open { transform: none; }

@@ -18,25 +18,29 @@ import { IconComponent } from '../../shared/icon.component';
   }
   <header class="wh">
     <div class="container row between">
-      <div class="row">
+      <div class="row who">
         @if (back()) { <a class="btn icon sm" [routerLink]="back()" aria-label="Volver"><bx-icon name="arrow-left" /></a> }
         @else { <bx-mascot [size]="36" [animate]="false" /> }
         <div>
           <p class="t">{{ title() }}</p>
-          <p class="tiny muted">{{ ctx.name() }} · {{ auth.user()?.name }}</p>
+          <p class="tiny muted sub">{{ ctx.name() }} · {{ auth.user()?.name }}</p>
         </div>
       </div>
-      <div class="row">
+      <div class="row acts">
         <bx-alert-toggle />
         <bx-theme-toggle />
         @if (auth.isAdmin()) { <a class="btn sm" [routerLink]="'/' + ctx.slug() + '/admin'">Panel</a> }
-        <button class="btn ghost icon sm" (click)="auth.logout()" aria-label="Salir" title="Salir"><bx-icon name="log-out" /></button>
+        <button class="btn sm" (click)="auth.logout()"><bx-icon name="log-out" /> Salir</button>
       </div>
     </div>
   </header>`,
   styles: [`
     .wh { position: sticky; top: 0; z-index: 25; background: var(--glass); border-bottom: 1px solid var(--line); padding: 10px 0; }
     .t { font-weight: 800; font-size: 18px; }
+    .who { flex: 1; min-width: 0; }
+    .who > div { min-width: 0; }
+    .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .acts { flex: none; }
   `],
 })
 export class WaiterHeaderComponent {
