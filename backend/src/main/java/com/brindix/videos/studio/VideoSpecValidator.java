@@ -65,6 +65,12 @@ public final class VideoSpecValidator {
         if (v != null) o.put(key, v);
     }
 
+    /** Lo que dice la mascota (opcional, máx. 300). El campo "audio" nunca se copia: solo lo pone el backend. */
+    private static void putSay(ObjectNode o, JsonNode src, String where) {
+        String say = text(src.path("say"), 300, "Lo que dice la mascota en " + where, false);
+        if (!say.isEmpty()) o.put("say", say);
+    }
+
     /** Devuelve el spec normalizado o lanza ApiException (400) con un mensaje en español. */
     public static ObjectNode parse(JsonNode r) {
         if (r == null || !r.isObject()) throw ApiException.badRequest("Falta el guion del video.");
@@ -92,6 +98,7 @@ public final class VideoSpecValidator {
         oi.put("title", text(intro.path("title"), 50, "El título de la intro", true));
         String isub = text(intro.path("sub"), 90, "El subtítulo de la intro", false);
         if (!isub.isEmpty()) oi.put("sub", isub);
+        putSay(oi, intro, "intro");
         putNum(oi, "seconds", num(intro.path("seconds"), 1, 8, "Los segundos de la intro"));
 
         JsonNode scenes = r.path("scenes");
@@ -122,6 +129,7 @@ public final class VideoSpecValidator {
             ObjectNode om = o.putObject("mascot");
             om.put("pose", POSES.contains(pose) ? pose : "none");
             om.put("side", "left".equals(s.path("mascot").path("side").asText("")) ? "left" : "right");
+            putSay(o, s, "escena " + n);
             putNum(o, "seconds", num(s.path("seconds"), 1.5, 15, "Los segundos de la escena " + n));
         }
 
@@ -129,6 +137,7 @@ public final class VideoSpecValidator {
         ObjectNode oo = out.putObject("outro");
         oo.put("title", text(outro.path("title"), 60, "El título del cierre", true));
         oo.put("cta", text(outro.path("cta"), 60, "El llamado a la acción", true));
+        putSay(oo, outro, "cierre");
         putNum(oo, "seconds", num(outro.path("seconds"), 1, 8, "Los segundos del cierre"));
         return out;
     }

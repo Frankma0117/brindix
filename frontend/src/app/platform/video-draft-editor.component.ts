@@ -9,14 +9,14 @@ import type { PromoVideo } from './videos.component';
 
 interface Callout { text: string; x: number; y: number }
 interface Scene {
-  image: string; title: string; sub?: string; seconds?: number | null;
+  image: string; title: string; sub?: string; seconds?: number | null; say?: string;
   callouts: Callout[]; mascot: { pose: string; side: string };
 }
 interface Spec {
   guide?: boolean;
-  intro: { title: string; sub?: string; seconds?: number };
+  intro: { title: string; sub?: string; seconds?: number; say?: string };
   scenes: Scene[];
-  outro: { title: string; cta: string; seconds?: number };
+  outro: { title: string; cta: string; seconds?: number; say?: string };
   [k: string]: unknown;
 }
 
@@ -58,6 +58,24 @@ interface Spec {
               <legend>Intro</legend>
               <label>Título<input type="text" maxlength="50" [(ngModel)]="draft.intro.title"></label>
               <label>Subtítulo<input type="text" maxlength="90" [(ngModel)]="draft.intro.sub"></label>
+              <label>Lo que dice la mascota<textarea rows="2" maxlength="300" [(ngModel)]="draft.intro.say" [placeholder]="introSay()"></textarea></label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Voz y música de la versión final</legend>
+              <label>Voz
+                <select [ngModel]="voice" (ngModelChange)="voice = $event; audioDirty = true">
+                  <option value="">Sin voz (solo música)</option>
+                  @for (v of voices(); track v.key) { <option [value]="v.key">{{ v.name }} · {{ v.style }}</option> }
+                </select>
+              </label>
+              <label>Música
+                <select [ngModel]="music" (ngModelChange)="music = $event; audioDirty = true">
+                  <option value="">Ninguna</option>
+                  @for (m of musics(); track m) { <option [value]="m">{{ m }}</option> }
+                </select>
+              </label>
+              <p class="small muted">Se guardan al guardar o grabar. La previa siempre va muda.</p>
             </fieldset>
 
             <label class="guide-opt"><input type="checkbox" [(ngModel)]="draft.guide"> Guía paso a paso (insignia «Paso N de M» y barra de progreso)</label>
@@ -73,6 +91,7 @@ interface Spec {
                 </label>
                 <label>Título<input type="text" maxlength="60" [(ngModel)]="s.title"></label>
                 <label>Subtítulo<input type="text" maxlength="90" [(ngModel)]="s.sub"></label>
+                <label>Lo que dice la mascota<textarea rows="2" maxlength="300" [(ngModel)]="s.say" [placeholder]="sceneSay(s)"></textarea></label>
                 <div class="row">
                   <label>Segundos (opcional)<input type="number" min="1.5" max="15" step="0.5" [(ngModel)]="s.seconds"></label>
                   <label>Mascota
@@ -117,6 +136,7 @@ interface Spec {
               <legend>Cierre</legend>
               <label>Título<input type="text" maxlength="60" [(ngModel)]="draft.outro.title"></label>
               <label>Llamado a la acción<input type="text" maxlength="60" [(ngModel)]="draft.outro.cta"></label>
+              <label>Lo que dice la mascota<textarea rows="2" maxlength="300" [(ngModel)]="draft.outro.say" [placeholder]="outroSay()"></textarea></label>
             </fieldset>
           </div>
         }
@@ -130,6 +150,7 @@ interface Spec {
           }
           @if (video.status === 'REVIEW') {
             <button type="button" class="btn sm primary" [disabled]="busy()" (click)="approve()"><bx-icon name="check" [size]="16" /> Aprobar y generar versión final</button>
+            @if (voice) { <span class="small muted">Genera la voz con Fish (tiene costo).</span> }
           }
         </div>
       }
@@ -145,6 +166,7 @@ interface Spec {
     legend { font-weight: 700; font-size: 13px; padding: 0 6px; }
     label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); min-width: 0; }
     label.guide-opt { flex-direction: row; align-items: center; gap: 8px; } label.guide-opt input { width: auto; }
+    textarea { font: inherit; font-size: 14px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; width: 100%; box-sizing: border-box; resize: vertical; }
     input, select { font: inherit; font-size: 14px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; width: 100%; box-sizing: border-box; }
     .row { display: grid; grid-template-columns: 1fr; gap: 8px; }
     @media (min-width: 560px) { .row { grid-template-columns: repeat(3, 1fr); } }
@@ -172,6 +194,24 @@ export class VideoDraftEditorComponent implements OnChanges, OnDestroy {
   previewUrl = signal<string | null>(null);
   previewError = signal('');
   private loadedKey = '';
+  voice = '';
+  music = '';
+  audioDirty = false;
+  voices = signal<{ key: string; name: string; style: string }[]>([]);
+  musics = signal<string[]>([]);
+
+  introSay(): string { return [this.draft?.intro.title, this.draft?.intro.sub].filter(Boolean).join('. '); }
+  outroSay(): string { return [this.draft?.outro.title, this.draft?.outro.cta].filter(Boolean).join('. '); }
+  sceneSay(s: Scene): string { return [s.title, s.sub, ...s.callouts.map(c => c.text)].filter(Boolean).join('. '); }
+
+  private async loadOptions(): Promise<void> {
+    if (this.voices().length || this.musics().length) return;
+    try {
+      const o = await this.api.run(this.api.get<{ voices?: { key: string; name: string; style: string }[]; music?: string[] }>('/platform/videos/options'));
+      this.voices.set(o.voices ?? []);
+      this.musics.set(o.music ?? []);
+    } catch { /* sin opciones: los selects quedan en "sin voz / ninguna" */ }
+  }
 
   editable(): boolean { return this.video.status === 'DRAFT' || this.video.status === 'REVIEW'; }
   hasAsset(p: string): boolean { return this.assets.includes(p); }
@@ -182,6 +222,10 @@ export class VideoDraftEditorComponent implements OnChanges, OnDestroy {
     const key = `${this.video.id}:${this.video.status}`;
     if (key === this.loadedKey) return;
     this.loadedKey = key;
+    this.voice = this.video.voice ?? '';
+    this.music = this.video.music ?? '';
+    this.audioDirty = false;
+    if (this.editable()) void this.loadOptions();
     this.draft = this.video.spec ? (JSON.parse(JSON.stringify(this.video.spec)) as Spec) : null;
     this.revokePreview();
     if (this.video.status === 'REVIEW') void this.loadPreview(this.video.id);
@@ -215,17 +259,28 @@ export class VideoDraftEditorComponent implements OnChanges, OnDestroy {
   private clean(): Spec {
     const d = JSON.parse(JSON.stringify(this.draft)) as Spec;
     if (!d.intro.sub) delete d.intro.sub;
+    if (!d.intro.say?.trim()) delete d.intro.say;
+    if (!d.outro.say?.trim()) delete d.outro.say;
     for (const s of d.scenes) {
       if (!s.sub) delete s.sub;
       if (s.seconds === null || s.seconds === undefined || (s.seconds as unknown) === '') delete s.seconds;
+      if (!s.say?.trim()) delete s.say;
       for (const c of s.callouts) { c.x = Number(c.x); c.y = Number(c.y); }
     }
     return d;
   }
 
+  private async persistAudio(): Promise<void> {
+    if (!this.audioDirty) return;
+    const v = await this.api.run(this.api.put<PromoVideo>(`/platform/videos/${this.video.id}/audio`, { voice: this.voice, music: this.music }));
+    this.audioDirty = false;
+    this.changed.emit(v);
+  }
+
   private async persist(): Promise<boolean> {
     if (!this.draft) return true;
     try {
+      await this.persistAudio();
       const v = await this.api.run(this.api.put<PromoVideo>(`/platform/videos/${this.video.id}/spec`, { spec: this.clean() }));
       this.changed.emit(v);
       return true;
@@ -259,6 +314,7 @@ export class VideoDraftEditorComponent implements OnChanges, OnDestroy {
   async approve(): Promise<void> {
     this.busy.set(true);
     try {
+      await this.persistAudio();
       const v = await this.api.run(this.api.post<PromoVideo>(`/platform/videos/${this.video.id}/approve`, {}));
       this.changed.emit(v);
       this.toasts.ok('Grabando la versión final. Tarda unos minutos.');

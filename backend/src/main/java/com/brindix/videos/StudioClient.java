@@ -18,6 +18,15 @@ public class StudioClient {
 
     private final AppProperties.Studio cfg;
     private final RestClient http = RestClient.create();
+    /** La voz por escena tarda: hasta 5 minutos de espera. */
+    private final RestClient narrateHttp = RestClient.builder().requestFactory(narrateFactory()).build();
+
+    private static org.springframework.http.client.SimpleClientHttpRequestFactory narrateFactory() {
+        var f = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        f.setConnectTimeout(5000);
+        f.setReadTimeout(5 * 60 * 1000);
+        return f;
+    }
 
     public StudioClient(AppProperties props) {
         this.cfg = props.studio();
@@ -58,6 +67,28 @@ public class StudioClient {
                     .retrieve().toBodilessEntity();
         } catch (RestClientException e) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "El estudio no recibió el pedido. Intenta en un momento.");
+        }
+    }
+
+    /** Audio de la versión final: {seconds:{intro,scenes[],outro}, audio:base64 mp3}. Tarda (una voz por escena). */
+    public JsonNode narrate(String specJson, String voice, String music) {
+        if (!enabled()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "El estudio de videos no está configurado en el servidor");
+        try {
+            com.fasterxml.jackson.databind.node.ObjectNode body = new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode();
+            body.set("spec", new com.fasterxml.jackson.databind.ObjectMapper().readTree(specJson));
+            body.put("voice", voice == null ? "" : voice);
+            body.put("music", music == null ? "" : music);
+            return auth(narrateHttp.post().uri(url("/narrate")).contentType(MediaType.APPLICATION_JSON).body(body.toString()))
+                    .retrieve().body(JsonNode.class);
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            String why = "No se pudo generar el audio.";
+            try {
+                why = new com.fasterxml.jackson.databind.ObjectMapper().readTree(e.getResponseBodyAsString()).path("detail").asText(why);
+            } catch (Exception ignored) {
+            }
+            throw new ApiException(HttpStatus.BAD_GATEWAY, why);
+        } catch (RestClientException | java.io.IOException e) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "El estudio no respondió al generar el audio.");
         }
     }
 

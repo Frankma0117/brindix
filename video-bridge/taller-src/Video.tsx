@@ -1,5 +1,5 @@
 import React from 'react';
-import {AbsoluteFill, Easing, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Audio, Easing, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {Mascota, mascotWidth} from './Mascota';
 import {SIZES, framesOf, sceneFrames, type Brand, type Callout, type Scene, type VideoSpec} from './spec';
 
@@ -96,8 +96,17 @@ function place(callouts: Callout[], L: Layout): Placed[] {
     it.y = Math.max(want, cursor);
     cursor = it.y + it.h + 16;
   });
-  const over = cursor - 16 - L.col.maxY;
-  if (over > 0) items.forEach((it) => (it.y -= over));
+  // si no caben, se sube desde el fondo y luego se respeta el mínimo de arriba
+  let limit = L.col.maxY;
+  for (let k = items.length - 1; k >= 0; k--) {
+    items[k].y = Math.min(items[k].y, limit - items[k].h);
+    limit = items[k].y - 16;
+  }
+  cursor = L.col.minY;
+  items.forEach((it) => {
+    it.y = Math.max(it.y, cursor);
+    cursor = it.y + it.h + 16;
+  });
   return items;
 }
 
@@ -201,7 +210,7 @@ const SceneView: React.FC<{scene: Scene; spec: VideoSpec; frames: number; index:
       ))}
       {pose !== 'none' && (
         <div style={{position: 'absolute', left: L.mascot.x, top: L.mascot.y, transform: `translateY(${(1 - Math.min(1, mIn)) * 160}px) scaleX(${mirror ? -1 : 1})`, opacity: Math.min(1, mIn * 1.5)}}>
-          <Mascota kind={brand.mascot} pose={pose} height={L.mascot.h} colors={brand} talking={f > 12 && f < frames - 10} />
+          <Mascota kind={brand.mascot} pose={pose} height={L.mascot.h} colors={brand} talking={f > 12 && f < frames - (spec.audio ? 26 : 10)} />
         </div>
       )}
       {spec.guide && <GuideBar index={index} count={spec.scenes.length} frames={frames} L={L} brand={brand} />}
@@ -227,7 +236,7 @@ const Intro: React.FC<{spec: VideoSpec; frames: number}> = ({spec, frames}) => {
   );
 };
 
-const Outro: React.FC<{spec: VideoSpec}> = ({spec}) => {
+const Outro: React.FC<{spec: VideoSpec; frames: number}> = ({spec, frames}) => {
   const f = useCurrentFrame();
   const {fps} = useVideoConfig();
   const {brand} = spec;
@@ -239,7 +248,7 @@ const Outro: React.FC<{spec: VideoSpec}> = ({spec}) => {
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', fontFamily: font, textAlign: 'center'}}>
       <div style={{transform: `translateY(${(1 - Math.min(1, s)) * 120}px)`, opacity: Math.min(1, s * 1.5)}}>
-        <Mascota kind={brand.mascot} pose="celebrate" height={mh} colors={brand} talking={false} />
+        <Mascota kind={brand.mascot} pose="celebrate" height={mh} colors={brand} talking={!!spec.audio && f > 12 && f < frames - 26} />
       </div>
       <div style={{fontWeight: 900, fontSize: 84 * k, color: '#fff', marginTop: 30 * k, opacity: t, padding: '0 60px', lineHeight: 1.1}}>{spec.outro.title}</div>
       <div style={{marginTop: 40 * k, padding: `${24 * k}px ${64 * k}px`, borderRadius: 100, background: gradOf(brand), color: '#fff', fontWeight: 800, fontSize: 52 * k, opacity: t, transform: `translateY(${(1 - t) * 20}px)`}}>{spec.outro.cta}</div>
@@ -254,6 +263,7 @@ export const PromoVideo: React.FC<VideoSpec> = (spec) => {
   const total = introF + spec.scenes.reduce((a, s) => a + sceneFrames(s), 0) + outroF;
   return (
     <AbsoluteFill>
+      {spec.audio && <Audio src={staticFile(spec.audio)} volume={1} />}
       <Bg brand={spec.brand} total={total} />
       <Sequence from={0} durationInFrames={introF}>
         <Intro spec={spec} frames={introF} />
@@ -269,7 +279,7 @@ export const PromoVideo: React.FC<VideoSpec> = (spec) => {
         );
       })}
       <Sequence from={at} durationInFrames={outroF}>
-        <Outro spec={spec} />
+        <Outro spec={spec} frames={outroF} />
       </Sequence>
     </AbsoluteFill>
   );

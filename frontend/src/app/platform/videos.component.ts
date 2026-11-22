@@ -108,7 +108,6 @@ const MUSIC_NAMES: Record<string, string> = {
             }
           </li>
 
-          @if (kind() !== 'recuadros') {
           <li class="step">
             <div class="step-head"><span class="num">3</span><h3>Música</h3><span class="hint">{{ musicName(music()) }}</span></div>
             <div class="mgroups">
@@ -176,8 +175,10 @@ const MUSIC_NAMES: Record<string, string> = {
               <button type="button" class="chip" (click)="saveVoice(pr)">Usar esta voz siempre</button>
               @if (isSaved(pr)) { <button type="button" class="chip" (click)="cancelEdit(pr)">Cancelar</button> }</p>
             }
+            @if (kind() === 'recuadros' && !o.voiceReady) {
+              <p class="small muted vcount">Sin voz: el video final llevará solo música.</p>
+            }
           </li>
-          }
 
           <li class="step">
             <div class="step-head"><span class="num">5</span><h3>Idea o enfoque</h3><span class="hint">Opcional</span></div>
@@ -421,7 +422,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
     return `${kind} · ${n === 1 ? '1 video' : n + ' videos'}`;
   });
   summaryLine = computed(() =>
-    [(this.kind() === 'recuadros' ? 'Reel, Instagram y Tutorial guiado' : this.formats().map(f => this.fmtName(f).name).join(', ')) || 'Elige al menos un formato', ...(this.kind() === 'recuadros' ? ['recuadros, guía y mascota, sin voz'] : [this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : ''])]
+    [(this.kind() === 'recuadros' ? 'Reel, Instagram y Tutorial guiado' : this.formats().map(f => this.fmtName(f).name).join(', ')) || 'Elige al menos un formato', ...(this.kind() === 'recuadros' ? ['recuadros, guía y mascota', this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : 'solo música'] : [this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : ''])]
       .filter(Boolean).join(' · '));
   music = signal('fiesta');
   idea = '';
@@ -606,7 +607,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
     this.busy.set(true);
     try {
       const made = await this.api.run(this.api.post<PromoVideo[]>('/platform/videos', {
-        kind: this.kind(), formats: this.formats(), voice: this.voice(), music: this.music(), idea: this.idea.trim() || null,
+        kind: this.kind(), formats: this.formats(), voice: this.options()?.voiceReady ? this.voice() : (this.kind() === 'recuadros' ? '' : this.voice()), music: this.music(), idea: this.idea.trim() || null,
       }));
       this.videos.update(list => [...made, ...list]);
       this.idea = '';

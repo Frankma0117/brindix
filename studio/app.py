@@ -1,13 +1,16 @@
 """Servicio interno del estudio (solo lo llama el backend de Brindix por la red de Docker).
 
+POST /narrate {spec, voice, music}                   → {seconds, audio(base64 mp3)} para la versión final de «recuadros»
 POST /jobs  {id, kind, formats, idea, voice, music} → encola el pedido (un MP4 por formato; uno a la vez)
 GET  /jobs/{id}                                      → estado, progreso y, al terminar, las URLs
 DELETE /videos/{id}/{formato}                        → borra ese MP4 y su portada de Spaces
 GET  /voices/{clave}/sample                          → muestra de la voz (mp3 en Spaces)
 GET  /options                                        → tipos, formatos, voces y músicas
 """
+import base64
 import logging
 import os
+import shutil
 import queue
 import threading
 import time
@@ -16,6 +19,7 @@ import traceback
 from fastapi import FastAPI, Header, HTTPException
 
 import media
+import narrate
 import pipeline
 from catalog import FORMATS, KINDS, MUSIC, VOICES
 
@@ -56,6 +60,28 @@ def create(job: dict, x_studio_token: str | None = Header(None)):
     jobs[jid] = {"status": "QUEUED", "progress": 0, "detail": "En cola", "at": time.time()}
     pending.put(job)
     return jobs[jid]
+
+
+@app.post("/narrate")
+def narrate_video(body: dict, x_studio_token: str | None = Header(None)):
+    """Voz Fish por escena + música en una pista mp3, y los segundos que necesita cada bloque del video."""
+    _auth(x_studio_token)
+    spec = body.get("spec")
+    if not isinstance(spec, dict):
+        raise HTTPException(400, "falta el guion (spec)")
+    try:
+        seconds, path, work = narrate.narrate(spec, body.get("voice"), body.get("music"))
+    except narrate.NarrateError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:  # noqa: BLE001
+        log.error("narración falló: %s | %s", type(e).__name__, traceback.format_exc())
+        raise HTTPException(502, "No se pudo generar el audio. Intenta de nuevo.")
+    try:
+        with open(path, "rb") as f:
+            audio = base64.b64encode(f.read()).decode()
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    return {"seconds": seconds, "audio": audio}
 
 
 @app.get("/jobs/{jid}")

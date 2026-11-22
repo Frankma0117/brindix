@@ -85,6 +85,13 @@ public class VideoBridgeClient {
         return json(r.body());
     }
 
+    /** Sube el mp3 de la voz y la música; queda como proyectos/brindix/audio/brindix-{id}.mp3 en el taller. */
+    public void putAudio(long id, byte[] mp3) {
+        HttpResponse<String> r = send(req("/audio/" + id, Duration.ofSeconds(60)).header("Content-Type", "audio/mpeg")
+                .POST(HttpRequest.BodyPublishers.ofByteArray(mp3)).build(), HttpResponse.BodyHandlers.ofString());
+        if (r.statusCode() >= 300) throw ApiException.badRequest("El grabador rechazó el audio: " + errorOf(r.body(), "intenta de nuevo."));
+    }
+
     public void deleteFile(long id) {
         send(req("/file/" + id, Duration.ofSeconds(15)).DELETE().build(), HttpResponse.BodyHandlers.discarding());
     }

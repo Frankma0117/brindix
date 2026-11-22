@@ -37,4 +37,26 @@ class VideoSpecValidatorTest {
         for (int i = 0; i < 5; i++) callouts.addObject().put("text", "x");
         assertThrows(ApiException.class, () -> VideoSpecValidator.parse(many));
     }
+
+    @Test
+    void keepsSayAndDropsClientAudio() {
+        ObjectNode t = VideoSpecValidator.brindixTemplate();
+        t.put("audio", "proyectos/brindix/audio/brindix-1.mp3");
+        t.with("intro").put("say", "Hola");
+        ((ObjectNode) t.path("scenes").get(0)).put("say", "Mira la carta");
+        t.with("outro").put("say", "Pruébalo");
+        ObjectNode out = VideoSpecValidator.parse(t);
+        assertFalse(out.has("audio"));
+        assertEquals("Hola", out.path("intro").path("say").asText());
+        assertEquals("Mira la carta", out.path("scenes").get(0).path("say").asText());
+        assertEquals("Pruébalo", out.path("outro").path("say").asText());
+        assertFalse(out.path("scenes").get(1).has("say"));
+    }
+
+    @Test
+    void rejectsLongSay() {
+        ObjectNode t = VideoSpecValidator.brindixTemplate();
+        ((ObjectNode) t.path("scenes").get(0)).put("say", "a".repeat(301));
+        assertThrows(ApiException.class, () -> VideoSpecValidator.parse(t));
+    }
 }

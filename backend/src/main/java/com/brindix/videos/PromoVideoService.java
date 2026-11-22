@@ -20,9 +20,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +49,15 @@ public class PromoVideoService {
     private final VideoBridgeClient bridge;
     private final StorageService storage;
 
+    /** Videos cuya voz y música se están generando (el poll no los toca: aún no existen en el puente). */
+    private final Set<Long> narrating = ConcurrentHashMap.newKeySet();
+    /** De a una narración: cada una gasta voz de Fish. */
+    private final ExecutorService narrator = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "video-narrator");
+        t.setDaemon(true);
+        return t;
+    });
+
     public PromoVideoService(PromoVideoRepository repo, StudioClient studio, ObjectMapper json, VideoBridgeClient bridge, StorageService storage) {
         this.repo = repo;
         this.studio = studio;
@@ -61,17 +75,19 @@ public class PromoVideoService {
                            PromoVideo.Status status, int progress, String detail, String title, String caption, JsonNode script,
                            String videoUrl, String posterUrl, Double seconds, Instant createdAt, Instant finishedAt, JsonNode spec) {}
 
+    public record AudioIn(@Pattern(regexp = "(" + VOICE_KEY + ")?") String voice, @Pattern(regexp = "[a-z]*") String music) {}
+
     public record VideoCreate(@NotBlank @Pattern(regexp = "[a-z_]+") String kind,
                               @NotEmpty List<@Pattern(regexp = "vertical|horizontal|cuadrado") String> formats,
-                              @NotBlank @Pattern(regexp = VOICE_KEY) String voice,
-                              @NotBlank @Pattern(regexp = "[a-z]+") String music,
+                              @Pattern(regexp = "(" + VOICE_KEY + ")?") String voice,
+                              @Pattern(regexp = "[a-z]*") String music,
                               @Size(max = 600) String idea) {}
 
     public JsonNode options() {
         JsonNode o = studio.options();
         if (bridge.disponible() && o instanceof ObjectNode on && on.path("kinds") instanceof ArrayNode kinds) {
             kinds.addObject().put("key", KIND_CALLOUTS).put("name", "Con recuadros y mascota")
-                    .put("about", "Imágenes de la demo con recuadros que explican y la copa de cuerpo entero señalando. Sin voz.").put("seconds", 25);
+                    .put("about", "Imágenes de la demo con recuadros que explican y la copa de cuerpo entero señalando. La versión final lleva voz y música.").put("seconds", 25);
         }
         return o;
     }
@@ -97,6 +113,11 @@ public class PromoVideoService {
     @Transactional
     public List<VideoRow> create(Long by, VideoCreate in) {
         boolean callouts = KIND_CALLOUTS.equals(in.kind());
+        String voice = blankToNull(in.voice());
+        String music = blankToNull(in.music());
+        // los videos del estudio siempre llevan voz y música; con recuadros son opcionales (se eligen al editar el borrador)
+        if (!callouts && (voice == null || music == null)) throw ApiException.badRequest("Elige una voz y una música.");
+        if (callouts) checkMusic(music);
         // con recuadros siempre salen los 3 tipos (Reel, Instagram, Tutorial guiado), sin importar lo que pida el request
         List<String> formats = callouts ? List.of("vertical", "cuadrado", "horizontal")
                 : in.formats().stream().filter(FORMATS::contains).collect(Collectors.toCollection(LinkedHashSet::new)).stream().toList();
@@ -112,8 +133,8 @@ public class PromoVideoService {
             v.setCreatedBy(by);
             v.setKind(in.kind());
             v.setFormat(fmt);
-            v.setVoice(in.voice());
-            v.setMusic(in.music());
+            v.setVoice(voice);
+            v.setMusic(music);
             v.setIdea(in.idea() == null || in.idea().isBlank() ? null : in.idea().trim());
             v.setDetail("En cola");
             if (first == null) {
@@ -132,6 +153,31 @@ public class PromoVideoService {
             studio.submit(first.getJobId(), first, formats);
         }
         return rows.stream().map(this::row).toList();
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() || "ninguna".equals(s) ? null : s.trim();
+    }
+
+    /** La música debe existir en el catálogo del estudio. */
+    private void checkMusic(String music) {
+        if (music == null) return;
+        if (!studio.enabled()) throw ApiException.badRequest("El estudio de audio no está disponible para elegir música.");
+        for (JsonNode m : studio.options().path("music")) if (music.equals(m.asText())) return;
+        throw ApiException.badRequest("Esa música no existe.");
+    }
+
+    /** Voz y música del video (solo borrador o previa lista): la versión final las usa para el audio. */
+    @Transactional
+    public VideoRow saveAudio(Long id, AudioIn in) {
+        PromoVideo v = callouts(id);
+        if (v.getStatus() != PromoVideo.Status.DRAFT && v.getStatus() != PromoVideo.Status.REVIEW)
+            throw ApiException.conflict("Solo se cambia la voz y la música del borrador o la previa lista.");
+        String music = blankToNull(in.music());
+        checkMusic(music);
+        v.setVoice(blankToNull(in.voice()));
+        v.setMusic(music);
+        return row(repo.save(v));
     }
 
     /** Deja el video como borrador con el guion de la plantilla (la idea es el subtítulo de la intro). */
@@ -188,10 +234,80 @@ public class PromoVideoService {
         if (v.getStatus() != PromoVideo.Status.REVIEW) throw ApiException.conflict("Primero graba y revisa la versión previa.");
         long jobs = active().stream().map(PromoVideo::getJobId).distinct().count();
         if (jobs >= MAX_ACTIVE_JOBS) throw ApiException.conflict("Ya hay " + MAX_ACTIVE_JOBS + " pedidos en proceso. Espera a que terminen.");
-        sendRender(v, false);
+        String voice = blankToNull(v.getVoice());
+        String music = blankToNull(v.getMusic());
         v.setStatus(PromoVideo.Status.RUNNING);
-        v.setDetail("Grabando la versión final");
-        return row(repo.save(v));
+        if (voice == null && music == null) {
+            // sin voz ni música: render mudo, y el detalle lo dice
+            sendRender(v, false);
+            v.setDetail("Grabando la versión final (sin audio: no elegiste voz ni música)");
+            return row(repo.save(v));
+        }
+        if (v.getSpec() == null) throw ApiException.badRequest("Este video no tiene guion.");
+        if (!bridge.disponible()) throw ApiException.badRequest("El taller de video no está disponible en este servidor.");
+        if (!studio.enabled()) throw ApiException.badRequest("El estudio de audio no está disponible: quita la voz y la música para grabar sin audio.");
+        v.setDetail("Generando voz y música…");
+        VideoRow res = row(repo.save(v));
+        long vid = v.getId();
+        narrating.add(vid);
+        // el hilo arranca cuando el estado RUNNING ya está guardado
+        Runnable go = () -> narrator.execute(() -> narrateAndRender(vid, voice, music));
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override public void afterCommit() { go.run(); }
+                    });
+        } else {
+            go.run();
+        }
+        return res;
+    }
+
+    /** Hilo aparte: voz Fish + música en el estudio, sube el mp3 al puente y manda a grabar el video final con audio. */
+    private void narrateAndRender(long id, String voice, String music) {
+        try {
+            PromoVideo v = repo.findById(id).orElse(null);
+            if (v == null || v.getStatus() != PromoVideo.Status.RUNNING || v.getSpec() == null) return;
+            ObjectNode spec = (ObjectNode) json.readTree(v.getSpec());
+            spec.remove("audio");
+            JsonNode out = studio.narrate(spec.toString(), voice, music);
+            applySeconds(spec, out.path("seconds"));
+            byte[] mp3 = Base64.getDecoder().decode(out.path("audio").asText(""));
+            if (mp3.length < 1000) throw ApiException.badRequest("El estudio devolvió un audio vacío.");
+            if (!repo.existsById(id)) return; // lo borraron mientras tanto
+            bridge.putAudio(id, mp3);
+            if (!repo.existsById(id)) {
+                try { bridge.deleteFile(id); } catch (RuntimeException ignored) { }
+                return;
+            }
+            spec.put("audio", "proyectos/brindix/audio/brindix-" + id + ".mp3");
+            bridge.render(id, spec.toString(), false);
+            repo.findById(id).ifPresent(x -> {
+                x.setDetail("Grabando la versión final con " + (voice != null && music != null ? "voz y música" : voice != null ? "voz" : "música"));
+                repo.save(x);
+            });
+        } catch (Exception e) {
+            String why = e instanceof ApiException ? e.getMessage() : "No se pudo generar el audio. Intenta de nuevo.";
+            log.warn("Video {}: falló el audio de la versión final: {}", id, e.getMessage());
+            repo.findById(id).ifPresent(x -> {
+                if (x.getStatus() == PromoVideo.Status.RUNNING) fail(List.of(x), why);
+            });
+        } finally {
+            narrating.remove(id);
+        }
+    }
+
+    /** Los segundos que pide la voz (intro, cada escena, cierre) pasan al spec que se graba. */
+    static void applySeconds(ObjectNode spec, JsonNode sec) {
+        ArrayNode scenes = (ArrayNode) spec.path("scenes");
+        if (!sec.path("intro").isNumber() || !sec.path("outro").isNumber() || sec.path("scenes").size() != scenes.size())
+            throw ApiException.badRequest("El estudio devolvió tiempos inválidos.");
+        spec.with("intro").put("seconds", sec.path("intro").asDouble());
+        spec.with("outro").put("seconds", sec.path("outro").asDouble());
+        for (int i = 0; i < scenes.size(); i++) {
+            if (!sec.path("scenes").get(i).isNumber()) throw ApiException.badRequest("El estudio devolvió tiempos inválidos.");
+            ((ObjectNode) scenes.get(i)).put("seconds", sec.path("scenes").get(i).asDouble());
+        }
     }
 
     private void sendRender(PromoVideo v, boolean preview) {
@@ -279,7 +395,7 @@ public class PromoVideoService {
     public void poll() {
         List<PromoVideo> bridged = new java.util.ArrayList<>(active());
         bridged.addAll(repo.findByStatusIn(List.of(PromoVideo.Status.PREVIEWING)));
-        for (PromoVideo v : bridged) if (KIND_CALLOUTS.equals(v.getKind()) && bridge.disponible()) pollBridge(v);
+        for (PromoVideo v : bridged) if (KIND_CALLOUTS.equals(v.getKind()) && bridge.disponible() && !narrating.contains(v.getId())) pollBridge(v);
         if (!studio.enabled()) return;
         Map<String, List<PromoVideo>> byJob = active().stream().filter(v -> !KIND_CALLOUTS.equals(v.getKind())).collect(Collectors.groupingBy(v -> v.getJobId() == null ? String.valueOf(v.getId()) : v.getJobId()));
         for (Map.Entry<String, List<PromoVideo>> e : byJob.entrySet()) {

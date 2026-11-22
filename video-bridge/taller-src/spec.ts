@@ -18,6 +18,8 @@ export interface Scene {
   mascot?: {pose: Pose; side?: 'left' | 'right'};
   /** Segundos que dura la escena (mínimo 5; +1.2 s por recuadro). */
   seconds?: number;
+  /** Lo que dice la mascota (solo lo usa el estudio de audio; el taller no lo lee). */
+  say?: string;
 }
 
 export interface Brand {
@@ -38,11 +40,13 @@ export interface Brand {
 export interface VideoSpec {
   brand: Brand;
   format: Format;
-  intro: {title: string; sub?: string; seconds?: number};
+  intro: {title: string; sub?: string; seconds?: number; say?: string};
   scenes: Scene[];
-  outro: {title: string; cta: string; seconds?: number};
+  outro: {title: string; cta: string; seconds?: number; say?: string};
   /** Guía paso a paso: insignia «Paso N de M» y barra de progreso en cada escena. */
   guide?: boolean;
+  /** Voz y música ya mezcladas (ruta bajo public/, mp3). Solo la versión final; la previa va muda. */
+  audio?: string;
 }
 
 export const FPS = 30;

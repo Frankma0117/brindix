@@ -14,6 +14,10 @@ const PORT = Number(process.env.BRIDGE_PORT || 5720);
 const TOKEN = process.env.BRIDGE_TOKEN || readFileSync(process.env.BRIDGE_TOKEN_FILE || '/opt/videos/bridge.token', 'utf8').trim();
 const PROJECT = 'brindix';
 const ASSET = new RegExp(`^proyectos/${PROJECT}/[A-Za-z0-9_./-]+\\.(png|jpe?g|webp)$`);
+// Voz y música de la versión final: la sube el backend (POST /audio/{id}) y se borra al terminar la grabación.
+const AUDIO = /^proyectos\/brindix\/audio\/brindix-[0-9]{1,12}\.mp3$/;
+const AUDIO_DIR = join(TALLER, 'public', 'proyectos', PROJECT, 'audio');
+const MAX_AUDIO = 15 * 1024 * 1024;
 const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
 if (!TOKEN || TOKEN.length < 24) throw new Error('BRIDGE_TOKEN demasiado corto');
 mkdirSync(OUT, { recursive: true });
@@ -25,10 +29,12 @@ const queue = [];
 let busy = false;
 
 const fileOf = (id) => join(OUT, `brindix-${id}.mp4`);
+const audioOf = (id) => join(AUDIO_DIR, `brindix-${id}.mp3`);
 
 function specAssetsOk(spec) {
   const paths = [spec?.brand?.logo, ...(spec?.scenes ?? []).map((s) => s?.image)];
   if (spec?.brand?.mascot && spec.brand.mascot !== 'brindix') paths.push(spec.brand.mascot);
+  if (spec?.audio != null && !(typeof spec.audio === 'string' && AUDIO.test(spec.audio) && !spec.audio.includes('..') && existsSync(join(TALLER, 'public', spec.audio)))) return false;
   return paths.filter(Boolean).every((p) => typeof p === 'string' && ASSET.test(p) && !p.includes('..') && existsSync(join(TALLER, 'public', p)));
 }
 
@@ -47,6 +53,7 @@ function pump() {
   child.stderr.on('data', (d) => { err = (err + d).slice(-1500); });
   const finish = (ok, detail) => {
     rmSync(props, { force: true });
+    rmSync(audioOf(id), { force: true });
     previews.delete(id);
     jobs.set(id, ok ? { state: 'done', detail: '' } : { state: 'error', detail });
     busy = false;
@@ -72,6 +79,12 @@ function listAssets() {
 }
 
 const json = (res, code, body) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)); };
+const readAudio = (req) => new Promise((resolve, reject) => {
+  let n = 0; const chunks = [];
+  req.on('data', (c) => { n += c.length; if (n > MAX_AUDIO) { reject(new Error('audio muy grande (máximo 15 MB)')); req.destroy(); } else chunks.push(c); });
+  req.on('end', () => resolve(Buffer.concat(chunks)));
+  req.on('error', reject);
+});
 const readBody = (req) => new Promise((resolve, reject) => {
   let n = 0; const chunks = [];
   req.on('data', (c) => { n += c.length; if (n > 1_000_000) { reject(new Error('cuerpo muy grande')); req.destroy(); } else chunks.push(c); });
@@ -107,6 +120,16 @@ createServer(async (req, res) => {
       pump();
       return json(res, 202, { state: 'queued' });
     }
+    m = p.match(/^\/audio\/([0-9]{1,12})$/);
+    if (req.method === 'POST' && m) {
+      const buf = await readAudio(req);
+      // un mp3 real empieza con la etiqueta ID3 o con un cuadro MPEG (0xFF 0xEx)
+      const mp3 = buf.length > 1000 && ((buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) || (buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0));
+      if (!mp3) return json(res, 400, { error: 'el archivo no es un mp3 válido' });
+      mkdirSync(AUDIO_DIR, { recursive: true });
+      writeFileSync(audioOf(m[1]), buf);
+      return json(res, 200, { ok: true, path: `proyectos/${PROJECT}/audio/brindix-${m[1]}.mp3` });
+    }
     m = p.match(/^\/(status|file)\/([0-9]{1,12})$/);
     if (m) {
       const id = m[2];
@@ -116,6 +139,8 @@ createServer(async (req, res) => {
       }
       if (m[1] === 'file' && req.method === 'DELETE') {
         rmSync(fileOf(id), { force: true });
+        // el mp3 solo se borra si la cola no lo necesita (el borrado al terminar lo hace pump)
+        if (jobs.get(id)?.state !== 'rendering' && !queue.includes(id)) rmSync(audioOf(id), { force: true });
         jobs.delete(id);
         return json(res, 200, { ok: true });
       }

@@ -66,6 +66,12 @@ public class PromoVideoController {
         return service.saveSpec(id, body.get("spec"));
     }
 
+    /** Voz y música de la versión final (vacío = ninguna). */
+    @PutMapping("/{id}/audio")
+    public PromoVideoService.VideoRow saveAudio(@PathVariable Long id, @Valid @RequestBody PromoVideoService.AudioIn in) {
+        return service.saveAudio(id, in);
+    }
+
     @PostMapping("/{id}/preview")
     public PromoVideoService.VideoRow preview(@PathVariable Long id) {
         return service.preview(id);
