@@ -7,6 +7,7 @@ import { Dialogs } from '../shared/dialogs';
 import { IconComponent } from '../shared/icon.component';
 import { MascotComponent } from '../shared/mascot.component';
 
+type Role = 'mascot' | 'tutorial';
 type Status = 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED';
 
 export interface PromoVideo {
@@ -117,7 +118,23 @@ const MUSIC_NAMES: Record<string, string> = {
           </li>
 
           <li class="step">
-            <div class="step-head"><span class="num">4</span><h3>Voz de la copa</h3><span class="hint">{{ selectedVoice()?.name }}</span></div>
+            <div class="step-head"><span class="num">4</span><h3>Voces</h3><span class="hint">Se usa la de {{ role() === 'tutorial' ? 'tutorial' : 'la mascota' }}</span></div>
+            <div class="vroles">
+              @for (r of roles; track r) {
+                <div class="vrole" [class.on]="role() === r">
+                  <div class="vrole-text">
+                    <span class="tiny muted">{{ roleLabel(r) }}</span>
+                    <b>{{ voiceName(roleVoice(r)) }}</b>
+                  </div>
+                  @if (role() === r) { <span class="badge">En este video</span> }
+                  @if (pickerRole() !== r) {
+                    <button type="button" class="chip" (click)="startEdit(r)">Cambiar</button>
+                  }
+                </div>
+              }
+            </div>
+            @if (pickerRole(); as pr) {
+            <p class="small muted vcount">Elige la voz {{ pr === 'tutorial' ? 'de los tutoriales' : 'de la mascota (anuncios y funciones)' }}.</p>
             <div class="vtools">
               <label class="vsearch">
                 <bx-icon name="search" [size]="16" />
@@ -130,11 +147,11 @@ const MUSIC_NAMES: Record<string, string> = {
                 <button type="button" [attr.aria-pressed]="voiceFilter() === 'female'" [class.on]="voiceFilter() === 'female'" (click)="voiceFilter.set('female')">Mujeres</button>
               </div>
             </div>
-            <div class="voices" role="radiogroup" aria-label="Voz de la copa">
+            <div class="voices" role="radiogroup" aria-label="Voces">
               @for (v of visibleVoices(); track v.key) {
-                <div class="voice" [class.on]="voice() === v.key">
-                  <button type="button" role="radio" class="pick-voice" (click)="voice.set(v.key)" [attr.aria-checked]="voice() === v.key">
-                    <b>{{ recommended.has(v.key) ? '★ ' : '' }}{{ v.name }}{{ v.key === defaultVoice() ? ' · por defecto' : '' }}</b><span>{{ v.style }}</span>
+                <div class="voice" [class.on]="roleVoice(pr) === v.key">
+                  <button type="button" role="radio" class="pick-voice" (click)="pickVoice(pr, v.key)" [attr.aria-checked]="roleVoice(pr) === v.key">
+                    <b>{{ recommended.has(v.key) ? '★ ' : '' }}{{ v.name }}</b><span>{{ v.style }}</span>
                   </button>
                   <button type="button" class="hear" (click)="hear(v.key)" [disabled]="!o.voiceReady"
                           [attr.aria-label]="(playingVoice() === v.key ? 'Detener ' : 'Escuchar a ') + v.name" [title]="playingVoice() === v.key ? 'Detener' : 'Escuchar'">
@@ -148,7 +165,9 @@ const MUSIC_NAMES: Record<string, string> = {
             </div>
             <p class="small muted vcount">{{ visibleVoices().length }} de {{ o.voices?.length ?? 0 }} voces · toca ▶ para escuchar una muestra</p>
             <p class="small muted vcount">★ = recomendadas para la línea de marca (narradora clara y cálida, locutor ágil).
-              <button type="button" class="chip" (click)="setDefaultVoice()" [disabled]="voice() === defaultVoice()">Usar esta voz siempre</button></p>
+              <button type="button" class="chip" (click)="saveVoice(pr)">Usar esta voz siempre</button>
+              @if (isSaved(pr)) { <button type="button" class="chip" (click)="cancelEdit(pr)">Cancelar</button> }</p>
+            }
           </li>
 
           <li class="step">
@@ -282,6 +301,10 @@ const MUSIC_NAMES: Record<string, string> = {
     .mgroup { display: grid; grid-template-columns: 9.5rem 1fr; gap: 10px; align-items: start; }
     .mlabel { font-size: 12.5px; font-weight: 700; color: var(--muted); padding-top: 7px; }
     @media (max-width: 640px) { .mgroup { grid-template-columns: 1fr; gap: 6px; } .mlabel { padding-top: 0; } }
+    .vroles { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-bottom: 10px; }
+    .vrole { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line-2); background: var(--bg-2); border-radius: 12px; }
+    .vrole.on { border-color: var(--amber); }
+    .vrole-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
     .vtools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     .vsearch { position: relative; flex: 1 1 260px; display: block; }
     .vsearch bx-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--faint); pointer-events: none; }
@@ -348,8 +371,15 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   formats = signal<string[]>(['vertical', 'horizontal', 'cuadrado']);
   /** Voces de la línea de marca (las mismas que recomienda el panel de Canix): narradora cálida y locutor ágil. */
   recommended = new Set(['M5', 'M3', 'M8', 'M6', 'H14', 'H4', 'H12', 'H19']);
-  defaultVoice = signal(this.storedVoice());
-  voice = signal(this.defaultVoice());
+  /** Dos voces: la de la mascota (anuncio, función) y la del tutorial. Cada una se elige una vez y el menú se oculta hasta pedir «Cambiar». */
+  roles: Role[] = ['mascot', 'tutorial'];
+  private voices = { mascot: signal(this.storedVoice('mascot')), tutorial: signal(this.storedVoice('tutorial')) };
+  private saved = signal<Record<Role, boolean>>({ mascot: this.hasStored('mascot'), tutorial: this.hasStored('tutorial') });
+  editing = signal<Role | null>(null);
+  role = computed<Role>(() => (this.kind().startsWith('tutorial') ? 'tutorial' : 'mascot'));
+  /** Menú abierto: el que se pidió cambiar, o el del video actual si esa voz aún no se ha elegido. */
+  pickerRole = computed<Role | null>(() => this.editing() ?? (this.saved()[this.role()] ? null : this.role()));
+  voice = computed(() => this.roleVoice(this.role()));
   voiceFilter = signal<'all' | 'male' | 'female'>('all');
   voiceQuery = signal('');
   /** Voices by gender and by any word of their name or style ("paisa", "locutor", "narradora"). */
@@ -390,21 +420,44 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   private samples = new Map<string, string>();
   private timer: ReturnType<typeof setInterval> | null = null;
 
-  private storedVoice(): string {
-    try { return localStorage.getItem('brindix.studio.voice') || 'M5'; } catch { return 'M5'; }
+  private storageKey(r: Role): string { return r === 'mascot' ? 'brindix.studio.voice' : 'brindix.studio.voice.tutorial'; }
+
+  private hasStored(r: Role): boolean {
+    try { return !!localStorage.getItem(this.storageKey(r)); } catch { return false; }
   }
 
-  setDefaultVoice(): void {
-    try { localStorage.setItem('brindix.studio.voice', this.voice()); } catch { /* sin almacenamiento: queda solo en esta pantalla */ }
-    this.defaultVoice.set(this.voice());
-    this.toasts.show('Esta será la voz por defecto de los videos nuevos.');
+  private storedVoice(r: Role): string {
+    const fallback = r === 'mascot' ? 'M5' : 'H4';
+    try { return localStorage.getItem(this.storageKey(r)) || fallback; } catch { return fallback; }
+  }
+
+  roleVoice(r: Role): string { return this.voices[r](); }
+  roleLabel(r: Role): string { return r === 'mascot' ? 'Mascota · anuncios y funciones' : 'Tutoriales'; }
+  isSaved(r: Role): boolean { return this.saved()[r]; }
+  pickVoice(r: Role, key: string): void { this.voices[r].set(key); }
+  startEdit(r: Role): void { this.editing.set(r); }
+
+  saveVoice(r: Role): void {
+    try { localStorage.setItem(this.storageKey(r), this.voices[r]()); } catch { /* sin almacenamiento: queda solo en esta pantalla */ }
+    this.saved.update(s => ({ ...s, [r]: true }));
+    this.editing.set(null);
+    this.stopVoice();
+    this.toasts.show(r === 'mascot' ? 'Voz de la mascota guardada.' : 'Voz de los tutoriales guardada.');
+  }
+
+  cancelEdit(r: Role): void {
+    this.voices[r].set(this.storedVoice(r));
+    this.editing.set(null);
+    this.stopVoice();
   }
 
   ngOnInit(): void {
     this.api.get<Options>('/platform/videos/options').subscribe({
       next: o => {
         this.options.set(o);
-        if (o.voices?.length && !o.voices.some(v => v.key === this.voice())) this.voice.set(o.voices[0].key);
+        for (const r of this.roles) {
+          if (o.voices?.length && !o.voices.some(v => v.key === this.roleVoice(r))) this.voices[r].set(o.voices[0].key);
+        }
       },
       error: e => { this.options.set({ enabled: false }); this.toasts.error(errorMessage(e)); },
     });
