@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { catchError, of, switchMap, timer } from 'rxjs';
 import { Api } from '../../core/api.service';
-import { Banner, Screen } from '../../core/models';
+import { Banner, eventLabel, Screen } from '../../core/models';
 import { MoneyPipe, duration } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
@@ -38,6 +38,7 @@ export class ScreenComponent implements OnInit {
   data = signal<Screen | null>(null);
   offline = signal(false);
   bannerIndex = signal(0);
+  ev = eventLabel;
   clock = signal(new Date());
   progress = signal(0);
   needsTap = signal(false);

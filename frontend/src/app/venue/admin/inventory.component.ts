@@ -16,7 +16,7 @@ interface EntryLine { productId: number | null; quantity: number | null; unitCos
   template: `
   <div class="page-head">
     <div><h1>Inventario</h1><p>Lo que entra, lo que se vende y lo que se pierde. El costo se promedia solo con cada entrada.</p></div>
-    <div class="row"><button class="btn" (click)="openAdjust()">Merma / conteo</button><button class="btn primary" (click)="openEntry()">＋ Entrada de mercancía</button></div>
+    <div class="row"><button class="btn" (click)="openAdjust()">Merma / conteo</button><button class="btn primary" (click)="openEntry()"><bx-icon name="plus" /> Entrada de mercancía</button></div>
   </div>
 
   @if (summary(); as s) {
@@ -109,7 +109,7 @@ interface EntryLine { productId: number | null; quantity: number | null; unitCos
               <button class="btn icon sm ghost" (click)="removeLine(i)" aria-label="Quitar"><bx-icon name="x" /></button>
             </div>
           }
-          <button class="btn sm" (click)="addLine()">＋ Otro producto</button>
+          <button class="btn sm" (click)="addLine()"><bx-icon name="plus" /> Otro producto</button>
         </div>
         <label class="field"><span>Nota</span><input class="input" [(ngModel)]="note"></label>
         <div class="card flat col paid">

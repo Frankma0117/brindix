@@ -165,7 +165,7 @@
               } @else {
                 <label class="field"><span>Cliente</span><input class="input" [(ngModel)]="customerQuery" placeholder="Buscar por nombre o teléfono"></label>
                 <div class="row wrap">
-                  @for (c of filteredCustomers(); track c.id) { <button class="chip" type="button" (click)="customerId = c.id">{{ c.name }}@if (c.balance > 0) { · {{ c.balance | money }} }</button> }
+                  @for (c of filteredCustomers(); track c.id) { <button class="chip" type="button" (click)="customerId = c.id">@if (c.preferred) { <bx-icon name="star" [size]="13" /> }{{ c.name }}@if (c.balance > 0) { · {{ c.balance | money }} }</button> }
                   <button class="chip" type="button" (click)="newCustomer.set(true)"><bx-icon name="plus" /> Nuevo cliente</button>
                 </div>
               }

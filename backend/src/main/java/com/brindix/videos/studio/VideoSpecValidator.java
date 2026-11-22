@@ -85,6 +85,7 @@ public final class VideoSpecValidator {
 
         String format = r.path("format").asText("");
         out.put("format", FORMATS.contains(format) ? format : "9x16");
+        out.put("guide", r.path("guide").asBoolean(false));
 
         JsonNode intro = r.path("intro");
         ObjectNode oi = out.putObject("intro");
@@ -154,15 +155,28 @@ public final class VideoSpecValidator {
                 .put("accent", "#3ee0d0").put("bgFrom", "#0f0d0b").put("bgTo", "#2a1a2e")
                 .put("logo", "proyectos/brindix/marca/frontend_public_demo-assets_candela-logo.png").put("mascot", "brindix");
         t.put("format", "9x16");
-        t.putObject("intro").put("title", "Brindix").put("sub", "Tu bar, en el celular");
+        t.put("guide", true);
+        t.putObject("intro").put("title", "Brindix").put("sub", "Carta, pedidos y cuenta de tu bar en el celular");
         ArrayNode s = t.putArray("scenes");
-        s.add(scene(img("michelada-m.jpg"), "La carta de tu bar, en el celular", "Tus clientes la ven al escanear el QR",
-                new int[][]{{50, 30}, {50, 70}}, new String[]{"Fotos que antojan", "Precios siempre al día"}, "wave", "right"));
-        s.add(scene(img("barra.jpg"), "Pedidos directo a la barra", "El mesero recibe todo al instante",
-                new int[][]{{50, 40}}, new String[]{"Cada mesa, su pedido"}, "point", "left"));
-        s.add(scene(img("mojito-s.jpg"), "Tú te enfocas en servir", null,
-                new int[][]{{50, 50}}, new String[]{"Menos errores, más propinas"}, "celebrate", "right"));
-        t.putObject("outro").put("title", "Brindix").put("cta", "Pruébalo en tu bar");
+        s.add(scene(img("michelada-m.jpg"), "Tu carta digital, con un QR", "El cliente la abre sin descargar nada",
+                new int[][]{{50, 22}, {50, 55}, {50, 82}},
+                new String[]{"Escanea el QR de la mesa", "Fotos que antojan", "Precios siempre al día"}, "wave", "right"));
+        s.add(scene(img("barra.jpg"), "Pide directo a la barra", "Sin filas ni gritos",
+                new int[][]{{50, 35}, {50, 70}},
+                new String[]{"Elige y agrega a tu pedido", "Llega a la barra al instante"}, "point", "left"));
+        s.add(scene(img("mojito-s.jpg"), "El mesero recibe todo", "Cada mesa, su pedido en pantalla",
+                new int[][]{{50, 30}, {50, 60}, {50, 85}},
+                new String[]{"Aviso en su celular", "Sabe qué mesa pidió", "Menos errores, más rapidez"}, "celebrate", "right"));
+        s.add(scene(img("shots-m.jpg"), "Cuenta y propina claras", "Todo queda registrado",
+                new int[][]{{50, 30}, {50, 70}},
+                new String[]{"Cuenta por mesa al día", "Propina sugerida en un toque"}, "wave", "left"));
+        s.add(scene(img("picada-s.jpg"), "Combos y promos que venden", "Destaca lo que más quieres vender",
+                new int[][]{{50, 35}, {50, 75}},
+                new String[]{"Resalta tus mejores platos", "Cambia la carta en segundos"}, "point", "right"));
+        s.add(scene(img("club-dorada-s.jpg"), "Tu panel de dueño", "Controla el bar desde donde estés",
+                new int[][]{{50, 25}, {50, 55}, {50, 82}},
+                new String[]{"Ventas del día en vivo", "Pedidos y propinas por mesero", "Todo desde tu celular"}, "celebrate", "left"));
+        t.putObject("outro").put("title", "Lleva tu bar al siguiente nivel").put("cta", "Pruébalo en tu bar");
         return t;
     }
 }

@@ -92,7 +92,10 @@ const MUSIC_NAMES: Record<string, string> = {
           </li>
 
           <li class="step">
-            <div class="step-head"><span class="num">2</span><h3>Formatos</h3><span class="hint">Sale un video por cada uno</span></div>
+            <div class="step-head"><span class="num">2</span><h3>Formatos</h3><span class="hint">{{ kind() === 'recuadros' ? 'Automático' : 'Sale un video por cada uno' }}</span></div>
+            @if (kind() === 'recuadros') {
+              <p class="small muted">Se crean 3 videos: Reel (vertical), Instagram (cuadrado) y Tutorial guiado (horizontal)</p>
+            } @else {
             <div class="formats" role="group" aria-label="Formatos">
               @for (f of o.formats; track f.key) {
                 <button type="button" role="checkbox" class="fmt" [attr.aria-checked]="hasFormat(f.key)" [class.on]="hasFormat(f.key)" (click)="toggleFormat(f.key)">
@@ -102,6 +105,7 @@ const MUSIC_NAMES: Record<string, string> = {
                 </button>
               }
             </div>
+            }
           </li>
 
           @if (kind() !== 'recuadros') {
@@ -155,7 +159,7 @@ const MUSIC_NAMES: Record<string, string> = {
               @for (v of visibleVoices(); track v.key) {
                 <div class="voice" [class.on]="roleVoice(pr) === v.key">
                   <button type="button" role="radio" class="pick-voice" (click)="pickVoice(pr, v.key)" [attr.aria-checked]="roleVoice(pr) === v.key">
-                    <b>{{ recommended.has(v.key) ? '★ ' : '' }}{{ v.name }}</b><span>{{ v.style }}</span>
+                    <b>@if (recommended.has(v.key)) { <bx-icon name="star" [size]="13" /> }{{ v.name }}</b><span>{{ v.style }}</span>
                   </button>
                   <button type="button" class="hear" (click)="hear(v.key)" [disabled]="!o.voiceReady"
                           [attr.aria-label]="(playingVoice() === v.key ? 'Detener ' : 'Escuchar a ') + v.name" [title]="playingVoice() === v.key ? 'Detener' : 'Escuchar'">
@@ -168,7 +172,7 @@ const MUSIC_NAMES: Record<string, string> = {
               }
             </div>
             <p class="small muted vcount">{{ visibleVoices().length }} de {{ o.voices?.length ?? 0 }} voces · toca ▶ para escuchar una muestra</p>
-            <p class="small muted vcount">★ = recomendadas para la línea de marca (narradora clara y cálida, locutor ágil).
+            <p class="small muted vcount"><bx-icon name="star" [size]="13" /> = recomendadas para la línea de marca (narradora clara y cálida, locutor ágil).
               <button type="button" class="chip" (click)="saveVoice(pr)">Usar esta voz siempre</button>
               @if (isSaved(pr)) { <button type="button" class="chip" (click)="cancelEdit(pr)">Cancelar</button> }</p>
             }
@@ -187,8 +191,8 @@ const MUSIC_NAMES: Record<string, string> = {
             <span>{{ summaryLine() }}</span>
             <span class="faint">{{ activeJobs() }} pedidos en proceso · máximo 3 a la vez</span>
           </div>
-          <button class="btn primary lg" [disabled]="busy() || (!o.voiceReady && kind() !== 'recuadros') || activeJobs() >= 3 || !formats().length" (click)="create()">
-            <bx-icon name="sparkles" [size]="18" /> {{ busy() ? 'Enviando…' : (kind() === 'recuadros' ? (formats().length > 1 ? 'Crear ' + formats().length + ' borradores' : 'Crear borrador') : (formats().length > 1 ? 'Crear ' + formats().length + ' videos' : 'Crear el video')) }}
+          <button class="btn primary lg" [disabled]="busy() || (!o.voiceReady && kind() !== 'recuadros') || activeJobs() >= 3 || (!formats().length && kind() !== 'recuadros')" (click)="create()">
+            <bx-icon name="sparkles" [size]="18" /> {{ busy() ? 'Enviando…' : (kind() === 'recuadros' ? 'Crear 3 borradores' : (formats().length > 1 ? 'Crear ' + formats().length + ' videos' : 'Crear el video')) }}
           </button>
         </div>
       </section>
@@ -412,12 +416,12 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
     return rest.length ? [...groups, { name: 'Otras', keys: rest }] : groups;
   });
   summaryTitle = computed(() => {
-    const n = this.formats().length;
+    const n = this.kind() === 'recuadros' ? 3 : this.formats().length;
     const kind = this.options()?.kinds?.find(k => k.key === this.kind())?.name ?? 'Video';
     return `${kind} · ${n === 1 ? '1 video' : n + ' videos'}`;
   });
   summaryLine = computed(() =>
-    [this.formats().map(f => this.fmtName(f).name).join(', ') || 'Elige al menos un formato', ...(this.kind() === 'recuadros' ? ['recuadros y mascota, sin voz'] : [this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : ''])]
+    [(this.kind() === 'recuadros' ? 'Reel, Instagram y Tutorial guiado' : this.formats().map(f => this.fmtName(f).name).join(', ')) || 'Elige al menos un formato', ...(this.kind() === 'recuadros' ? ['recuadros, guía y mascota, sin voz'] : [this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : ''])]
       .filter(Boolean).join(' · '));
   music = signal('fiesta');
   idea = '';
@@ -607,7 +611,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
       this.videos.update(list => [...made, ...list]);
       this.idea = '';
       if (this.kind() === 'recuadros') {
-        this.toasts.ok('Borrador creado: corrígelo y graba la versión previa.');
+        this.toasts.ok('3 borradores creados: corrígelos y graba la versión previa de cada uno.');
         if (!this.assetsLoaded) this.loadAssets();
         return;
       }

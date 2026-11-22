@@ -106,6 +106,14 @@ class CustomerCreditTest {
     }
 
     @Test
+    void clientePreferencialSeGuardaYSeMantiene() {
+        CustomerDtos.Row r = service.update(admin, 5L, new CustomerDtos.CustomerInput("Pedro", null, null, true));
+        assertTrue(r.preferred());
+        r = service.update(admin, 5L, new CustomerDtos.CustomerInput("Pedro", null, null, null));
+        assertTrue(r.preferred(), "null no cambia el valor");
+    }
+
+    @Test
     void abonoMayorAlSaldoFalla() {
         fiado("10000");
         assertThrows(ApiException.class, () -> service.addPayment(admin, 5L, abono("10001", PaymentMethod.CASH)));

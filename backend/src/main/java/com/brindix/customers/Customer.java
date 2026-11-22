@@ -22,5 +22,6 @@ public class Customer {
     private String phone;
     private String note;
     private boolean archived;
+    private boolean preferred;
     private Instant createdAt = Instant.now();
 }

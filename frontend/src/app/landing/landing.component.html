@@ -183,10 +183,22 @@
           }
         </div>
         <div class="final-box card" id="contacto">
-          <bx-mascot [size]="110" mood="wink" />
-          <h2>¿Brindamos por tu bar?</h2>
-          <p class="muted">Te mostramos Brindix funcionando y lo dejamos listo con tu carta, tus mesas y tus QR.</p>
-          <a class="btn primary lg" [href]="waLink()" target="_blank" rel="noopener">Escribir por WhatsApp</a>
+          <bx-mascot [size]="80" mood="wink" />
+          <h2>Reservar o planear un evento</h2>
+          <p class="muted">Cuéntanos qué tienes en mente y te escribimos por WhatsApp para confirmar.</p>
+          <form class="res-form" (ngSubmit)="sendReservation()" #rf="ngForm">
+            <label class="field"><span>Qué quieres hacer</span>
+              <select class="input" name="kind" [(ngModel)]="res.kind">@for (k of resKinds; track k) { <option [value]="k">{{ k }}</option> }</select>
+            </label>
+            <div class="res-row">
+              <label class="field"><span>Fecha</span><input class="input" type="date" name="date" [(ngModel)]="res.date" required></label>
+              <label class="field"><span>Hora</span><input class="input" type="time" name="time" [(ngModel)]="res.time" required></label>
+              <label class="field"><span>Personas</span><input class="input" type="number" min="1" max="500" name="people" [(ngModel)]="res.people" required></label>
+            </div>
+            <label class="field"><span>Tu nombre</span><input class="input" name="name" [(ngModel)]="res.name" maxlength="80" required></label>
+            <label class="field"><span>Nota (opcional)</span><input class="input" name="note" [(ngModel)]="res.note" maxlength="300" placeholder="Decoración, torta, música…"></label>
+            <button class="btn primary lg" type="submit" [disabled]="rf.invalid">Enviar por WhatsApp</button>
+          </form>
         </div>
       </div>
     </section>

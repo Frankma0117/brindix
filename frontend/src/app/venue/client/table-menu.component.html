@@ -24,7 +24,7 @@
               <button class="promo" [attr.data-theme]="b.theme" (click)="openBanner(b)" [attr.aria-label]="b.title" [attr.aria-current]="i === bannerIndex()">
                 @if (b.imageUrl || b.productImage) { <img [src]="b.imageUrl || b.productImage" alt="" [attr.loading]="i === 0 ? 'eager' : 'lazy'"> }
                 <span class="promo-text">
-                  <span class="badge">{{ b.productId ? 'Promo · tócala para pedir' : 'Promo' }}</span>
+                  <span class="badge">{{ b.eventDate ? ev(b) : (b.productId ? 'Promo · tócala para pedir' : 'Promo') }}</span>
                   <span class="promo-title">{{ b.title }}</span>
                   @if (b.subtitle) { <span class="promo-sub">{{ b.subtitle }}</span> }
                   @if (b.productPrice) { <span class="promo-price">{{ b.productPrice | money }}</span> }
@@ -32,6 +32,9 @@
               </button>
             }
           </div>
+          @if (currentBanner(); as cb) {
+            @if (waUrl(cb)) { <a class="btn sm" style="margin-top: 10px" [href]="waUrl(cb)" target="_blank" rel="noopener">Reservar por WhatsApp</a> }
+          }
           @if (banners().length > 1) {
             <div class="dots">
               @for (b of banners(); track b.id; let i = $index) {

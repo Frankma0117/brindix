@@ -9,6 +9,7 @@
           @else if (x.productImage) { <img class="ad-img" [src]="x.productImage" alt=""> }
           <div class="ad-shade"></div>
           <div class="ad-text">
+            @if (x.eventDate) { <div class="ad-price">{{ ev(x) }}</div> }
             <h1>{{ x.title }}</h1>
             @if (x.subtitle) { <p>{{ x.subtitle }}</p> }
             @if (x.productPrice) { <div class="ad-price">{{ x.productPrice | money }}</div> }

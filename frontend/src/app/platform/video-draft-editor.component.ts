@@ -13,6 +13,7 @@ interface Scene {
   callouts: Callout[]; mascot: { pose: string; side: string };
 }
 interface Spec {
+  guide?: boolean;
   intro: { title: string; sub?: string; seconds?: number };
   scenes: Scene[];
   outro: { title: string; cta: string; seconds?: number };
@@ -58,6 +59,8 @@ interface Spec {
               <label>Título<input type="text" maxlength="50" [(ngModel)]="draft.intro.title"></label>
               <label>Subtítulo<input type="text" maxlength="90" [(ngModel)]="draft.intro.sub"></label>
             </fieldset>
+
+            <label class="guide-opt"><input type="checkbox" [(ngModel)]="draft.guide"> Guía paso a paso (insignia «Paso N de M» y barra de progreso)</label>
 
             @for (s of draft.scenes; track s; let i = $index) {
               <fieldset>
@@ -141,6 +144,7 @@ interface Spec {
     fieldset { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     legend { font-weight: 700; font-size: 13px; padding: 0 6px; }
     label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); min-width: 0; }
+    label.guide-opt { flex-direction: row; align-items: center; gap: 8px; } label.guide-opt input { width: auto; }
     input, select { font: inherit; font-size: 14px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; width: 100%; box-sizing: border-box; }
     .row { display: grid; grid-template-columns: 1fr; gap: 8px; }
     @media (min-width: 560px) { .row { grid-template-columns: repeat(3, 1fr); } }

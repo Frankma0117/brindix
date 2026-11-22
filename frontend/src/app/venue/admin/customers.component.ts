@@ -18,20 +18,17 @@ import { IconComponent } from '../../shared/icon.component';
   </div>
 
   @if (data(); as d) {
-    <section class="card stat glow">
-      <span class="label">Total por cobrar</span><span class="value">{{ d.totalOwed | money }}</span>
-      <span class="hint">{{ d.debtors }} cliente(s) con deuda</span>
-    </section>
+    <p class="row between"><span class="muted">Total por cobrar · {{ d.debtors }} cliente(s) con deuda</span><b class="num big-total">{{ d.totalOwed | money }}</b></p>
 
     <div class="row between wrap" style="margin: 16px 0">
       <input class="input" style="max-width: 280px" [(ngModel)]="query" placeholder="Buscar cliente">
-      <label class="check"><input type="checkbox" [ngModel]="onlyDebt()" (ngModelChange)="onlyDebt.set($event)"> Solo con deuda</label>
+      <span class="row"><label class="check"><input type="checkbox" [ngModel]="onlyDebt()" (ngModelChange)="onlyDebt.set($event)"> Solo con deuda</label><label class="check"><input type="checkbox" [ngModel]="onlyPref()" (ngModelChange)="onlyPref.set($event)"> Solo preferenciales</label></span>
     </div>
 
     <div class="col">
       @for (c of filtered(); track c.id) {
         <button class="card row between cust-row" (click)="open(c)">
-          <span class="col"><b>{{ c.name }}</b><span class="muted small">{{ c.phone || 'Sin teléfono' }}@if (c.lastMovementAt) { · último movimiento {{ c.lastMovementAt | ago }} }</span></span>
+          <span class="col"><b>@if (c.preferred) { <bx-icon class="pref" name="star" [size]="14" /> }{{ c.name }}</b><span class="muted small">{{ c.phone || 'Sin teléfono' }}@if (c.lastMovementAt) { · último movimiento {{ c.lastMovementAt | ago }} }</span></span>
           <span class="num strong" [class.amber]="c.balance > 0">{{ c.balance | money }}</span>
         </button>
       } @empty { <div class="empty"><h3>Sin clientes</h3><p>Los clientes aparecen al cobrar a fiado o al crearlos aquí.</p></div> }
@@ -41,7 +38,7 @@ import { IconComponent } from '../../shared/icon.component';
   @if (detail(); as dt) {
     <div class="backdrop" (click)="detail.set(null)">
       <div class="modal wide" (click)="$event.stopPropagation()">
-        <div class="modal-head"><h2>{{ dt.customer.name }}</h2><button class="btn icon sm" (click)="detail.set(null)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
+        <div class="modal-head"><h2>@if (dt.customer.preferred) { <bx-icon class="pref" name="star" [size]="16" /> }{{ dt.customer.name }}</h2><button class="btn icon sm" (click)="detail.set(null)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
         <div class="row between">
           <span class="muted small">{{ dt.customer.phone || 'Sin teléfono' }}@if (dt.customer.note) { · {{ dt.customer.note }} }</span>
           <span class="num strong big-total">Debe {{ dt.customer.balance | money }}</span>
@@ -97,6 +94,7 @@ import { IconComponent } from '../../shared/icon.component';
           <label class="field"><span>Nombre</span><input class="input" [(ngModel)]="f.name" maxlength="120"></label>
           <label class="field"><span>Teléfono</span><input class="input" [(ngModel)]="f.phone" maxlength="40" inputmode="tel"></label>
           <label class="field full"><span>Nota</span><input class="input" [(ngModel)]="f.note" maxlength="300"></label>
+          <label class="check full"><input type="checkbox" [(ngModel)]="f.preferred"> Preferencial (aparece primero al fiar)</label>
         </div>
         <div class="modal-foot">
           <button class="btn" (click)="form.set(null)">Cancelar</button>
@@ -112,6 +110,7 @@ import { IconComponent } from '../../shared/icon.component';
     @media (hover: hover) and (pointer: fine) { .cust-row:hover { background: var(--hover); } }
     .entry { padding: 8px 0; border-bottom: 1px solid var(--hover); }
     .green { color: var(--c-green, inherit); }
+    .pref { color: var(--c-amber, inherit); margin-right: 4px; vertical-align: -2px; }
     .amber { color: var(--c-amber, inherit); }
   `],
 })
@@ -122,10 +121,11 @@ export class CustomersComponent implements OnInit {
 
   data = signal<CustomerOverview | null>(null);
   detail = signal<CustomerDetail | null>(null);
-  form = signal<{ id?: number; name: string; phone: string; note: string } | null>(null);
+  form = signal<{ id?: number; name: string; phone: string; note: string; preferred: boolean } | null>(null);
   pay = signal<CustomerRow | null>(null);
   busy = signal(false);
   onlyDebt = signal(false);
+  onlyPref = signal(false);
   query = '';
   payAmount: number | null = null;
   payMethod: PaymentMethod = 'CASH';
@@ -134,7 +134,9 @@ export class CustomersComponent implements OnInit {
 
   visible = computed(() => {
     const list = this.data()?.customers ?? [];
-    return this.onlyDebt() ? list.filter(c => c.balance > 0) : list;
+    const l = this.onlyDebt() ? list.filter(c => c.balance > 0) : list;
+    const l2 = this.onlyPref() ? l.filter(c => c.preferred) : l;
+    return [...l2].sort((a, b) => Number(!!b.preferred) - Number(!!a.preferred));
   });
 
   ngOnInit(): void {
@@ -159,13 +161,13 @@ export class CustomersComponent implements OnInit {
   }
 
   edit(c?: CustomerRow): void {
-    this.form.set({ id: c?.id, name: c?.name ?? '', phone: c?.phone ?? '', note: c?.note ?? '' });
+    this.form.set({ id: c?.id, name: c?.name ?? '', phone: c?.phone ?? '', note: c?.note ?? '', preferred: !!c?.preferred });
   }
 
-  async save(f: { id?: number; name: string; phone: string; note: string }): Promise<void> {
+  async save(f: { id?: number; name: string; phone: string; note: string; preferred: boolean }): Promise<void> {
     this.busy.set(true);
     try {
-      const body = { name: f.name.trim(), phone: f.phone.trim() || null, note: f.note.trim() || null };
+      const body = { name: f.name.trim(), phone: f.phone.trim() || null, note: f.note.trim() || null, preferred: f.preferred };
       if (f.id) await this.api.run(this.api.put(`/admin/customers/${f.id}`, body));
       else await this.api.run(this.api.post('/admin/customers', body));
       this.form.set(null);

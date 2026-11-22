@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api, errorMessage } from '../../core/api.service';
-import { Banner, Product } from '../../core/models';
+import { Banner, EVENT_KIND_LABELS, Product, eventLabel } from '../../core/models';
 import { MoneyPipe, Toasts } from '../../core/ui';
 import { Dialogs } from '../../shared/dialogs';
 import { IconComponent } from '../../shared/icon.component';
@@ -9,6 +9,7 @@ import { IconComponent } from '../../shared/icon.component';
 interface BannerForm {
   id?: number; title: string; subtitle: string; imageUrl: string; theme: string; durationSeconds: number;
   sortOrder: number; active: boolean; startsAt: string; endsAt: string; productId: number | null;
+  isEvent: boolean; eventDate: string; eventKind: string; ctaWhatsapp: boolean;
 }
 
 @Component({
@@ -18,7 +19,7 @@ interface BannerForm {
   template: `
   <div class="page-head">
     <div><h1>Publicidad</h1><p>Rotan en la pantalla del bar y arriba de la carta del cliente.</p></div>
-    <button class="btn primary" (click)="edit()">＋ Nuevo banner</button>
+    <button class="btn primary" (click)="edit()"><bx-icon name="plus" /> Nuevo banner</button>
   </div>
   <div class="bgrid">
     @for (b of banners(); track b.id) {
@@ -29,7 +30,7 @@ interface BannerForm {
         </div>
         <div class="row between meta">
           <span class="badge" [class.green]="b.live" [class.red]="!b.active">{{ b.live ? 'En pantalla' : (b.active ? 'Programado' : 'Apagado') }}</span>
-          <span class="tiny muted">{{ b.durationSeconds }} s · orden {{ b.sortOrder }}</span>
+          <span class="tiny muted">@if (b.eventDate) { {{ ev(b) }} · }{{ b.durationSeconds }} s · orden {{ b.sortOrder }}</span>
         </div>
       </div>
     } @empty { <div class="empty"><h3>Sin publicidad</h3><p>Crea un banner para promociones, eventos o el happy hour.</p></div> }
@@ -56,6 +57,14 @@ interface BannerForm {
           <label class="field"><span>Desde (opcional)</span><input class="input" type="datetime-local" [(ngModel)]="f.startsAt"></label>
           <label class="field"><span>Hasta (opcional)</span><input class="input" type="datetime-local" [(ngModel)]="f.endsAt"></label>
           <label class="check full"><input type="checkbox" [(ngModel)]="f.active"> Activo</label>
+          <label class="check full"><input type="checkbox" [(ngModel)]="f.isEvent"> Es un evento</label>
+          @if (f.isEvent) {
+            <label class="field"><span>Fecha y hora del evento</span><input class="input" type="datetime-local" [(ngModel)]="f.eventDate"></label>
+            <label class="field"><span>Tipo de evento</span>
+              <select class="input" [(ngModel)]="f.eventKind">@for (k of kinds; track k[0]) { <option [value]="k[0]">{{ k[1] }}</option> }</select>
+            </label>
+            <label class="check full"><input type="checkbox" [(ngModel)]="f.ctaWhatsapp"> Botón para reservar por WhatsApp (usa el teléfono de contacto del bar)</label>
+          }
         </div>
         <div class="modal-foot">
           @if (f.id) { <button class="btn danger" style="margin-right: auto" (click)="remove()">Eliminar</button> }
@@ -93,6 +102,8 @@ export class BannersComponent implements OnInit {
   form = signal<BannerForm | null>(null);
   uploading = signal(false);
   themes = ['amber', 'neon', 'lime', 'berry', 'ocean'];
+  kinds = Object.entries(EVENT_KIND_LABELS);
+  ev = eventLabel;
 
   ngOnInit(): void {
     this.load();
@@ -107,7 +118,8 @@ export class BannersComponent implements OnInit {
     this.form.set(b ? {
       id: b.id, title: b.title, subtitle: b.subtitle ?? '', imageUrl: b.imageUrl ?? '', theme: b.theme, durationSeconds: b.durationSeconds,
       sortOrder: b.sortOrder, active: b.active, startsAt: toLocal(b.startsAt), endsAt: toLocal(b.endsAt), productId: b.productId ?? null,
-    } : { title: '', subtitle: '', imageUrl: '', theme: 'neon', durationSeconds: 10, sortOrder: this.banners().length + 1, active: true, startsAt: '', endsAt: '', productId: null });
+      isEvent: !!b.eventDate, eventDate: toLocal(b.eventDate), eventKind: b.eventKind ?? 'PARTY', ctaWhatsapp: !!b.ctaWhatsapp,
+    } : { title: '', subtitle: '', imageUrl: '', theme: 'neon', durationSeconds: 10, sortOrder: this.banners().length + 1, active: true, startsAt: '', endsAt: '', productId: null, isEvent: false, eventDate: '', eventKind: 'PARTY', ctaWhatsapp: false });
   }
 
   async upload(ev: Event): Promise<void> {
@@ -127,7 +139,12 @@ export class BannersComponent implements OnInit {
   async save(): Promise<void> {
     const f = this.form();
     if (!f) return;
-    const body = { ...f, startsAt: f.startsAt ? new Date(f.startsAt).toISOString() : null, endsAt: f.endsAt ? new Date(f.endsAt).toISOString() : null };
+    const { isEvent, ...rest } = f;
+    const body = {
+      ...rest, startsAt: f.startsAt ? new Date(f.startsAt).toISOString() : null, endsAt: f.endsAt ? new Date(f.endsAt).toISOString() : null,
+      eventDate: isEvent && f.eventDate ? new Date(f.eventDate).toISOString() : null,
+      eventKind: isEvent ? f.eventKind : null, ctaWhatsapp: isEvent && f.ctaWhatsapp,
+    };
     try {
       if (f.id) await this.api.run(this.api.put(`/admin/banners/${f.id}`, body));
       else await this.api.run(this.api.post('/admin/banners', body));

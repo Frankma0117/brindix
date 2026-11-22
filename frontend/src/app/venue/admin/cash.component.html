@@ -19,12 +19,12 @@
 }
 
 @if (shift(); as s) {
-  <section class="grid cols-4 no-print">
-    <div class="card stat glow"><span class="label">Efectivo esperado</span><span class="value">{{ s.expectedCash | money }}</span><span class="hint">en el cajón ahora</span></div>
-    <div class="card stat"><span class="label">Ventas del turno</span><span class="value">{{ s.salesTotal | money }}</span><span class="hint">{{ s.payments }} cobros · todos los medios</span>@if (s.creditTotal > 0) { <span class="hint">Fiado: {{ s.creditTotal | money }} (no es efectivo)</span> }</div>
-    <div class="card stat"><span class="label">Propinas</span><span class="value">{{ s.tips | money }}</span></div>
-    <div class="card stat" [style.border-color]="s.unsettledCount ? 'rgba(255,178,56,.5)' : ''"><span class="label">Con meseros</span><span class="value">{{ s.unsettledTotal | money }}</span><span class="hint">{{ s.unsettledCount }} cobro(s) por entregar</span></div>
-  </section>
+  <dl class="facts no-print">
+    <div class="fact main"><dt>Efectivo esperado <span class="muted small">en el cajón ahora</span></dt><dd class="num">{{ s.expectedCash | money }}</dd></div>
+    <div class="fact"><dt>Ventas del turno <span class="muted small">{{ s.payments }} cobros · todos los medios</span>@if (s.creditTotal > 0) { <span class="muted small">· Fiado: {{ s.creditTotal | money }} (no es efectivo)</span> }</dt><dd class="num">{{ s.salesTotal | money }}</dd></div>
+    <div class="fact"><dt>Propinas</dt><dd class="num">{{ s.tips | money }}</dd></div>
+    <div class="fact" [class.warn]="s.unsettledCount"><dt>Con meseros <span class="muted small">{{ s.unsettledCount }} cobro(s) por entregar</span></dt><dd class="num">{{ s.unsettledTotal | money }}</dd></div>
+  </dl>
 
   <div class="layout no-print">
     <div class="col gap-lg">
@@ -161,12 +161,12 @@
       @if (r.closingNote) { <p class="small muted">Nota: {{ r.closingNote }}</p> }
 
       <h3>Ventas</h3>
-      <div class="grid cols-4">
-        <div class="stat"><span class="label">Total cobrado</span><span class="value">{{ r.totals.sales | money }}</span></div>
-        <div class="stat"><span class="label">Costo</span><span class="value">{{ r.totals.cost | money }}</span></div>
-        <div class="stat"><span class="label">Ganancia</span><span class="value">{{ r.totals.profit | money }}</span><span class="hint">{{ r.totals.marginPct }} %</span></div>
-        <div class="stat"><span class="label">Propinas · desc.</span><span class="value">{{ r.totals.tips | money }}</span><span class="hint">descuentos {{ r.totals.discounts | money }}</span></div>
-      </div>
+      <dl class="facts">
+        <div class="fact"><dt>Total cobrado</dt><dd class="num">{{ r.totals.sales | money }}</dd></div>
+        <div class="fact"><dt>Costo</dt><dd class="num">{{ r.totals.cost | money }}</dd></div>
+        <div class="fact"><dt>Ganancia <span class="muted small">{{ r.totals.marginPct }} %</span></dt><dd class="num">{{ r.totals.profit | money }}</dd></div>
+        <div class="fact"><dt>Propinas <span class="muted small">descuentos {{ r.totals.discounts | money }}</span></dt><dd class="num">{{ r.totals.tips | money }}</dd></div>
+      </dl>
       <div class="grid cols-2" style="margin-top: 10px">
         <div>@for (b of r.byPayment; track b.key) { <div class="fl"><span>{{ payLabel(b.key) }} ({{ b.count }})</span><span>{{ b.total | money }}</span></div> }</div>
         <div>@for (b of r.byWaiter; track b.key) { <div class="fl"><span>Cobró {{ b.key }} ({{ b.count }})</span><span>{{ b.total | money }}</span></div> }</div>

@@ -11,7 +11,11 @@ class VideoSpecValidatorTest {
     @Test
     void templateIsValid() {
         ObjectNode spec = VideoSpecValidator.parse(VideoSpecValidator.brindixTemplate());
-        assertEquals(3, spec.path("scenes").size());
+        assertEquals(6, spec.path("scenes").size());
+        assertTrue(spec.path("guide").asBoolean());
+        ObjectNode off = VideoSpecValidator.brindixTemplate();
+        off.remove("guide");
+        assertFalse(VideoSpecValidator.parse(off).path("guide").asBoolean());
         assertEquals("brindix", spec.path("brand").path("mascot").asText());
     }
 

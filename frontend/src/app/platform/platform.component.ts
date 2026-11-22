@@ -103,7 +103,7 @@ interface VenueForm {
       } @else {
       <div class="page-head">
         <div><h1>Bares</h1><p>Cada bar tiene su dirección, su administrador y sus datos separados.</p></div>
-        <button class="btn primary" (click)="newVenue()">＋ Nuevo bar</button>
+        <button class="btn primary" (click)="newVenue()"><bx-icon name="plus" [size]="16" /> Nuevo bar</button>
       </div>
       <div class="card mail-row">
         <div class="grow"><b>Correo de Brindix</b>
@@ -140,7 +140,7 @@ interface VenueForm {
     @if (form(); as f) {
       <div class="backdrop" (click)="form.set(null)">
         <div class="modal" (click)="$event.stopPropagation()">
-          <div class="modal-head"><h2>{{ f.id ? 'Editar bar' : 'Nuevo bar' }}</h2><button class="btn icon sm" (click)="form.set(null)">✕</button></div>
+          <div class="modal-head"><h2>{{ f.id ? 'Editar bar' : 'Nuevo bar' }}</h2><button class="btn icon sm" (click)="form.set(null)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
           <div class="form-grid">
             <label class="field full"><span>Nombre del bar</span><input class="input" [(ngModel)]="f.name" (ngModelChange)="!f.id && autoSlug(f)"></label>
             @if (!f.id) {

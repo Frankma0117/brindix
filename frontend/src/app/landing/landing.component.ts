@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Api } from '../core/api.service';
 import { Auth } from '../core/auth.service';
@@ -10,7 +11,7 @@ import { MascotComponent } from '../shared/mascot.component';
 @Component({
   selector: 'bx-landing',
   standalone: true,
-  imports: [RouterLink, MascotComponent, ThemeToggleComponent, IconComponent],
+  imports: [FormsModule, RouterLink, MascotComponent, ThemeToggleComponent, IconComponent],
   templateUrl: './landing.component.html',
   styleUrl: './landing.component.scss',
 })
@@ -43,6 +44,23 @@ export class LandingComponent {
     return this.whatsapp() ? `https://wa.me/${this.whatsapp()}?text=${text}` : '#contacto';
   }
 
+
+  resKinds = ['Reserva de mesa', 'Cumpleaños', 'Decoración / evento privado', 'Otro'];
+  res = { kind: 'Reserva de mesa', date: '', time: '', people: 4 as number | null, name: '', note: '' };
+
+  sendReservation(): void {
+    const r = this.res;
+    const lines = [
+      `Hola, quiero: ${r.kind}.`,
+      `Fecha: ${r.date} a las ${r.time}`,
+      `Personas: ${r.people}`,
+      `Nombre: ${r.name.trim()}`,
+      ...(r.note.trim() ? [`Nota: ${r.note.trim()}`] : []),
+    ];
+    const num = this.whatsapp();
+    if (!num) { document.getElementById('contacto')?.scrollIntoView(); return; }
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener');
+  }
 
   scroll(id: string): void {
     this.menuOpen.set(false);

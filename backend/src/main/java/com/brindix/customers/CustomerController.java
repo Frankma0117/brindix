@@ -24,8 +24,8 @@ public class CustomerController {
 
     @PostMapping("/api/staff/customers")
     public CustomerDtos.Option quick(@Valid @RequestBody CustomerDtos.QuickInput in) {
-        CustomerDtos.Row r = customers.create(CurrentUser.get(), new CustomerDtos.CustomerInput(in.name(), in.phone(), null));
-        return new CustomerDtos.Option(r.id(), r.name(), r.phone(), r.balance());
+        CustomerDtos.Row r = customers.create(CurrentUser.get(), new CustomerDtos.CustomerInput(in.name(), in.phone(), null, null));
+        return new CustomerDtos.Option(r.id(), r.name(), r.phone(), r.balance(), r.preferred());
     }
 
     // ---------- Administrador ----------

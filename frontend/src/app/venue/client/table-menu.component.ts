@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap, timer, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Api, errorMessage } from '../../core/api.service';
-import { Banner, MenuCategory, MenuProduct, PublicTab, Queue, RoundStatus, Track } from '../../core/models';
+import { Banner, eventLabel, eventWhatsappUrl, MenuCategory, MenuProduct, PublicTab, Queue, RoundStatus, Track } from '../../core/models';
 import { AgoPipe, MoneyPipe, Toasts, duration, store } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { MascotComponent } from '../../shared/mascot.component';
@@ -40,6 +40,12 @@ export class TableMenuComponent implements OnInit {
   activeCategory = signal<number | null>(null);
   query = signal('');
   bannerIndex = signal(0);
+  ev = eventLabel;
+  waUrl = eventWhatsappUrl;
+
+  currentBanner(): Banner | null {
+    return this.banners()[this.bannerIndex()] ?? null;
+  }
   private promoTrack = viewChild<ElementRef<HTMLElement>>('promoTrack');
   /** Último toque al carrusel: mientras la persona lo usa, no avanza solo. */
   private promoTouchedAt = 0;

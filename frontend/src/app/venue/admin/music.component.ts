@@ -60,7 +60,7 @@ import { IconComponent } from '../../shared/icon.component';
           <h3 class="sec">Por aprobar ({{ queue()!.pending.length }})</h3>
           @for (s of queue()!.pending; track s.id) {
             <div class="song">
-              @if (s.albumImage) { <img [src]="s.albumImage" alt=""> } @else { <span class="ph">♪</span> }
+              @if (s.albumImage) { <img [src]="s.albumImage" alt=""> } @else { <span class="ph"><bx-icon name="music" /></span> }
               <div class="grow"><p class="strong ellipsis">{{ s.title }}</p><p class="small muted ellipsis">{{ s.artist }} · {{ s.tableName }} @if (s.requestedBy) { ({{ s.requestedBy }}) } · {{ s.createdAt | ago }}</p></div>
               <div class="acts"><button class="btn xs danger" (click)="act(s, 'reject')">No</button><button class="btn xs success" (click)="act(s, 'approve')">Aprobar</button></div>
             </div>
@@ -73,7 +73,7 @@ import { IconComponent } from '../../shared/icon.component';
         @for (s of queue()?.upNext ?? []; track s.id; let i = $index; let last = $last) {
           <div class="song">
             <span class="pos">{{ i + 1 }}</span>
-            @if (s.albumImage) { <img [src]="s.albumImage" alt=""> } @else { <span class="ph">♪</span> }
+            @if (s.albumImage) { <img [src]="s.albumImage" alt=""> } @else { <span class="ph"><bx-icon name="music" /></span> }
             <div class="grow">
               <p class="strong ellipsis">@if (s.pinned) { <bx-icon name="pin" /> }{{ s.title }}</p>
               <p class="small muted ellipsis">{{ s.artist }} · {{ s.tableName || s.requestedBy || 'Bar' }} @if (s.durationMs) { · {{ duration(s.durationMs) }} }

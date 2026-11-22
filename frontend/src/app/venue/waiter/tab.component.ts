@@ -111,7 +111,7 @@ export class TabComponent implements OnInit {
       })));
       this.picking.set(false);
       this.justOpened = false;
-      this.toasts.ok('Pedido enviado ✓');
+      this.toasts.ok('Pedido enviado');
       this.api.get<MenuCategory[]>('/staff/menu').subscribe(m => this.menu.set(m));
     } catch (err) {
       this.toasts.error(errorMessage(err));
@@ -181,7 +181,7 @@ export class TabComponent implements OnInit {
 
   filteredCustomers(): CustomerOption[] {
     const q = this.customerQuery.trim().toLowerCase();
-    const list = this.customers();
+    const list = [...this.customers()].sort((a, b) => Number(!!b.preferred) - Number(!!a.preferred));
     return (q ? list.filter(c => c.name.toLowerCase().includes(q) || (c.phone ?? '').includes(q)) : list).slice(0, 8);
   }
 

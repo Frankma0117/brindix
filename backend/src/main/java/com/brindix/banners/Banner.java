@@ -29,6 +29,10 @@ public class Banner {
     private Instant endsAt;
     /** Opcional: producto que se promociona (la pantalla muestra su precio). */
     private Long productId;
+    /** Evento opcional: fecha y tipo (BIRTHDAY, PARTY, LIVE_MUSIC, PROMO, OTHER); ctaWhatsapp muestra botón de reserva. */
+    private Instant eventDate;
+    private String eventKind;
+    private boolean ctaWhatsapp;
     private Instant createdAt = Instant.now();
 
     public boolean liveAt(Instant now) {

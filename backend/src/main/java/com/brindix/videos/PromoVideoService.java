@@ -54,6 +54,7 @@ public class PromoVideoService {
 
     /** Tipo de video con recuadros y mascota de cuerpo entero: lo graba el taller Remotion del servidor (sin voz). */
     public static final String KIND_CALLOUTS = "recuadros";
+    private static final Map<String, String> CALLOUT_NAME = Map.of("vertical", "Reel", "cuadrado", "Instagram", "horizontal", "Tutorial guiado");
     private static final Map<String, String> BRIDGE_FORMAT = Map.of("vertical", "9x16", "horizontal", "16x9", "cuadrado", "1x1");
 
     public record VideoRow(Long id, String jobId, String kind, String kindName, String format, String voice, String music, String idea,
@@ -95,12 +96,15 @@ public class PromoVideoService {
     /** Un pedido: un registro por formato, todos con el mismo jobId, y un solo trabajo en el estudio. */
     @Transactional
     public List<VideoRow> create(Long by, VideoCreate in) {
-        List<String> formats = in.formats().stream().filter(FORMATS::contains).collect(Collectors.toCollection(LinkedHashSet::new)).stream().toList();
-        if (formats.isEmpty()) throw ApiException.badRequest("Elige al menos un formato");
         boolean callouts = KIND_CALLOUTS.equals(in.kind());
+        // con recuadros siempre salen los 3 tipos (Reel, Instagram, Tutorial guiado), sin importar lo que pida el request
+        List<String> formats = callouts ? List.of("vertical", "cuadrado", "horizontal")
+                : in.formats().stream().filter(FORMATS::contains).collect(Collectors.toCollection(LinkedHashSet::new)).stream().toList();
+        if (formats.isEmpty()) throw ApiException.badRequest("Elige al menos un formato");
         if (callouts && !bridge.disponible()) throw ApiException.badRequest("El taller de video no está disponible en este servidor.");
+        // los borradores no graban: solo los pedidos al estudio cuentan para el tope
         long jobs = active().stream().map(PromoVideo::getJobId).distinct().count();
-        if (jobs >= MAX_ACTIVE_JOBS) throw ApiException.conflict("Ya hay " + MAX_ACTIVE_JOBS + " pedidos en proceso. Espera a que terminen.");
+        if (!callouts && jobs >= MAX_ACTIVE_JOBS) throw ApiException.conflict("Ya hay " + MAX_ACTIVE_JOBS + " pedidos en proceso. Espera a que terminen.");
         PromoVideo first = null;
         List<PromoVideo> rows = new java.util.ArrayList<>();
         for (String fmt : formats) {
@@ -137,8 +141,8 @@ public class PromoVideoService {
         if (v.getIdea() != null) spec.with("intro").put("sub", v.getIdea().length() > 90 ? v.getIdea().substring(0, 90) : v.getIdea());
         v.setSpec(spec.toString());
         v.setStatus(PromoVideo.Status.DRAFT);
-        v.setTitle("Brindix con recuadros");
-        v.setKindName("Con recuadros y mascota");
+        v.setTitle("Brindix · " + CALLOUT_NAME.get(v.getFormat()));
+        v.setKindName(CALLOUT_NAME.get(v.getFormat()) + " · Con recuadros y mascota");
         v.setDetail("Borrador: revisa y corrige");
         repo.save(v);
     }
@@ -235,8 +239,8 @@ public class PromoVideoService {
                 v.setStatus(PromoVideo.Status.DONE);
                 v.setProgress(100);
                 v.setDetail("Listo");
-                v.setTitle("Brindix con recuadros");
-                v.setKindName("Con recuadros y mascota");
+                v.setTitle("Brindix · " + CALLOUT_NAME.get(v.getFormat()));
+                v.setKindName(CALLOUT_NAME.get(v.getFormat()) + " · Con recuadros y mascota");
                 v.setFinishedAt(Instant.now());
                 repo.save(v);
             } else if (v.getCreatedAt().plus(MAX_RUN).isBefore(Instant.now())) {

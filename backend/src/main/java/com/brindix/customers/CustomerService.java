@@ -65,7 +65,9 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public List<CustomerDtos.Option> options(Long venueId) {
-        return rows(venueId).stream().map(r -> new CustomerDtos.Option(r.id(), r.name(), r.phone(), r.balance())).toList();
+        return rows(venueId).stream().map(r -> new CustomerDtos.Option(r.id(), r.name(), r.phone(), r.balance(), r.preferred()))
+                .sorted(Comparator.comparing((CustomerDtos.Option o) -> !o.preferred())
+                        .thenComparing(CustomerDtos.Option::name, String.CASE_INSENSITIVE_ORDER)).toList();
     }
 
     @Transactional(readOnly = true)
@@ -109,6 +111,7 @@ public class CustomerService {
         c.setName(name);
         c.setPhone(blank(in.phone()));
         c.setNote(blank(in.note()));
+        c.setPreferred(Boolean.TRUE.equals(in.preferred()));
         c = customers.save(c);
         audit.log(me, me.venueId(), "Creó cliente de fiado", "customer", c.getId(), c.getName());
         return row(c, BigDecimal.ZERO, null);
@@ -122,6 +125,7 @@ public class CustomerService {
         c.setName(name);
         c.setPhone(blank(in.phone()));
         c.setNote(blank(in.note()));
+        if (in.preferred() != null) c.setPreferred(in.preferred());
         audit.log(me, me.venueId(), "Editó cliente de fiado", "customer", c.getId(), c.getName());
         return row(c, balance(c.getId()), null);
     }
@@ -206,7 +210,7 @@ public class CustomerService {
     }
 
     private static CustomerDtos.Row row(Customer c, BigDecimal balance, Instant last) {
-        return new CustomerDtos.Row(c.getId(), c.getName(), c.getPhone(), c.getNote(), balance, last);
+        return new CustomerDtos.Row(c.getId(), c.getName(), c.getPhone(), c.getNote(), balance, last, c.isPreferred());
     }
 
     private void ensureUniqueName(Long venueId, String name, Long exceptId) {

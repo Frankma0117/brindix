@@ -167,3 +167,7 @@ h1 { font-size: clamp(38px, 5.2vw, 68px); font-weight: 800; line-height: 1.02; l
 .slug-input { display: flex; align-items: center; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg-2); }
 .slug-input span { padding-left: 14px; color: var(--faint); font-size: 14px; white-space: nowrap; }
 .slug-input .input { border: 0; background: transparent; padding-left: 2px; }
+
+.res-form { display: grid; gap: 10px; text-align: left; margin-top: 12px; }
+.res-row { display: grid; gap: 10px; grid-template-columns: 1fr 1fr 90px; }
+@media (max-width: 480px) { .res-row { grid-template-columns: 1fr 1fr; } }

@@ -17,6 +17,13 @@ interface CashState { open: boolean; shift: ShiftStatus | Record<string, never>;
   imports: [IconComponent, FormsModule, DatePipe, MoneyPipe, HourPipe],
   templateUrl: './cash.component.html',
   styles: [`
+    .facts { margin: 0 0 16px; border-top: 1px solid var(--hover); }
+    .fact { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--hover); }
+    .fact dt { margin: 0; }
+    .fact dd { margin: 0; font-weight: 700; }
+    .fact.main dd { font-size: 1.4em; }
+    .fact.warn dd { color: var(--c-amber, inherit); }
+
     .open-box { max-width: 520px; display: flex; flex-direction: column; gap: 14px; }
     .flow { display: grid; gap: 8px; }
     .fl { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--line); font-variant-numeric: tabular-nums; }

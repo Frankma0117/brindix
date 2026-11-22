@@ -113,6 +113,27 @@ export interface Banner {
   id: number; title: string; subtitle?: string; imageUrl?: string; theme: string; durationSeconds: number;
   sortOrder: number; active: boolean; startsAt?: string; endsAt?: string; productId?: number;
   productName?: string; productPrice?: number; productImage?: string; live: boolean;
+  eventDate?: string; eventKind?: string; ctaWhatsapp?: boolean; whatsappPhone?: string;
+}
+
+export const EVENT_KIND_LABELS: Record<string, string> = {
+  BIRTHDAY: 'Cumpleaños', PARTY: 'Fiesta', LIVE_MUSIC: 'Música en vivo', PROMO: 'Promoción', OTHER: 'Evento',
+};
+
+/** Fecha del evento en español, p. ej. "sáb 29 nov · 8:00 p. m."; vacío si el banner no es un evento. */
+export function eventLabel(b: Banner): string {
+  if (!b.eventDate) return '';
+  const d = new Date(b.eventDate);
+  const day = d.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' });
+  const hour = d.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
+  return `${day} · ${hour}`;
+}
+
+export function eventWhatsappUrl(b: Banner): string {
+  if (!b.ctaWhatsapp || !b.whatsappPhone) return '';
+  const when = eventLabel(b);
+  const msg = `Hola, quiero reservar para "${b.title}"${when ? ' (' + when + ')' : ''}. ¿Me confirman disponibilidad?`;
+  return `https://wa.me/${b.whatsappPhone}?text=${encodeURIComponent(msg)}`;
 }
 
 export interface PlayerCommand { songId: number; videoId: string; title: string; }
@@ -197,8 +218,8 @@ export const ART_OPTIONS = [
   { key: 'coffee', label: 'Café' }, { key: 'food', label: 'Comida' },
 ];
 
-export interface CustomerRow { id: number; name: string; phone?: string; note?: string; balance: number; lastMovementAt?: string; }
-export interface CustomerOption { id: number; name: string; phone?: string; balance: number; }
+export interface CustomerRow { id: number; name: string; phone?: string; note?: string; balance: number; lastMovementAt?: string; preferred?: boolean; }
+export interface CustomerOption { id: number; name: string; phone?: string; balance: number; preferred?: boolean; }
 export interface CustomerEntry {
   kind: 'CREDIT' | 'PAYMENT'; id: number; amount: number; method: PaymentMethod; note?: string; byName?: string;
   at: string; voided: boolean; detail?: string;
