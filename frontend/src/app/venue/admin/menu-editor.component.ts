@@ -7,6 +7,7 @@ import { MoneyPipe, Toasts } from '../../core/ui';
 import { ProductArtComponent } from '../../shared/product-art.component';
 import { IconComponent } from '../../shared/icon.component';
 import { Dialogs } from '../../shared/dialogs';
+import { RecipeEditorComponent } from './recipe-editor.component';
 
 interface ProductForm {
   id?: number; categoryId: number | null; name: string; description: string; price: number | null; cost: number | null;
@@ -23,7 +24,7 @@ interface Section { category: Category; products: Product[]; }
 @Component({
   selector: 'bx-menu-editor',
   standalone: true,
-  imports: [IconComponent, FormsModule, MoneyPipe, ProductArtComponent, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [IconComponent, RecipeEditorComponent, FormsModule, MoneyPipe, ProductArtComponent, CdkDropList, CdkDrag, CdkDragHandle],
   templateUrl: './menu-editor.component.html',
   styleUrl: './menu-editor.component.scss',
 })

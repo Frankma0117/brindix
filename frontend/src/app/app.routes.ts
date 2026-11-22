@@ -41,6 +41,7 @@ export const routes: Routes = [
           { path: 'fiados', loadComponent: () => import('./venue/admin/customers.component').then(m => m.CustomersComponent), title: 'Fiados' },
           { path: 'caja', loadComponent: () => import('./venue/admin/cash.component').then(m => m.CashComponent), title: 'Caja' },
           { path: 'carta', loadComponent: () => import('./venue/admin/menu-editor.component').then(m => m.MenuEditorComponent), title: 'Carta' },
+          { path: 'insumos', loadComponent: () => import('./venue/admin/ingredients.component').then(m => m.IngredientsComponent), title: 'Insumos' },
           { path: 'inventario', loadComponent: () => import('./venue/admin/inventory.component').then(m => m.InventoryComponent), title: 'Inventario' },
           { path: 'mesas', loadComponent: () => import('./venue/admin/tables.component').then(m => m.TablesComponent), title: 'Mesas y QR' },
           { path: 'musica', loadComponent: () => import('./venue/admin/music.component').then(m => m.MusicComponent), title: 'Música' },

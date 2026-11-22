@@ -230,3 +230,12 @@ export interface CustomerOverview { totalOwed: number; debtors: number; customer
 export interface AppNotification { id: number; type: string; title: string; body?: string; link?: string; createdAt: string; read: boolean; }
 export interface NotificationFeed { unread: number; items: AppNotification[]; }
 export interface SetupItem { key: string; title: string; hint: string; link: string; done: boolean; }
+
+export type IngredientMovementType = 'ENTRY' | 'SALE' | 'ADJUST' | 'WASTE' | 'SALE_VOID';
+export const INGREDIENT_MOVEMENT_LABELS: Record<IngredientMovementType, string> = {
+  ENTRY: 'Entrada', SALE: 'Venta', ADJUST: 'Conteo', WASTE: 'Merma', SALE_VOID: 'Devuelto por anulación',
+};
+export interface Ingredient { id: number; name: string; unit: string; stock: number; minStock?: number | null; avgCost: number; low: boolean; }
+export interface IngredientMovement { id: number; type: IngredientMovementType; quantity: number; stockAfter: number; unitCost?: number; note?: string; createdAt: string; }
+export interface RecipeLine { ingredientId: number; name: string; unit: string; quantity: number; unitCost: number; lineCost: number; }
+export interface Recipe { productId: number; price: number; lines: RecipeLine[]; cost: number; margin: number; marginPct?: number | null; }

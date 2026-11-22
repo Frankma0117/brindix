@@ -99,7 +99,11 @@
               @if (f.id) { <p class="tiny muted">Para sumar unidades usa Inventario → Entrada de mercancía.</p> }
             }
           </div>
-          <label class="check"><input type="checkbox" [ngModel]="f.available" (ngModelChange)="setForm('available', $event)"> Visible en la carta</label>
+          <div class="full">
+            @if (f.id) { <bx-recipe-editor [productId]="f.id" /> }
+            @else { <p class="tiny muted">Guarda el producto para armar su receta (insumos que gasta al venderse).</p> }
+          </div>
+          <label class="check"><input type="checkbox" [ngModel]="f.available"(ngModelChange)="setForm('available', $event)"> Visible en la carta</label>
           <label class="check"><input type="checkbox" [ngModel]="f.featured" (ngModelChange)="setForm('featured', $event)"> Recomendado de la casa</label>
         </div>
       </div>

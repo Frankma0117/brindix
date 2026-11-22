@@ -136,6 +136,7 @@ export class AdminShellComponent {
     { title: 'El bar', links: [
       { path: 'carta', icon: 'wine', label: 'Carta y productos' },
       { path: 'inventario', icon: 'package', label: 'Inventario' },
+      { path: 'insumos', icon: 'flask-conical', label: 'Insumos y recetas' },
       { path: 'mesas', icon: 'qr-code', label: 'Mesas y QR' },
     ] },
     { title: 'Ambiente', links: [
