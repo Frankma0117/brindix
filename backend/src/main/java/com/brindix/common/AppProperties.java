@@ -69,9 +69,26 @@ public record AppProperties(
         }
     }
 
-    public record Ai(String baseUrl, String apiKey, String model) {
+    /** visionBaseUrl/visionApiKey/visionModel son opcionales: sin ellos la lectura de facturas usa el mismo proveedor. */
+    public record Ai(String baseUrl, String apiKey, String model, String visionBaseUrl, String visionApiKey, String visionModel) {
         public boolean enabled() {
             return notBlank(apiKey);
+        }
+
+        public String visionBaseUrlOrDefault() {
+            return notBlank(visionBaseUrl) ? visionBaseUrl : baseUrl;
+        }
+
+        public String visionApiKeyOrDefault() {
+            return notBlank(visionApiKey) ? visionApiKey : apiKey;
+        }
+
+        public String visionModelOrDefault() {
+            return notBlank(visionModel) ? visionModel : model;
+        }
+
+        public boolean visionEnabled() {
+            return notBlank(visionApiKeyOrDefault());
         }
     }
 

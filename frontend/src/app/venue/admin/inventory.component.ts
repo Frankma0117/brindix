@@ -2,11 +2,20 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Api, errorMessage } from '../../core/api.service';
-import { MONEY_METHODS, MOVEMENT_LABELS, Movement, MovementType, PAYMENT_LABELS, PaymentMethod, Product, StockSummary } from '../../core/models';
+import { firstValueFrom } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Ingredient, MONEY_METHODS, MOVEMENT_LABELS, Movement, MovementType, PAYMENT_LABELS, PaymentMethod, Product, StockSummary } from '../../core/models';
 import { MoneyPipe, Toasts } from '../../core/ui';
 import { IconComponent } from '../../shared/icon.component';
 
 interface EntryLine { productId: number | null; quantity: number | null; unitCost: number | null; }
+/** Línea leída de la foto; target = 'PRODUCT:id' | 'INGREDIENT:id' | '' (ignorar). */
+interface ScanLine { description: string; unit: string; target: string; quantity: number | null; unitCost: number | null; score: number; }
+interface InvoiceRead {
+  proveedor?: string | null; numero?: string | null; fecha?: string | null; total?: number | null;
+  lineas: { descripcion: string; cantidad?: number | null; unidad?: string | null; costoUnitario?: number | null; costoTotal?: number | null;
+            match?: { kind: 'PRODUCT' | 'INGREDIENT'; id: number; name: string; score: number } | null }[];
+}
 
 /** Existencias, entradas de mercancía por factura, mermas, conteos y kardex. Solo administrador. */
 @Component({
@@ -96,6 +105,34 @@ interface EntryLine { productId: number | null; quantity: number | null; unitCos
           <label class="field"><span>Proveedor</span><input class="input" [(ngModel)]="supplier" placeholder="Ej: Bavaria"></label>
           <label class="field"><span>Factura / referencia</span><input class="input" [(ngModel)]="reference"></label>
         </div>
+        <div class="scan">
+          <input #fileIn type="file" accept="image/*" capture="environment" hidden (change)="readInvoice($event)">
+          <button class="btn sm" [disabled]="scanning() || busy()" (click)="fileIn.click()"><bx-icon name="camera" /> {{ scanning() ? 'Leyendo factura…' : 'Leer factura' }}</button>
+          <span class="tiny muted">Toma o sube una foto y revisa lo que se lea antes de cargar.</span>
+        </div>
+        @if (scan(); as sc) {
+          <div class="card flat col scanbox">
+            <div class="warn"><bx-icon name="triangle-alert" /> Revisa los datos: la lectura puede tener errores.</div>
+            <div class="lrow shead tiny muted"><span>Leído en la factura</span><span>Se carga a</span><span>Cantidad</span><span>Costo unitario</span></div>
+            @for (l of sc; track $index) {
+              <div class="lrow s">
+                <div class="desc"><span class="strong">{{ l.description }}</span>@if (l.unit) { <span class="tiny muted"> · {{ l.unit }}</span> }</div>
+                <select class="input" [(ngModel)]="l.target">
+                  <option value="">Ignorar esta línea</option>
+                  <optgroup label="Productos">@for (p of tracked(); track p.id) { <option [value]="'PRODUCT:' + p.id">{{ p.name }}</option> }</optgroup>
+                  <optgroup label="Insumos">@for (i of ingredients(); track i.id) { <option [value]="'INGREDIENT:' + i.id">{{ i.name }} ({{ i.unit }})</option> }</optgroup>
+                </select>
+                <input class="input" type="number" min="0" step="any" [(ngModel)]="l.quantity" placeholder="0">
+                <input class="input" type="number" min="0" step="any" [(ngModel)]="l.unitCost" placeholder="0">
+              </div>
+            }
+            <div class="row between"><span class="muted">Total de lo que se cargará</span><span class="strong num">{{ scanTotal() | money }}</span></div>
+            <div class="row end">
+              <button class="btn" (click)="scan.set(null)">Descartar lectura</button>
+              <button class="btn primary" [disabled]="busy() || !scanValid().length" (click)="saveScan()">Cargar entrada ({{ scanValid().length }})</button>
+            </div>
+          </div>
+        }
         <div class="lines">
           <div class="lrow head tiny muted"><span>Producto</span><span>Cantidad</span><span>Costo unitario</span><span></span></div>
           @for (l of lines(); track $index; let i = $index) {
@@ -156,6 +193,12 @@ interface EntryLine { productId: number | null; quantity: number | null; unitCos
     .lrow { display: grid; grid-template-columns: 2fr 1fr 1fr 42px; gap: 8px; align-items: center; }
     .lrow.head { padding: 0 4px; }
     @media (max-width: 600px) { .lrow { grid-template-columns: 1fr 1fr; } .lrow select { grid-column: 1 / -1; } .lrow.head { display: none; } }
+    .scan { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+    .scanbox { margin-top: 12px; gap: 8px; }
+    .scanbox .warn { display: flex; align-items: center; gap: 8px; color: var(--c-amber); font-weight: 600; font-size: 13px; }
+    .lrow.s, .lrow.shead { grid-template-columns: 1.6fr 1.6fr 90px 120px; }
+    .lrow.s .desc { overflow-wrap: anywhere; }
+    @media (max-width: 600px) { .lrow.s { grid-template-columns: 1fr 1fr; } .lrow.s .desc, .lrow.s select { grid-column: 1 / -1; } .lrow.shead { display: none; } }
     .paid { margin-top: 12px; }
     .total { margin-top: 14px; font-size: 16px; }
   `],
@@ -163,7 +206,11 @@ interface EntryLine { productId: number | null; quantity: number | null; unitCos
 export class InventoryComponent implements OnInit {
   private api = inject(Api);
   private toasts = inject(Toasts);
+  private http = inject(HttpClient);
 
+  ingredients = signal<Ingredient[]>([]);
+  scanning = signal(false);
+  scan = signal<ScanLine[] | null>(null);
   products = signal<Product[]>([]);
   summary = signal<StockSummary | null>(null);
   moves = signal<Movement[]>([]);
@@ -230,7 +277,72 @@ export class InventoryComponent implements OnInit {
     this.paidFromCash = false;
     this.payMethod = 'CASH';
     this.lines.set([{ productId: null, quantity: null, unitCost: null }]);
+    this.scan.set(null);
     this.entryOpen.set(true);
+  }
+
+  async readInvoice(ev: Event): Promise<void> {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.scanning.set(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const r = await firstValueFrom(this.http.post<InvoiceRead>('/api/admin/ai/invoice', form));
+      if (r.proveedor && !this.supplier) this.supplier = r.proveedor;
+      if (r.numero) this.reference = r.numero;
+      if (this.ingredients().length === 0) this.api.get<Ingredient[]>('/admin/ingredients').subscribe(i => this.ingredients.set(i));
+      this.scan.set(r.lineas.map(l => ({
+        description: l.descripcion, unit: l.unidad ?? '', target: l.match ? l.match.kind + ':' + l.match.id : '',
+        quantity: l.cantidad ?? null, unitCost: l.costoUnitario ?? null, score: l.match?.score ?? 0,
+      })));
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    } finally {
+      this.scanning.set(false);
+    }
+  }
+
+  scanValid(): ScanLine[] {
+    return (this.scan() ?? []).filter(l => l.target && (Number(l.quantity) || 0) > 0);
+  }
+
+  scanTotal(): number {
+    return this.scanValid().reduce((a, l) => a + (Number(l.quantity) || 0) * (Number(l.unitCost) || 0), 0);
+  }
+
+  /** Solo se llama al confirmar el administrador: productos por la entrada de mercancía, insumos por movimiento ENTRY. */
+  async saveScan(): Promise<void> {
+    const valid = this.scanValid();
+    const prods = valid.filter(l => l.target.startsWith('PRODUCT:'));
+    const ings = valid.filter(l => l.target.startsWith('INGREDIENT:'));
+    const ref = this.reference || null;
+    this.busy.set(true);
+    try {
+      if (prods.length) {
+        await this.api.run(this.api.post('/admin/inventory/entries', {
+          supplier: this.supplier, reference: this.reference, note: this.note, paidFromCash: this.paidFromCash, paymentMethod: this.payMethod,
+          items: prods.map(l => ({ productId: Number(l.target.split(':')[1]), quantity: Number(l.quantity), unitCost: l.unitCost ? Number(l.unitCost) : null })),
+        }));
+      }
+      for (const l of ings) {
+        await this.api.run(this.api.post('/admin/ingredients/' + l.target.split(':')[1] + '/movements', {
+          type: 'ENTRY', quantity: Number(l.quantity), unitCost: l.unitCost ? Number(l.unitCost) : null,
+          note: ['Factura', ref, this.supplier].filter(x => !!x).join(' · '),
+        }));
+      }
+      this.toasts.ok('Entrada cargada desde la factura');
+      this.scan.set(null);
+      this.entryOpen.set(false);
+      this.load();
+      if (this.tabView() === 'moves') this.loadMoves();
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   addLine(): void {
