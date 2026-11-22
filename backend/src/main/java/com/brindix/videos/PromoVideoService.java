@@ -22,6 +22,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class PromoVideoService {
+    /** Claves de voz del estudio: H1–H35 y M1–M39 (studio/catalog.py). La muestra y el pedido usan la misma regla. */
+    public static final String VOICE_KEY = "[HM][0-9]{1,2}";
+
 
     private static final Logger log = LoggerFactory.getLogger(PromoVideoService.class);
     private static final List<String> FORMATS = List.of("vertical", "horizontal", "cuadrado");
@@ -46,7 +49,7 @@ public class PromoVideoService {
 
     public record VideoCreate(@NotBlank @Pattern(regexp = "[a-z_]+") String kind,
                               @NotEmpty List<@Pattern(regexp = "vertical|horizontal|cuadrado") String> formats,
-                              @NotBlank @Pattern(regexp = "[HM][0-9]{1,2}") String voice,
+                              @NotBlank @Pattern(regexp = VOICE_KEY) String voice,
                               @NotBlank @Pattern(regexp = "[a-z]+") String music,
                               @Size(max = 600) String idea) {}
 
@@ -59,7 +62,7 @@ public class PromoVideoService {
     }
 
     public JsonNode voiceSample(String key) {
-        if (!key.matches("[HM][0-9]")) throw ApiException.badRequest("Esa voz no existe");
+        if (key == null || !key.matches(VOICE_KEY)) throw ApiException.badRequest("Esa voz no existe");
         return studio.voiceSample(key);
     }
 
