@@ -6,6 +6,7 @@ cd "$(dirname "$0")/.."
 [ -f .env ] || { echo "Falta .env: corre primero bash scripts/init-env.sh"; exit 1; }
 port="$(grep -E '^BRINDIX_PORT=' .env | cut -d= -f2)"; port="${port:-5710}"
 
+bash scripts/install-video-bridge.sh || echo "(puente de video no instalado)"
 docker compose build --pull
 docker compose up -d --remove-orphans
 echo "Esperando a Brindix en 127.0.0.1:$port ..."

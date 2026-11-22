@@ -52,3 +52,7 @@ descarga Chromium). Cada video tarda de 2 a 6 minutos y queda en Spaces (`brindi
 | Respaldo manual | `bash scripts/backup.sh` (queda en `backups/`, 14 días) |
 | Restaurar | `gunzip -c backups/<archivo>.sql.gz \| docker compose exec -T db sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" brindix'` |
 | Olvidé la clave del admin de un bar | Súper administrador → `/plataforma` → «Clave admin» |
+
+## Taller de video (plataforma > Taller)
+
+El backend (Docker) no renderiza: llama a un puente en el host (`video-bridge/server.mjs`, servicio de usuario `brindix-video-bridge`, escucha en 172.17.0.1:5720 con token). `scripts/deploy.sh` lo instala/reinicia con `scripts/install-video-bridge.sh` (crea `/opt/videos/bridge.token` y `BRINDIX_VIDEO_BRIDGE_TOKEN` en `.env`; requiere `loginctl enable-linger`, ya activo). Usa el taller Remotion de `/opt/videos/taller` y los recursos de `proyectos/brindix/`. Aprobar sube el mp4 a Spaces y lo borra del servidor.

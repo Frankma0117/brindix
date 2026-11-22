@@ -101,6 +101,10 @@ brindix:
     url: ${BRINDIX_PUBLISHER_URL:}
     api-key: ${PUBLISHER_API_KEY:}
     embed-secret: ${PUBLISHER_EMBED_SECRET:}
+  video-bridge:
+    # Puente del taller de video (corre en el host, no en Docker). Vacío = taller no disponible.
+    url: ${BRINDIX_VIDEO_BRIDGE_URL:}
+    token: ${BRINDIX_VIDEO_BRIDGE_TOKEN:}
 
 ---
 spring:

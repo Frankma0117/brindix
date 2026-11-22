@@ -13,6 +13,7 @@ import { ThemeToggleComponent } from '../core/theme';
 import { Dialogs } from '../shared/dialogs';
 import { PlatformVideosComponent } from './videos.component';
 import { PlatformPublisherComponent } from './publisher.component';
+import { VideoStudioComponent } from './video-studio.component';
 
 interface VenueForm {
   id?: number; name: string; slug: string; contactName: string; contactPhone: string; active: boolean;
@@ -23,7 +24,7 @@ interface VenueForm {
 @Component({
   selector: 'bx-platform',
   standalone: true,
-  imports: [FormsModule, DatePipe, MascotComponent, ThemeToggleComponent, ResetRequestsComponent, PlatformVideosComponent, PlatformPublisherComponent, IconComponent],
+  imports: [FormsModule, DatePipe, MascotComponent, ThemeToggleComponent, ResetRequestsComponent, PlatformVideosComponent, PlatformPublisherComponent, VideoStudioComponent, IconComponent],
   template: `
   @if (!auth.session() || auth.session()!.mustChangePassword || changing()) { <bx-theme-toggle class="theme-corner" /> }
   @if (!auth.session() && recovering()) {
@@ -94,10 +95,13 @@ interface VenueForm {
       <nav class="seg" role="tablist" aria-label="Secciones de la plataforma">
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'bares'" [class.on]="tab() === 'bares'" (click)="tab.set('bares')"><bx-icon name="store" [size]="16" /> Bares</button>
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'videos'" [class.on]="tab() === 'videos'" (click)="tab.set('videos')"><bx-icon name="megaphone" [size]="16" /> Videos y publicidad</button>
+        <button type="button" role="tab" [attr.aria-selected]="tab() === 'taller'" [class.on]="tab() === 'taller'" (click)="tab.set('taller')"><bx-icon name="sparkles" [size]="16" /> Taller</button>
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'publicador'" [class.on]="tab() === 'publicador'" (click)="tab.set('publicador')"><bx-icon name="upload" [size]="16" /> Publicador</button>
       </nav>
       @if (tab() === 'videos') {
         <bx-platform-videos />
+      } @else if (tab() === 'taller') {
+        <bx-video-studio />
       } @else if (tab() === 'publicador') {
         <bx-platform-publisher />
       } @else {
@@ -214,7 +218,7 @@ export class PlatformComponent implements OnInit {
   error = signal('');
   venues = signal<PlatformVenue[]>([]);
   form = signal<VenueForm | null>(null);
-  tab = signal<'bares' | 'videos' | 'publicador'>('bares');
+  tab = signal<'bares' | 'videos' | 'taller' | 'publicador'>('bares');
 
   ngOnInit(): void {
     if (this.auth.session() && !this.auth.session()!.mustChangePassword) this.load();

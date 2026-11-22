@@ -53,7 +53,7 @@ class PublisherClientTest {
     private PublisherClient client(String key) {
         String url = "http://127.0.0.1:" + server.getAddress().getPort();
         AppProperties props = new AppProperties(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                new AppProperties.Publisher(url, key, "embed-secret"));
+                new AppProperties.Publisher(url, key, "embed-secret"), null);
         return new PublisherClient(props);
     }
 
@@ -87,7 +87,7 @@ class PublisherClientTest {
     @Test
     void withoutConfigurationItIsOff() {
         AppProperties off = new AppProperties(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                new AppProperties.Publisher("", "", ""));
+                new AppProperties.Publisher("", "", ""), null);
         PublisherClient c = new PublisherClient(off);
         assertFalse(c.enabled());
         assertFalse(c.up());

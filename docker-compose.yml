@@ -31,6 +31,10 @@ services:
       JAVA_OPTS: -Xms128m -Xmx512m -Djava.net.preferIPv4Stack=true
       BRINDIX_STUDIO_URL: http://studio:8000
       BRINDIX_PUBLISHER_URL: http://publisher:3100
+      BRINDIX_VIDEO_BRIDGE_URL: http://host.docker.internal:5720
+      BRINDIX_VIDEO_BRIDGE_TOKEN: ${BRINDIX_VIDEO_BRIDGE_TOKEN:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - uploads:/data/uploads
     depends_on:

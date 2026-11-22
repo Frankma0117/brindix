@@ -26,7 +26,8 @@ public record AppProperties(
         Ai ai,
         Mail mail,
         Studio studio,
-        Publisher publisher) {
+        Publisher publisher,
+        VideoBridge videoBridge) {
 
     public record Jwt(String secret, int hours) {}
 
@@ -58,6 +59,13 @@ public record AppProperties(
     public record Publisher(String url, String apiKey, String embedSecret) {
         public boolean enabled() {
             return notBlank(url) && notBlank(apiKey) && notBlank(embedSecret);
+        }
+    }
+
+    /** Puente HTTP en el host que graba los videos del Taller de video (Remotion). Sin url o token queda no disponible. */
+    public record VideoBridge(String url, String token) {
+        public boolean enabled() {
+            return notBlank(url) && notBlank(token);
         }
     }
 
