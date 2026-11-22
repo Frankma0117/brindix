@@ -3,7 +3,12 @@ package com.brindix.videos;
 import com.brindix.security.CurrentUser;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
+import java.io.InputStream;
 
 import java.util.List;
 import java.util.Map;
@@ -48,6 +53,39 @@ public class PromoVideoController {
     @GetMapping("/voices/{key}/sample")
     public JsonNode voiceSample(@PathVariable String key) {
         return service.voiceSample(key);
+    }
+
+    /** Imágenes del taller disponibles para las escenas: [{path}]. */
+    @GetMapping("/studio-assets")
+    public JsonNode studioAssets() {
+        return service.studioAssets();
+    }
+
+    @PutMapping("/{id}/spec")
+    public PromoVideoService.VideoRow saveSpec(@PathVariable Long id, @RequestBody Map<String, JsonNode> body) {
+        return service.saveSpec(id, body.get("spec"));
+    }
+
+    @PostMapping("/{id}/preview")
+    public PromoVideoService.VideoRow preview(@PathVariable Long id) {
+        return service.preview(id);
+    }
+
+    @PostMapping("/{id}/approve")
+    public PromoVideoService.VideoRow approve(@PathVariable Long id) {
+        return service.approve(id);
+    }
+
+    /** MP4 de la versión previa (el panel lo pide con el token y lo muestra como blob). */
+    @GetMapping("/{id}/preview")
+    public ResponseEntity<StreamingResponseBody> previewFile(@PathVariable Long id) {
+        InputStream in = service.openPreview(id);
+        StreamingResponseBody body = out -> {
+            try (in) {
+                in.transferTo(out);
+            }
+        };
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType("video/mp4")).body(body);
     }
 
     @DeleteMapping("/{id}")

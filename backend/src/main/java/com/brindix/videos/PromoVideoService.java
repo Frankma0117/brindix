@@ -58,7 +58,7 @@ public class PromoVideoService {
 
     public record VideoRow(Long id, String jobId, String kind, String kindName, String format, String voice, String music, String idea,
                            PromoVideo.Status status, int progress, String detail, String title, String caption, JsonNode script,
-                           String videoUrl, String posterUrl, Double seconds, Instant createdAt, Instant finishedAt) {}
+                           String videoUrl, String posterUrl, Double seconds, Instant createdAt, Instant finishedAt, JsonNode spec) {}
 
     public record VideoCreate(@NotBlank @Pattern(regexp = "[a-z_]+") String kind,
                               @NotEmpty List<@Pattern(regexp = "vertical|horizontal|cuadrado") String> formats,
@@ -123,26 +123,93 @@ public class PromoVideoService {
         }
         repo.flush();
         if (callouts) {
-            for (PromoVideo v : rows) submitBridge(v);
+            for (PromoVideo v : rows) draft(v);
         } else {
             studio.submit(first.getJobId(), first, formats);
         }
         return rows.stream().map(this::row).toList();
     }
 
-    /** Arma el guion (plantilla de marca; la idea es el subtítulo de la intro) y lo manda a grabar al puente. */
-    private void submitBridge(PromoVideo v) {
+    /** Deja el video como borrador con el guion de la plantilla (la idea es el subtítulo de la intro). */
+    private void draft(PromoVideo v) {
         ObjectNode spec = VideoSpecValidator.brindixTemplate();
         spec.put("format", BRIDGE_FORMAT.get(v.getFormat()));
         if (v.getIdea() != null) spec.with("intro").put("sub", v.getIdea().length() > 90 ? v.getIdea().substring(0, 90) : v.getIdea());
-        try {
-            bridge.render(v.getId(), VideoSpecValidator.parse(spec).toString());
-            v.setStatus(PromoVideo.Status.RUNNING);
-            v.setDetail("Grabando con recuadros y mascota");
-        } catch (RuntimeException e) {
-            fail(List.of(v), e.getMessage() == null ? "El grabador no respondió" : e.getMessage());
-        }
+        v.setSpec(spec.toString());
+        v.setStatus(PromoVideo.Status.DRAFT);
+        v.setTitle("Brindix con recuadros");
+        v.setKindName("Con recuadros y mascota");
+        v.setDetail("Borrador: revisa y corrige");
         repo.save(v);
+    }
+
+    private PromoVideo callouts(Long id) {
+        PromoVideo v = repo.findById(id).orElseThrow(() -> ApiException.notFound("Ese video no existe"));
+        if (!KIND_CALLOUTS.equals(v.getKind())) throw ApiException.badRequest("Este video no tiene guion editable.");
+        return v;
+    }
+
+    @Transactional
+    public VideoRow saveSpec(Long id, JsonNode spec) {
+        PromoVideo v = callouts(id);
+        if (v.getStatus() != PromoVideo.Status.DRAFT && v.getStatus() != PromoVideo.Status.REVIEW)
+            throw ApiException.conflict("Solo se edita el borrador o la previa lista.");
+        ObjectNode clean = VideoSpecValidator.parse(spec);
+        // el formato lo fija el registro, no el editor
+        clean.put("format", BRIDGE_FORMAT.get(v.getFormat()));
+        v.setSpec(clean.toString());
+        if (v.getStatus() == PromoVideo.Status.REVIEW) {
+            if (bridge.disponible()) {
+                try { bridge.deleteFile(v.getId()); } catch (RuntimeException ignored) { }
+            }
+            v.setStatus(PromoVideo.Status.DRAFT);
+            v.setDetail("Borrador: revisa y corrige");
+        }
+        return row(repo.save(v));
+    }
+
+    @Transactional
+    public VideoRow preview(Long id) {
+        PromoVideo v = callouts(id);
+        if (v.getStatus() != PromoVideo.Status.DRAFT) throw ApiException.conflict("Solo se graba la previa desde el borrador.");
+        sendRender(v, true);
+        v.setStatus(PromoVideo.Status.PREVIEWING);
+        v.setDetail("Grabando versión previa");
+        return row(repo.save(v));
+    }
+
+    @Transactional
+    public VideoRow approve(Long id) {
+        PromoVideo v = callouts(id);
+        if (v.getStatus() != PromoVideo.Status.REVIEW) throw ApiException.conflict("Primero graba y revisa la versión previa.");
+        long jobs = active().stream().map(PromoVideo::getJobId).distinct().count();
+        if (jobs >= MAX_ACTIVE_JOBS) throw ApiException.conflict("Ya hay " + MAX_ACTIVE_JOBS + " pedidos en proceso. Espera a que terminen.");
+        sendRender(v, false);
+        v.setStatus(PromoVideo.Status.RUNNING);
+        v.setDetail("Grabando la versión final");
+        return row(repo.save(v));
+    }
+
+    private void sendRender(PromoVideo v, boolean preview) {
+        if (v.getSpec() == null) throw ApiException.badRequest("Este video no tiene guion.");
+        if (!bridge.disponible()) throw ApiException.badRequest("El taller de video no está disponible en este servidor.");
+        bridge.render(v.getId(), v.getSpec(), preview);
+    }
+
+    /** MP4 de la previa en streaming (quien lo recibe lo cierra). */
+    public java.io.InputStream openPreview(Long id) {
+        PromoVideo v = callouts(id);
+        if (v.getStatus() != PromoVideo.Status.REVIEW) throw ApiException.notFound("No hay versión previa para este video.");
+        return bridge.openFile(v.getId());
+    }
+
+    public JsonNode studioAssets() {
+        if (!bridge.disponible()) return json.createArrayNode();
+        try {
+            return bridge.assets();
+        } catch (RuntimeException e) {
+            return json.createArrayNode();
+        }
     }
 
     /** Consulta al puente; al terminar sube el MP4 a Spaces y lo borra del servidor. */
@@ -152,6 +219,10 @@ public class PromoVideoService {
             String state = st.path("state").asText("");
             if ("error".equals(state)) {
                 fail(List.of(v), st.path("detail").asText("No se pudo grabar el video"));
+            } else if ("done".equals(state) && v.getStatus() == PromoVideo.Status.PREVIEWING) {
+                v.setStatus(PromoVideo.Status.REVIEW);
+                v.setDetail("Versión previa lista");
+                repo.save(v);
             } else if ("done".equals(state)) {
                 java.nio.file.Path tmp = java.nio.file.Files.createTempFile("brindix-video-", ".mp4");
                 try {
@@ -202,7 +273,9 @@ public class PromoVideoService {
     @Scheduled(fixedDelay = 8000, initialDelay = 15000)
     @Transactional
     public void poll() {
-        for (PromoVideo v : active()) if (KIND_CALLOUTS.equals(v.getKind()) && bridge.disponible()) pollBridge(v);
+        List<PromoVideo> bridged = new java.util.ArrayList<>(active());
+        bridged.addAll(repo.findByStatusIn(List.of(PromoVideo.Status.PREVIEWING)));
+        for (PromoVideo v : bridged) if (KIND_CALLOUTS.equals(v.getKind()) && bridge.disponible()) pollBridge(v);
         if (!studio.enabled()) return;
         Map<String, List<PromoVideo>> byJob = active().stream().filter(v -> !KIND_CALLOUTS.equals(v.getKind())).collect(Collectors.groupingBy(v -> v.getJobId() == null ? String.valueOf(v.getId()) : v.getJobId()));
         for (Map.Entry<String, List<PromoVideo>> e : byJob.entrySet()) {
@@ -272,8 +345,16 @@ public class PromoVideoService {
                 // guion ilegible: se muestra sin él
             }
         }
+        JsonNode spec = null;
+        if (KIND_CALLOUTS.equals(v.getKind()) && v.getSpec() != null) {
+            try {
+                spec = json.readTree(v.getSpec());
+            } catch (Exception ignored) {
+                // guion ilegible: se muestra sin él
+            }
+        }
         return new VideoRow(v.getId(), v.getJobId(), v.getKind(), v.getKindName(), v.getFormat(), v.getVoice(), v.getMusic(), v.getIdea(),
                 v.getStatus(), v.getProgress(), v.getDetail(), v.getTitle(), v.getCaption(), script,
-                v.getVideoUrl(), v.getPosterUrl(), v.getSeconds(), v.getCreatedAt(), v.getFinishedAt());
+                v.getVideoUrl(), v.getPosterUrl(), v.getSeconds(), v.getCreatedAt(), v.getFinishedAt(), spec);
     }
 }

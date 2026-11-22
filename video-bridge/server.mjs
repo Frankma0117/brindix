@@ -32,6 +32,8 @@ function specAssetsOk(spec) {
   return paths.filter(Boolean).every((p) => typeof p === 'string' && ASSET.test(p) && !p.includes('..') && existsSync(join(TALLER, 'public', p)));
 }
 
+const previews = new Set();
+
 function pump() {
   if (busy) return;
   const id = queue.shift();
@@ -39,12 +41,13 @@ function pump() {
   busy = true;
   jobs.set(id, { state: 'rendering', detail: '' });
   const props = join(TMP, `brindix-${id}.json`);
-  const cmd = `source tools/env.sh && nice -n 19 ionice -c3 npx remotion render src/index.ts Promo "${fileOf(id)}" --props="${props}" --concurrency=1 --log=error`;
+  const cmd = `source tools/env.sh && nice -n 19 ionice -c3 npx remotion render src/index.ts Promo "${fileOf(id)}" --props="${props}" --concurrency=1 --log=error${previews.has(id) ? ' --scale=0.5 --crf=32' : ''}`;
   let err = '';
   const child = spawn('bash', ['-c', cmd], { cwd: TALLER, stdio: ['ignore', 'ignore', 'pipe'] });
   child.stderr.on('data', (d) => { err = (err + d).slice(-1500); });
   const finish = (ok, detail) => {
     rmSync(props, { force: true });
+    previews.delete(id);
     jobs.set(id, ok ? { state: 'done', detail: '' } : { state: 'error', detail });
     busy = false;
     pump();
@@ -98,6 +101,7 @@ createServer(async (req, res) => {
       if (!specAssetsOk(spec)) return json(res, 400, { error: 'imágenes fuera de proyectos/brindix o inexistentes' });
       writeFileSync(join(TMP, `brindix-${id}.json`), JSON.stringify(spec));
       rmSync(fileOf(id), { force: true });
+      if (new URL(req.url, 'http://x').searchParams.get('preview') === '1') previews.add(id); else previews.delete(id);
       jobs.set(id, { state: 'queued', detail: '' });
       queue.push(id);
       pump();

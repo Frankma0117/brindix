@@ -1,0 +1,1 @@
+ALTER TABLE promo_videos ADD COLUMN spec MEDIUMTEXT NULL;

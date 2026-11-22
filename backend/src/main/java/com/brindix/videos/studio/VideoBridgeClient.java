@@ -70,9 +70,9 @@ public class VideoBridgeClient {
         }
     }
 
-    /** Envía el spec a grabar (el puente responde 202). */
-    public void render(long id, String specJson) {
-        HttpResponse<String> r = send(req("/render/" + id, Duration.ofSeconds(15)).header("Content-Type", "application/json")
+    /** Envía el spec a grabar (el puente responde 202). preview = versión rápida y liviana. */
+    public void render(long id, String specJson, boolean preview) {
+        HttpResponse<String> r = send(req("/render/" + id + (preview ? "?preview=1" : ""), Duration.ofSeconds(15)).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(specJson, StandardCharsets.UTF_8)).build(), HttpResponse.BodyHandlers.ofString());
         if (r.statusCode() == 409) throw ApiException.conflict("Este video ya se está grabando.");
         if (r.statusCode() >= 300) throw ApiException.badRequest("El grabador rechazó el video: " + errorOf(r.body(), "revisa las imágenes."));

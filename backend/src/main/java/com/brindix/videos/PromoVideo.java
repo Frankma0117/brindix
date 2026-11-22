@@ -13,7 +13,7 @@ import java.time.Instant;
 @Setter
 public class PromoVideo {
 
-    public enum Status { QUEUED, RUNNING, DONE, FAILED }
+    public enum Status { QUEUED, RUNNING, DONE, FAILED, DRAFT, PREVIEWING, REVIEW }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,6 +38,9 @@ public class PromoVideo {
     /** Guion final en JSON: [{shot, headline, say}]. */
     @Column(columnDefinition = "TEXT")
     private String script;
+    /** Guion del taller (solo recuadros) en JSON. */
+    @Column(columnDefinition = "MEDIUMTEXT")
+    private String spec;
     private String videoUrl;
     private String posterUrl;
     private Double seconds;

@@ -6,15 +6,18 @@ import { Toasts } from '../core/ui';
 import { Dialogs } from '../shared/dialogs';
 import { IconComponent } from '../shared/icon.component';
 import { MascotComponent } from '../shared/mascot.component';
+import { VideoDraftEditorComponent } from './video-draft-editor.component';
 
 type Role = 'mascot' | 'tutorial';
-type Status = 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED';
+type Status = 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED' | 'DRAFT' | 'PREVIEWING' | 'REVIEW';
 
 export interface PromoVideo {
   id: number; jobId?: string; kind: string; kindName?: string; format: 'vertical' | 'horizontal' | 'cuadrado'; voice: string; music: string; idea?: string;
   status: Status; progress: number; detail?: string; title?: string; caption?: string;
   script?: { shot: string; headline: string; say: string }[]; videoUrl?: string; posterUrl?: string; seconds?: number;
   createdAt: string; finishedAt?: string;
+  /** Guion editable (solo videos con recuadros). */
+  spec?: any;
 }
 
 interface Options {
@@ -55,7 +58,7 @@ const MUSIC_NAMES: Record<string, string> = {
 @Component({
   selector: 'bx-platform-videos',
   standalone: true,
-  imports: [FormsModule, DatePipe, IconComponent, MascotComponent],
+  imports: [FormsModule, DatePipe, IconComponent, MascotComponent, VideoDraftEditorComponent],
   template: `
   <div class="page-head">
     <div><h1>Videos y publicidad</h1><p>La copa de Brindix explica el producto sobre pantallas reales de la demo. Listos para redes, WhatsApp o una reunión.</p></div>
@@ -185,7 +188,7 @@ const MUSIC_NAMES: Record<string, string> = {
             <span class="faint">{{ activeJobs() }} pedidos en proceso · máximo 3 a la vez</span>
           </div>
           <button class="btn primary lg" [disabled]="busy() || (!o.voiceReady && kind() !== 'recuadros') || activeJobs() >= 3 || !formats().length" (click)="create()">
-            <bx-icon name="sparkles" [size]="18" /> {{ busy() ? 'Enviando…' : (formats().length > 1 ? 'Crear ' + formats().length + ' videos' : 'Crear el video') }}
+            <bx-icon name="sparkles" [size]="18" /> {{ busy() ? 'Enviando…' : (kind() === 'recuadros' ? (formats().length > 1 ? 'Crear ' + formats().length + ' borradores' : 'Crear borrador') : (formats().length > 1 ? 'Crear ' + formats().length + ' videos' : 'Crear el video')) }}
           </button>
         </div>
       </section>
@@ -211,6 +214,11 @@ const MUSIC_NAMES: Record<string, string> = {
               <bx-icon name="triangle-alert" [size]="28" />
               <p>{{ v.detail || 'No se pudo armar el video' }}</p>
             </div>
+          } @else if (v.status === 'DRAFT' || v.status === 'REVIEW') {
+            <div class="state working">
+              <bx-mascot [size]="64" mood="happy" />
+              <p>{{ v.status === 'DRAFT' ? 'Borrador: revisa el guion y graba la previa' : 'Previa lista: revísala y apruébala' }}</p>
+            </div>
           } @else {
             <div class="state working">
               <bx-mascot [size]="64" mood="happy" />
@@ -220,7 +228,7 @@ const MUSIC_NAMES: Record<string, string> = {
           }
         </div>
         <div class="vbody">
-          <h3>{{ v.title || v.kindName || kindName(v.kind) }}</h3>
+          <h3>{{ v.title || v.kindName || kindName(v.kind) }} @if (stage(v); as st) { <span class="badge">{{ st }}</span> }</h3>
           <p class="meta tiny muted">{{ v.kindName || kindName(v.kind) }} · {{ fmtName(v.format).name }} · {{ voiceName(v.voice) }} · {{ musicName(v.music) }} · {{ v.createdAt | date: 'd MMM, HH:mm' }}</p>
           @if (v.idea) { <p class="idea small">{{ v.idea }}</p> }
           <div class="actions">
@@ -231,8 +239,11 @@ const MUSIC_NAMES: Record<string, string> = {
             } @else if (v.status === 'FAILED') {
               <button class="btn sm primary" (click)="retry(v)"><bx-icon name="refresh-cw" [size]="16" /> Reintentar</button>
             }
-            <button class="btn sm ghost icon-end" (click)="remove(v)" [disabled]="v.status === 'RUNNING'" aria-label="Eliminar video"><bx-icon name="x" [size]="16" /></button>
+            <button class="btn sm ghost icon-end" (click)="remove(v)" [disabled]="v.status === 'RUNNING' && v.kind !== 'recuadros'" aria-label="Eliminar video"><bx-icon name="x" [size]="16" /></button>
           </div>
+          @if (v.kind === 'recuadros' && v.status !== 'DONE' && v.status !== 'FAILED') {
+            <bx-video-draft [video]="v" [assets]="assets()" (changed)="replace($event)" />
+          }
           @if (openScript() === v.id) {
             <div class="script">
               @if (v.caption) { <p class="caption">{{ v.caption }}</p> }
@@ -413,7 +424,9 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   busy = signal(false);
   playing = signal<number | null>(null);
   openScript = signal<number | null>(null);
-  activeCount = computed(() => this.videos().filter(v => v.status === 'QUEUED' || v.status === 'RUNNING').length);
+  activeCount = computed(() => this.videos().filter(v => v.status === 'QUEUED' || v.status === 'RUNNING' || v.status === 'PREVIEWING').length);
+  assets = signal<string[]>([]);
+  private assetsLoaded = false;
   /** Pedidos (no videos) en proceso: un clic con tres formatos es un solo pedido. */
   activeJobs = computed(() => new Set(this.videos().filter(v => v.status === 'QUEUED' || v.status === 'RUNNING').map(v => v.jobId ?? String(v.id))).size);
   playingVoice = signal<string | null>(null);
@@ -512,7 +525,38 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   }
 
   load(): void {
-    this.api.get<PromoVideo[]>('/platform/videos').subscribe({ next: v => this.videos.set(v), error: () => {} });
+    this.api.get<PromoVideo[]>('/platform/videos').subscribe({
+      next: v => {
+        this.videos.set(v);
+        if (!this.assetsLoaded && v.some(x => x.kind === 'recuadros' && (x.status === 'DRAFT' || x.status === 'PREVIEWING' || x.status === 'REVIEW'))) this.loadAssets();
+      },
+      error: () => {},
+    });
+  }
+
+  /** Imágenes del taller para las escenas: se piden una sola vez. */
+  private loadAssets(): void {
+    this.assetsLoaded = true;
+    this.api.get<{ path: string }[]>('/platform/videos/studio-assets').subscribe({
+      next: a => this.assets.set((a ?? []).map(x => x.path)),
+      error: () => { this.assetsLoaded = false; },
+    });
+  }
+
+  /** Etapa de un video con recuadros, para la etiqueta de la tarjeta. */
+  stage(v: PromoVideo): string {
+    if (v.kind !== 'recuadros') return '';
+    switch (v.status) {
+      case 'DRAFT': return 'Borrador';
+      case 'PREVIEWING': return 'Grabando previa';
+      case 'REVIEW': return 'Previa lista';
+      case 'RUNNING': return 'Grabando final';
+      default: return '';
+    }
+  }
+
+  replace(n: PromoVideo): void {
+    this.videos.update(list => list.map(x => (x.id === n.id ? n : x)));
   }
 
   ideaHint(): string {
@@ -562,6 +606,11 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
       }));
       this.videos.update(list => [...made, ...list]);
       this.idea = '';
+      if (this.kind() === 'recuadros') {
+        this.toasts.ok('Borrador creado: corrígelo y graba la versión previa.');
+        if (!this.assetsLoaded) this.loadAssets();
+        return;
+      }
       this.toasts.ok(made.length > 1 ? `El estudio empezó a armar ${made.length} videos. Tardan unos minutos.` : 'El estudio empezó a armar el video. Tarda unos minutos.');
     } catch (e) {
       this.toasts.error(errorMessage(e));
