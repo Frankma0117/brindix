@@ -4,6 +4,9 @@ import com.brindix.audit.AuditService;
 import com.brindix.cash.CashService;
 import com.brindix.cash.CashShift;
 import com.brindix.common.ApiException;
+import com.brindix.customers.Customer;
+import com.brindix.customers.CustomerRepository;
+import com.brindix.customers.CustomerService;
 import com.brindix.security.StaffPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,8 +27,13 @@ public class PaymentService {
     private final PaymentRepository payments;
     private final CashService cash;
     private final AuditService audit;
+    private final CustomerRepository customers;
+    private final CustomerService customerService;
 
-    public PaymentService(OrderService orders, RoundRepository rounds, PaymentRepository payments, CashService cash, AuditService audit) {
+    public PaymentService(OrderService orders, RoundRepository rounds, PaymentRepository payments, CashService cash, AuditService audit,
+                          CustomerRepository customers, CustomerService customerService) {
+        this.customerService = customerService;
+        this.customers = customers;
         this.orders = orders;
         this.rounds = rounds;
         this.payments = payments;
@@ -58,6 +66,13 @@ public class PaymentService {
         if (discount.compareTo(subtotal) > 0) throw ApiException.badRequest("El descuento no puede ser mayor que lo que se cobra");
         if (discount.signum() > 0 && !me.isAdmin()) throw ApiException.forbidden("Solo el administrador puede dar descuentos");
 
+        boolean credit = in.method() == PaymentMethod.CREDIT;
+        Customer debtor = null;
+        if (credit) {
+            if (in.customerId() == null) throw ApiException.badRequest("Elige el cliente al que se le fía");
+            debtor = customers.findById(in.customerId()).filter(c -> c.getVenueId().equals(me.venueId()) && !c.isArchived())
+                    .orElseThrow(() -> ApiException.badRequest("Cliente no encontrado"));
+        }
         Payment p = new Payment();
         p.setVenueId(me.venueId());
         p.setTabId(tab.getId());
@@ -69,8 +84,10 @@ public class PaymentService {
         p.setMethod(in.method());
         p.setNote(in.note() == null || in.note().isBlank() ? null : in.note().trim());
         p.setCollectedBy(me.id());
-        p.setSettled(me.isAdmin());
-        if (me.isAdmin()) {
+        p.setCustomerId(debtor == null ? null : debtor.getId());
+        // El fiado no mueve dinero: no hay nada que entregar en caja.
+        p.setSettled(me.isAdmin() || credit);
+        if (me.isAdmin() || credit) {
             p.setSettledBy(me.id());
             p.setSettledAt(Instant.now());
         }
@@ -83,7 +100,7 @@ public class PaymentService {
             }
         }
         audit.log(me, me.venueId(), "Cobró", "payment", p.getId(), "Mesa " + orders.tableName(tab) + " · " + selected.size()
-                + " ronda(s) · " + p.getTotal() + " · " + p.getMethod() + (p.isSettled() ? "" : " · pendiente de entregar en caja"));
+                + " ronda(s) · " + p.getTotal() + " · " + p.getMethod() + (debtor == null ? "" : " · " + debtor.getName()) + (p.isSettled() ? "" : " · pendiente de entregar en caja"));
         if (in.release() && OrderService.due(all).signum() == 0) {
             return orders.release(me, tab.getId());
         }
@@ -112,6 +129,10 @@ public class PaymentService {
         if (p.isVoided()) return;
         Tab tab = orders.ownedTab(me.venueId(), p.getTabId());
         if (tab.getStatus() != TabStatus.OPEN) throw ApiException.conflict("La mesa ya se liberó: no se puede anular este cobro");
+        if (p.getMethod() == PaymentMethod.CREDIT && p.getCustomerId() != null
+                && customerService.balance(p.getCustomerId()).subtract(p.getTotal()).signum() < 0) {
+            throw ApiException.conflict("El cliente ya abonó a esta deuda: anula primero sus abonos");
+        }
         p.setVoided(true);
         p.setVoidReason(reason.trim());
         for (Round r : rounds.findByPaymentIdIn(List.of(p.getId()))) r.setPaymentId(null);

@@ -38,6 +38,7 @@ export const routes: Routes = [
         loadComponent: () => import('./venue/admin/admin-shell.component').then(m => m.AdminShellComponent),
         children: [
           { path: '', loadComponent: () => import('./venue/admin/dashboard.component').then(m => m.DashboardComponent), title: 'Resumen' },
+          { path: 'fiados', loadComponent: () => import('./venue/admin/customers.component').then(m => m.CustomersComponent), title: 'Fiados' },
           { path: 'caja', loadComponent: () => import('./venue/admin/cash.component').then(m => m.CashComponent), title: 'Caja' },
           { path: 'carta', loadComponent: () => import('./venue/admin/menu-editor.component').then(m => m.MenuEditorComponent), title: 'Carta' },
           { path: 'inventario', loadComponent: () => import('./venue/admin/inventory.component').then(m => m.InventoryComponent), title: 'Inventario' },

@@ -372,7 +372,7 @@ public class OrderService {
     public OrderDtos.PaymentView paymentView(Payment p, String tableName, Map<Long, String> names) {
         return new OrderDtos.PaymentView(p.getId(), p.getTabId(), tableName, p.getSubtotal(), p.getDiscount(), p.getTip(), p.getTotal(),
                 p.getMethod(), p.getNote(), names.get(p.getCollectedBy()), p.getCollectedAt(), p.isSettled(),
-                names.get(p.getSettledBy()), p.isVoided(), p.getVoidReason());
+                names.get(p.getSettledBy()), p.isVoided(), p.getVoidReason(), p.getCustomerId());
     }
 
     public Map<Long, String> staffNames(Long venueId) {

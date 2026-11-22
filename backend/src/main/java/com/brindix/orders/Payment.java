@@ -30,6 +30,8 @@ public class Payment {
     private PaymentMethod method;
 
     private String note;
+    /** Solo con método CREDIT (fiado): quién queda debiendo. */
+    private Long customerId;
     private Long collectedBy;
     private Instant collectedAt = Instant.now();
     /** false = lo cobró un mesero y todavía no lo entrega en caja. */

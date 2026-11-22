@@ -21,7 +21,7 @@
 @if (shift(); as s) {
   <section class="grid cols-4 no-print">
     <div class="card stat glow"><span class="label">Efectivo esperado</span><span class="value">{{ s.expectedCash | money }}</span><span class="hint">en el cajón ahora</span></div>
-    <div class="card stat"><span class="label">Ventas del turno</span><span class="value">{{ s.salesTotal | money }}</span><span class="hint">{{ s.payments }} cobros · todos los medios</span></div>
+    <div class="card stat"><span class="label">Ventas del turno</span><span class="value">{{ s.salesTotal | money }}</span><span class="hint">{{ s.payments }} cobros · todos los medios</span>@if (s.creditTotal > 0) { <span class="hint">Fiado: {{ s.creditTotal | money }} (no es efectivo)</span> }</div>
     <div class="card stat"><span class="label">Propinas</span><span class="value">{{ s.tips | money }}</span></div>
     <div class="card stat" [style.border-color]="s.unsettledCount ? 'rgba(255,178,56,.5)' : ''"><span class="label">Con meseros</span><span class="value">{{ s.unsettledTotal | money }}</span><span class="hint">{{ s.unsettledCount }} cobro(s) por entregar</span></div>
   </section>
@@ -150,6 +150,7 @@
       <h3>Efectivo</h3>
       <div class="fl"><span>Base inicial</span><span>{{ r.cash.openingCash | money }}</span></div>
       <div class="fl"><span>Ventas en efectivo</span><span>{{ r.cash.cashSales | money }}</span></div>
+      @if (r.cash.creditTotal > 0) { <div class="fl muted"><span>Fiado del turno (no es efectivo)</span><span>{{ r.cash.creditTotal | money }}</span></div> }
       <div class="fl"><span>Entradas</span><span>{{ r.cash.cashIn | money }}</span></div>
       <div class="fl"><span>Salidas</span><span>− {{ r.cash.cashOut | money }}</span></div>
       <div class="fl strong"><span>Esperado</span><span>{{ r.cash.expectedCash | money }}</span></div>

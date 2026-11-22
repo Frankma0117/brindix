@@ -128,6 +128,7 @@ export class AdminShellComponent {
     { title: 'El día', links: [
       { path: '.', icon: 'chart-column', label: 'Resumen' },
       { path: 'caja', icon: 'banknote', label: 'Caja y cierre' },
+      { path: 'fiados', icon: 'hand-coins', label: 'Fiados' },
       { path: 'ventas', icon: 'chart-line', label: 'Ventas y ganancias' },
     ] },
     { title: 'El bar', links: [

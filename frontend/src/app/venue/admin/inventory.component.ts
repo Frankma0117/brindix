@@ -2,7 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Api, errorMessage } from '../../core/api.service';
-import { MOVEMENT_LABELS, Movement, MovementType, PAYMENT_LABELS, PaymentMethod, Product, StockSummary } from '../../core/models';
+import { MONEY_METHODS, MOVEMENT_LABELS, Movement, MovementType, PAYMENT_LABELS, PaymentMethod, Product, StockSummary } from '../../core/models';
 import { MoneyPipe, Toasts } from '../../core/ui';
 
 interface EntryLine { productId: number | null; quantity: number | null; unitCost: number | null; }
@@ -173,7 +173,7 @@ export class InventoryComponent implements OnInit {
   moveType = signal<MovementType | null>(null);
   labels = MOVEMENT_LABELS;
   types = Object.entries(MOVEMENT_LABELS) as [MovementType, string][];
-  methods = Object.entries(PAYMENT_LABELS) as [PaymentMethod, string][];
+  methods = MONEY_METHODS;
   busy = signal(false);
 
   entryOpen = signal(false);

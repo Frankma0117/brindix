@@ -29,5 +29,6 @@ public final class CashDtos {
     public record ShiftStatus(Long id, Instant openedAt, String openedByName, BigDecimal openingCash,
                               BigDecimal cashSales, BigDecimal cashIn, BigDecimal cashOut, BigDecimal expectedCash,
                               BigDecimal salesTotal, BigDecimal tips, int payments, int unsettledCount, BigDecimal unsettledTotal,
+                              BigDecimal creditTotal,
                               List<MovementView> movements) {}
 }

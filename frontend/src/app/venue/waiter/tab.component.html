@@ -149,10 +149,32 @@
             <label class="field"><span>Propina <button class="btn xs" type="button" (click)="suggestTip()">10%</button></span><input class="input" type="number" min="0" step="500" [(ngModel)]="tip"></label>
           </div>
           <span class="label-text">Medio de pago</span>
-          <div class="row wrap">@for (m of methods; track m[0]) { <button class="chip" [class.active]="method === m[0]" (click)="method = m[0]">{{ m[1] }}</button> }</div>
+          <div class="row wrap">@for (m of methods; track m[0]) { <button class="chip" [class.active]="method === m[0]" (click)="pickMethod(m[0])">{{ m[1] }}</button> }</div>
+          @if (method === 'CREDIT') {
+            <div class="col">
+              @if (selectedCustomer(); as c) {
+                <div class="row between"><span><b>{{ c.name }}</b> <span class="muted small">debe {{ c.balance | money }}</span></span>
+                  <button class="btn xs" type="button" (click)="customerId = null">Cambiar</button></div>
+              } @else if (newCustomer()) {
+                <div class="form-grid">
+                  <label class="field"><span>Nombre</span><input class="input" [(ngModel)]="newName" maxlength="120"></label>
+                  <label class="field"><span>Teléfono (opcional)</span><input class="input" [(ngModel)]="newPhone" maxlength="40" inputmode="tel"></label>
+                </div>
+                <div class="row"><button class="btn sm" type="button" (click)="newCustomer.set(false)">Cancelar</button>
+                  <button class="btn sm primary" type="button" [disabled]="!newName.trim()" (click)="createCustomer()">Crear cliente</button></div>
+              } @else {
+                <label class="field"><span>Cliente</span><input class="input" [(ngModel)]="customerQuery" placeholder="Buscar por nombre o teléfono"></label>
+                <div class="row wrap">
+                  @for (c of filteredCustomers(); track c.id) { <button class="chip" type="button" (click)="customerId = c.id">{{ c.name }}@if (c.balance > 0) { · {{ c.balance | money }} }</button> }
+                  <button class="chip" type="button" (click)="newCustomer.set(true)"><bx-icon name="plus" /> Nuevo cliente</button>
+                </div>
+              }
+              <p class="small muted">Queda como deuda del cliente; no entra a la caja.</p>
+            </div>
+          }
           <label class="field"><span>Nota (opcional)</span><input class="input" [(ngModel)]="note" placeholder="Ej: pagó Juan"></label>
           @if (allSelected()) { <label class="check"><input type="checkbox" [(ngModel)]="release"> Liberar la mesa al terminar</label> }
-          @if (!auth.isAdmin()) { <p class="small amber">El dinero queda a tu nombre hasta que lo entregues en caja.</p> }
+          @if (!auth.isAdmin() && method !== 'CREDIT') { <p class="small amber">El dinero queda a tu nombre hasta que lo entregues en caja.</p> }
           <div class="row between big-total"><span>Total a cobrar</span><span class="num">{{ finalTotal() | money }}</span></div>
         </div>
         <div class="modal-foot">

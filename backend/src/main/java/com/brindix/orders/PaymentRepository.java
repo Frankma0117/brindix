@@ -12,6 +12,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     List<Payment> findByTabIdOrderByCollectedAtAsc(Long tabId);
 
+    List<Payment> findByVenueIdAndMethodAndVoidedFalse(Long venueId, PaymentMethod method);
+
+    List<Payment> findByCustomerIdOrderByCollectedAtDesc(Long customerId);
+
     List<Payment> findByVenueIdAndSettledFalseAndVoidedFalseOrderByCollectedAtAsc(Long venueId);
 
     @Query("select p from Payment p where p.venueId = :venueId and p.voided = false and p.collectedAt >= :from and p.collectedAt < :to order by p.collectedAt asc")

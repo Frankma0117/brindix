@@ -23,7 +23,7 @@ public final class OrderDtos {
 
     /** roundIds vacío = cobrar todo lo pendiente de pago. release = liberar la mesa si queda todo pago. */
     public record ChargeInput(List<Long> roundIds, @DecimalMin("0") BigDecimal discount, @DecimalMin("0") BigDecimal tip,
-                              @NotNull PaymentMethod method, @Size(max = 300) String note, boolean release) {}
+                              @NotNull PaymentMethod method, Long customerId, @Size(max = 300) String note, boolean release) {}
 
     public record ReasonInput(@Size(max = 200) String reason) {}
 
@@ -48,7 +48,7 @@ public final class OrderDtos {
 
     public record PaymentView(Long id, Long tabId, String tableName, BigDecimal subtotal, BigDecimal discount, BigDecimal tip,
                               BigDecimal total, PaymentMethod method, String note, String collectedByName, Instant collectedAt,
-                              boolean settled, String settledByName, boolean voided, String voidReason) {}
+                              boolean settled, String settledByName, boolean voided, String voidReason, Long customerId) {}
 
     /** consumed = todo lo confirmado; paid = lo ya cobrado; due = lo que falta cobrar. */
     public record TabView(Long id, Long tableId, String tableName, TabStatus status, String customerName, String notes,

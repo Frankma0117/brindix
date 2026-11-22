@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Api, errorMessage } from '../../core/api.service';
-import { CASH_LABELS, CashCategory, PAYMENT_LABELS, PaymentMethod, PaymentView, ShiftReport, ShiftRow, ShiftStatus } from '../../core/models';
+import { CASH_LABELS, CashCategory, MONEY_METHODS, PAYMENT_LABELS, PaymentMethod, PaymentView, ShiftReport, ShiftRow, ShiftStatus } from '../../core/models';
 import { HourPipe, MoneyPipe, Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { IconComponent } from '../../shared/icon.component';
@@ -61,9 +61,9 @@ export class CashComponent implements OnInit {
   closingNote = '';
 
   cashLabels = CASH_LABELS;
-  categories = Object.entries(CASH_LABELS) as [CashCategory, string][];
+  categories = (Object.entries(CASH_LABELS) as [CashCategory, string][]).filter(c => c[0] !== 'CUSTOMER_PAYMENT');
   payLabels = PAYMENT_LABELS;
-  methods = Object.entries(PAYMENT_LABELS) as [PaymentMethod, string][];
+  methods = MONEY_METHODS;
 
   shift(): ShiftStatus | null {
     const s = this.state();

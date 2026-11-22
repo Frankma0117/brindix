@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, of, switchMap, timer } from 'rxjs';
 import { Api, errorMessage } from '../../core/api.service';
 import { Auth } from '../../core/auth.service';
-import { Item, MenuCategory, PAYMENT_LABELS, PaymentMethod, ROUND_LABELS, RoundView, TabView, TableBoard, WaiterOption } from '../../core/models';
+import { CustomerOption, Item, MenuCategory, PAYMENT_LABELS, PaymentMethod, ROUND_LABELS, RoundView, TabView, TableBoard, WaiterOption } from '../../core/models';
 import { AgoPipe, HourPipe, MoneyPipe, Toasts } from '../../core/ui';
 import { VenueContext } from '../../core/venue-context';
 import { PickedLine, ProductPickerComponent } from './product-picker.component';
@@ -44,6 +44,12 @@ export class TabComponent implements OnInit {
   method: PaymentMethod = 'CASH';
   note = '';
   release = true;
+  customers = signal<CustomerOption[]>([]);
+  customerId: number | null = null;
+  customerQuery = '';
+  newCustomer = signal(false);
+  newName = '';
+  newPhone = '';
   methods = Object.entries(PAYMENT_LABELS) as [PaymentMethod, string][];
   labels = PAYMENT_LABELS;
   roundLabels = ROUND_LABELS;
@@ -160,9 +166,41 @@ export class TabComponent implements OnInit {
     this.discount = 0;
     this.tip = 0;
     this.method = 'CASH';
+    this.customerId = null;
+    this.customerQuery = '';
+    this.newCustomer.set(false);
     this.note = '';
     this.release = !only;
     this.charging.set(true);
+  }
+
+  pickMethod(m: PaymentMethod): void {
+    this.method = m;
+    if (m === 'CREDIT') this.api.get<CustomerOption[]>('/staff/customers/options').subscribe(c => this.customers.set(c));
+  }
+
+  filteredCustomers(): CustomerOption[] {
+    const q = this.customerQuery.trim().toLowerCase();
+    const list = this.customers();
+    return (q ? list.filter(c => c.name.toLowerCase().includes(q) || (c.phone ?? '').includes(q)) : list).slice(0, 8);
+  }
+
+  selectedCustomer(): CustomerOption | null {
+    return this.customers().find(c => c.id === this.customerId) ?? null;
+  }
+
+  async createCustomer(): Promise<void> {
+    if (!this.newName.trim()) return;
+    try {
+      const c = await this.api.run(this.api.post<CustomerOption>('/staff/customers', { name: this.newName.trim(), phone: this.newPhone.trim() || null }));
+      this.customers.update(l => [...l, c]);
+      this.customerId = c.id;
+      this.newCustomer.set(false);
+      this.newName = '';
+      this.newPhone = '';
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    }
   }
 
   toggle(id: number): void {
@@ -183,11 +221,12 @@ export class TabComponent implements OnInit {
 
   async charge(): Promise<void> {
     if (!this.selected().size) return;
+    if (this.method === 'CREDIT' && !this.customerId) { this.toasts.error('Elige el cliente al que se le fía'); return; }
     this.busy.set(true);
     try {
       const t = await this.api.run(this.api.post<TabView>(`/staff/tabs/${this.id()}/charge`, {
         roundIds: [...this.selected()], discount: Number(this.discount) || 0, tip: Number(this.tip) || 0,
-        method: this.method, note: this.note || null, release: this.release && this.allSelected(),
+        method: this.method, customerId: this.method === 'CREDIT' ? this.customerId : null, note: this.note || null, release: this.release && this.allSelected(),
       }));
       this.charging.set(false);
       this.toasts.ok(this.auth.isAdmin() ? 'Cobro registrado' : 'Cobro registrado. Entrega el dinero en caja.');

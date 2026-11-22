@@ -4,12 +4,12 @@ export type Role = 'SUPERADMIN' | 'ADMIN' | 'WAITER';
 export type RoundStatus = 'PENDING' | 'CONFIRMED' | 'DELIVERED' | 'REJECTED';
 export type RoundSource = 'WAITER' | 'ADMIN' | 'CLIENT';
 export type TabStatus = 'OPEN' | 'CLOSED' | 'CANCELLED';
-export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'NEQUI' | 'DAVIPLATA' | 'OTHER';
+export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'NEQUI' | 'DAVIPLATA' | 'OTHER' | 'CREDIT';
 export type CallType = 'WAITER' | 'BILL';
 export type SongStatus = 'PENDING' | 'QUEUED' | 'PLAYING' | 'PLAYED' | 'REJECTED';
 export type MovementType = 'ENTRY' | 'SALE' | 'RETURN' | 'ADJUSTMENT' | 'WASTE';
 export type MusicProvider = 'MANUAL' | 'SPOTIFY' | 'YOUTUBE';
-export type CashCategory = 'BILL' | 'RESTOCK' | 'WITHDRAWAL' | 'DEPOSIT' | 'TIP_PAYOUT' | 'SALARY' | 'OTHER';
+export type CashCategory = 'BILL' | 'RESTOCK' | 'WITHDRAWAL' | 'DEPOSIT' | 'TIP_PAYOUT' | 'SALARY' | 'OTHER' | 'CUSTOMER_PAYMENT';
 
 export interface User {
   id: number; name: string; username: string; role: Role; active: boolean;
@@ -68,7 +68,7 @@ export interface RoundView {
 export interface PaymentView {
   id: number; tabId: number; tableName: string; subtotal: number; discount: number; tip: number; total: number;
   method: PaymentMethod; note?: string; collectedByName?: string; collectedAt: string; settled: boolean;
-  settledByName?: string; voided: boolean; voidReason?: string;
+  settledByName?: string; voided: boolean; voidReason?: string; customerId?: number;
 }
 
 export interface TabView {
@@ -151,7 +151,7 @@ export interface CashMovementView {
 }
 export interface ShiftStatus {
   id: number; openedAt: string; openedByName?: string; openingCash: number; cashSales: number; cashIn: number; cashOut: number;
-  expectedCash: number; salesTotal: number; tips: number; payments: number; unsettledCount: number; unsettledTotal: number;
+  expectedCash: number; salesTotal: number; tips: number; payments: number; unsettledCount: number; unsettledTotal: number; creditTotal: number;
   movements: CashMovementView[];
 }
 export interface ShiftRow {
@@ -172,8 +172,11 @@ export interface PlatformVenue {
 }
 
 export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
-  CASH: 'Efectivo', CARD: 'Tarjeta', TRANSFER: 'Transferencia', NEQUI: 'Nequi', DAVIPLATA: 'Daviplata', OTHER: 'Otro',
+  CASH: 'Efectivo', CARD: 'Tarjeta', TRANSFER: 'Transferencia', NEQUI: 'Nequi', DAVIPLATA: 'Daviplata', OTHER: 'Otro', CREDIT: 'Fiado',
 };
+
+/** Métodos con los que entra dinero de verdad (sin fiado). */
+export const MONEY_METHODS = (Object.entries(PAYMENT_LABELS) as [PaymentMethod, string][]).filter(m => m[0] !== 'CREDIT');
 
 export const MOVEMENT_LABELS: Record<MovementType, string> = {
   ENTRY: 'Entrada', SALE: 'Venta', RETURN: 'Devolución', ADJUSTMENT: 'Ajuste', WASTE: 'Merma',
@@ -181,7 +184,7 @@ export const MOVEMENT_LABELS: Record<MovementType, string> = {
 
 export const CASH_LABELS: Record<CashCategory, string> = {
   BILL: 'Pago de recibo / servicio', RESTOCK: 'Compra o reposición de mercancía', WITHDRAWAL: 'Retiro del dueño',
-  DEPOSIT: 'Ingreso de dinero', TIP_PAYOUT: 'Pago de propinas', SALARY: 'Pago a personal', OTHER: 'Otro',
+  DEPOSIT: 'Ingreso de dinero', TIP_PAYOUT: 'Pago de propinas', SALARY: 'Pago a personal', OTHER: 'Otro', CUSTOMER_PAYMENT: 'Abono de cliente',
 };
 
 export const ROUND_LABELS: Record<RoundStatus, string> = {
@@ -193,3 +196,12 @@ export const ART_OPTIONS = [
   { key: 'shot', label: 'Shot' }, { key: 'wine', label: 'Vino' }, { key: 'soft', label: 'Sin alcohol' },
   { key: 'coffee', label: 'Café' }, { key: 'food', label: 'Comida' },
 ];
+
+export interface CustomerRow { id: number; name: string; phone?: string; note?: string; balance: number; lastMovementAt?: string; }
+export interface CustomerOption { id: number; name: string; phone?: string; balance: number; }
+export interface CustomerEntry {
+  kind: 'CREDIT' | 'PAYMENT'; id: number; amount: number; method: PaymentMethod; note?: string; byName?: string;
+  at: string; voided: boolean; detail?: string;
+}
+export interface CustomerDetail { customer: CustomerRow; entries: CustomerEntry[]; }
+export interface CustomerOverview { totalOwed: number; debtors: number; customers: CustomerRow[]; }

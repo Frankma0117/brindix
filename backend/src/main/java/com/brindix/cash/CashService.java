@@ -64,6 +64,7 @@ public class CashService {
 
     @Transactional
     public CashDtos.ShiftStatus addMovement(StaffPrincipal me, CashDtos.MovementInput in) {
+        if (in.category() == CashMovement.Category.CUSTOMER_PAYMENT) throw ApiException.badRequest("Los abonos de clientes se registran en Fiados");
         CashShift s = requireOpen(me.venueId());
         record(me, s, in.direction(), in.category(), in.method(), in.amount(), in.description());
         return status(s);
@@ -93,10 +94,24 @@ public class CashService {
         CashShift s = requireOpen(me.venueId());
         CashMovement m = movements.findById(id).filter(x -> x.getShiftId().equals(s.getId()))
                 .orElseThrow(() -> ApiException.notFound("Solo se pueden borrar movimientos del turno abierto"));
+        if (m.getCategory() == CashMovement.Category.CUSTOMER_PAYMENT) throw ApiException.conflict("Este movimiento es un abono de cliente: anúlalo desde Fiados");
         movements.delete(m);
         audit.log(me, me.venueId(), "Borró movimiento de caja", "cash", s.getId(),
                 m.getDirection() + " " + m.getCategory() + " · " + m.getAmount() + " · " + m.getDescription());
         return status(s);
+    }
+
+    /** Anula un abono de cliente en efectivo: borra su entrada si es del turno abierto; si no, registra una salida. */
+    @Transactional
+    public void reverseCustomerPayment(StaffPrincipal me, Long movementId, String description, BigDecimal amount) {
+        CashShift s = requireOpen(me.venueId());
+        CashMovement m = movements.findById(movementId).orElse(null);
+        if (m != null && m.getShiftId().equals(s.getId())) {
+            movements.delete(m);
+            audit.log(me, me.venueId(), "Borró movimiento de caja", "cash", s.getId(), "IN CUSTOMER_PAYMENT · " + m.getAmount() + " · " + m.getDescription());
+        } else {
+            record(me, s, CashMovement.Direction.OUT, CashMovement.Category.CUSTOMER_PAYMENT, "CASH", amount, description);
+        }
     }
 
     @Transactional
@@ -140,6 +155,7 @@ public class CashService {
                 cashSales, cashIn, cashOut, s.getOpeningCash().add(cashSales).add(cashIn).subtract(cashOut),
                 sum(ps.stream().map(Payment::getTotal).toList()), sum(ps.stream().map(Payment::getTip).toList()), ps.size(),
                 unsettled.size(), sum(unsettled.stream().map(Payment::getTotal).toList()),
+                sum(ps.stream().filter(p -> p.getMethod() == PaymentMethod.CREDIT).map(Payment::getTotal).toList()),
                 ms.stream().map(m -> new CashDtos.MovementView(m.getId(), m.getDirection(), m.getCategory(), m.getMethod(),
                         m.getAmount(), m.getDescription(), names.get(m.getCreatedBy()), m.getCreatedAt())).toList());
     }

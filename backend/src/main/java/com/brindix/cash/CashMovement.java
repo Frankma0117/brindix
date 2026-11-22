@@ -17,7 +17,7 @@ public class CashMovement {
     public enum Direction { IN, OUT }
 
     /** BILL = pago de recibo/servicio. RESTOCK = compra o reposición de mercancía. */
-    public enum Category { BILL, RESTOCK, WITHDRAWAL, DEPOSIT, TIP_PAYOUT, SALARY, OTHER }
+    public enum Category { BILL, RESTOCK, WITHDRAWAL, DEPOSIT, TIP_PAYOUT, SALARY, OTHER, CUSTOMER_PAYMENT }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
