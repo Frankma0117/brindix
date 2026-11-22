@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY backend/package.json backend/package-lock.json backend/
-RUN npm --prefix backend ci \
+RUN npm --prefix backend ci --include=dev \
     && cd backend && npx playwright install --with-deps chromium \
     && rm -rf /var/lib/apt/lists/*
 COPY backend backend
