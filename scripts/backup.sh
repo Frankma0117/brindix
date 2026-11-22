@@ -15,10 +15,11 @@ to_spaces() {
   local ep bucket region key secret keep=7
   ep="$(env_get SPACES_ENDPOINT)"; bucket="$(env_get SPACES_BUCKET)"; region="$(env_get SPACES_REGION)"
   key="$(env_get SPACES_KEY)"; secret="$(env_get SPACES_SECRET)"
-  [ -n "$ep" ] && [ -n "$bucket" ] && [ -n "$key" ] && [ -n "$secret" ] || { echo "sin claves de Spaces: no se copia"; return 0; }
+  [ -n "$ep" ] && [ -n "$bucket" ] && [ -n "$key" ] && [ -n "$secret" ] || { echo "sin claves de Spaces: el respaldo se queda en el disco"; return 1; }
   s3() { printf 'user = "%s:%s"\n' "$key" "$secret" | curl -fsS -K - --aws-sigv4 "aws:amz:$region:s3" "$@"; }
   s3 -T "$file" "$ep/$bucket/brindix-respaldos/$(basename "$file")" > /dev/null
   echo "copiado a Spaces: brindix-respaldos/$(basename "$file")"
+  rm -f "$file"   # solo vive en Spaces; si la subida falla, el archivo se queda aquí (se limpia a los 14 días)
   local cutoff k d
   cutoff="$(date -d "$keep days ago" +%Y%m%d)"
   for k in $(s3 "$ep/$bucket?list-type=2&prefix=brindix-respaldos/" | grep -o 'brindix-respaldos/brindix-[0-9]\{8\}-[0-9]\{4\}\.sql\.gz'); do
