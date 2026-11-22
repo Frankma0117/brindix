@@ -1,6 +1,6 @@
 // Tipos que devuelve el backend de Brindix (ver backend/.../*Dtos.java).
 
-export type Role = 'SUPERADMIN' | 'ADMIN' | 'WAITER';
+export type Role = 'SUPERADMIN' | 'ADMIN' | 'WAITER' | 'BARTENDER';
 export type RoundStatus = 'PENDING' | 'CONFIRMED' | 'DELIVERED' | 'REJECTED';
 export type RoundSource = 'WAITER' | 'ADMIN' | 'CLIENT';
 export type TabStatus = 'OPEN' | 'CLOSED' | 'CANCELLED';
@@ -49,14 +49,21 @@ export interface Category { id: number; name: string; icon?: string; art?: strin
 export interface Product {
   id: number; categoryId: number; categoryName?: string; name: string; description?: string;
   price: number; cost?: number; profit?: number; marginPct?: number; imageUrl?: string; art?: string; unit: string;
-  trackStock: boolean; stock: number; minStock: number; available: boolean; featured: boolean; tags?: string;
+  trackStock: boolean; stock: number; minStock: number; available: boolean; featured: boolean; needsPrep: boolean; tags?: string;
   sortOrder: number; soldOut: boolean; lowStock: boolean;
 }
 
 export interface Item {
   id: number; productId: number; productName: string; unitPrice: number; quantity: number;
-  note?: string; voided: boolean; voidReason?: string; lineTotal: number;
+  note?: string; voided: boolean; voidReason?: string; lineTotal: number; prepStatus?: 'PENDING' | 'READY' | null;
 }
+
+export interface BarRecipeLine { ingredient: string; unit: string; quantity: number; }
+export interface BarItem {
+  id: number; roundId: number; tabId: number; tableName: string; at: string; quantity: number;
+  productName: string; note?: string; recipe: BarRecipeLine[];
+}
+export interface BarQueue { items: BarItem[]; }
 
 export interface RoundView {
   id: number; tabId: number; tableName?: string; source: RoundSource; status: RoundStatus;

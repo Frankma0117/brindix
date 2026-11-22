@@ -63,7 +63,7 @@ public class StaffService {
 
     @Transactional(readOnly = true)
     public List<StaffDtos.WaiterOption> waiters(Long venueId) {
-        return users.findByVenueIdOrderByNameAsc(venueId).stream().filter(u -> u.isActive() && !u.isArchived())
+        return users.findByVenueIdOrderByNameAsc(venueId).stream().filter(u -> u.isActive() && !u.isArchived() && u.getRole() != Role.BARTENDER)
                 .map(u -> new StaffDtos.WaiterOption(u.getId(), u.getName(), u.getRole())).toList();
     }
 

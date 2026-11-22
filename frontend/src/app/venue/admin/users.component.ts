@@ -23,6 +23,7 @@ interface UserForm { id?: number; name: string; username: string; password: stri
   <bx-reset-requests base="/admin" />
   <div class="grid cols-2 roles">
     <div class="card"><h3><bx-icon name="crown" /> Administrador</h3><p class="small muted">Todo: carta, precios y costos, inventario, caja y cierres, cobros, descuentos, modificar o anular pedidos, música, equipo y configuración. También puede atender mesas.</p></div>
+    <div class="card"><h3><bx-icon name="chef-hat" /> Bartender</h3><p class="small muted">Ve solo la cola de la barra y marca los tragos listos. En bares pequeños el administrador también prepara desde «Barra».</p></div>
     <div class="card"><h3><bx-icon name="user" /> Mesero</h3><p class="small muted">Ve las mesas y la carta, carga rondas, entrega lo que le asignan y, si lo permites en Configuración, cobra (el dinero queda a su nombre hasta entregarlo en caja). No modifica nada.</p></div>
   </div>
   <div class="table-wrap">
@@ -32,7 +33,7 @@ interface UserForm { id?: number; name: string; username: string; password: stri
         @for (u of users(); track u.id) {
           <tr>
             <td class="strong">{{ u.name }}@if (u.email) { <span class="tiny muted mail">{{ u.email }}</span> }</td><td class="muted">{{ u.username }}</td>
-            <td><span class="badge" [class.amber]="u.role === 'ADMIN'" [class.teal]="u.role === 'WAITER'">{{ u.role === 'ADMIN' ? 'Administrador' : 'Mesero' }}</span></td>
+            <td><span class="badge" [class.amber]="u.role === 'ADMIN'" [class.teal]="u.role !== 'ADMIN'">{{ u.role === 'ADMIN' ? 'Administrador' : u.role === 'BARTENDER' ? 'Bartender' : 'Mesero' }}</span></td>
             <td><span class="badge" [class.green]="u.active" [class.red]="!u.active">{{ u.active ? 'Activo' : 'Inactivo' }}</span></td>
             <td class="muted small">{{ u.lastLoginAt ? (u.lastLoginAt | date: 'd MMM, h:mm a') : 'Nunca' }}</td>
             <td class="right"><button class="btn xs" (click)="edit(u)">Editar</button></td>
@@ -53,7 +54,7 @@ interface UserForm { id?: number; name: string; username: string; password: stri
           <label class="field"><span>{{ f.id ? 'Nueva contraseña (opcional)' : 'Contraseña' }}</span><input class="input" type="password" [(ngModel)]="f.password" placeholder="Mínimo 8 caracteres"></label>
           <label class="check full"><input type="checkbox" [(ngModel)]="f.temporary"> Clave temporal (la cambia al entrar)</label>
           <div class="field full"><span>Perfil</span>
-            <div class="row"><button class="chip" [class.active]="f.role === 'WAITER'" (click)="f.role = 'WAITER'">Mesero</button><button class="chip" [class.active]="f.role === 'ADMIN'" (click)="f.role = 'ADMIN'">Administrador</button></div>
+            <div class="row"><button class="chip" [class.active]="f.role === 'WAITER'" (click)="f.role = 'WAITER'">Mesero</button><button class="chip" [class.active]="f.role === 'BARTENDER'" (click)="f.role = 'BARTENDER'">Bartender</button><button class="chip" [class.active]="f.role === 'ADMIN'" (click)="f.role = 'ADMIN'">Administrador</button></div>
           </div>
           @if (f.id) { <label class="check full"><input type="checkbox" [(ngModel)]="f.active"> Activo (si lo desactivas, pierde el acceso al instante)</label> }
         </div>

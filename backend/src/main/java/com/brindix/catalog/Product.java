@@ -32,6 +32,8 @@ public class Product {
     private int minStock;
     private boolean available = true;
     private boolean featured;
+    /** Se prepara en la barra: sus ítems entran a la cola del bartender. */
+    private boolean needsPrep;
     private String tags;
     private int sortOrder;
     /** Archivado = ya no se vende pero se conserva para el historial. */

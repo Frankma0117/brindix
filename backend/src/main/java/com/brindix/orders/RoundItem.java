@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 @Entity
 @Table(name = "round_items")
@@ -29,6 +30,11 @@ public class RoundItem {
     private String note;
     private boolean voided;
     private String voidReason;
+    /** PENDING/READY si el producto se prepara en barra; null si no. */
+    @Enumerated(EnumType.STRING)
+    private PrepStatus prepStatus;
+    private Instant preparedAt;
+    private Long preparedBy;
 
     public BigDecimal lineTotal() {
         return unitPrice.multiply(BigDecimal.valueOf(quantity));

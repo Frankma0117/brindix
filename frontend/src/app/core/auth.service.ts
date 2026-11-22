@@ -101,12 +101,14 @@ export class Auth {
     const s = this.session();
     if (!s) return '/';
     if (this.mustChange()) return `/${s.venue}/clave`;
+    if (s.user.role === 'BARTENDER') return `/${s.venue}/barra`;
     if (s.user.role !== 'ADMIN') return `/${s.venue}/mesero`;
-    return `/${s.venue}/${store.get<string>(ADMIN_HOME_KEY, 'admin') === 'mesero' ? 'mesero' : 'admin'}`;
+    const last = store.get<string>(ADMIN_HOME_KEY, 'admin');
+    return `/${s.venue}/${last === 'mesero' ? 'mesero' : last === 'barra' ? 'barra' : 'admin'}`;
   }
 
   /** En bares pequeños el administrador también atiende: al entrar vuelve a la vista que usó por última vez. */
-  rememberAdminHome(view: 'admin' | 'mesero'): void {
+  rememberAdminHome(view: 'admin' | 'mesero' | 'barra'): void {
     if (this.isAdmin()) store.set(ADMIN_HOME_KEY, view);
   }
 
@@ -223,7 +225,16 @@ export const adminGuard: CanActivateFn = route => {
   const slug = slugOf(route);
   if (!auth.inVenue(slug)) return inject(Router).parseUrl(`/${slug}/ingresar`);
   if (auth.mustChange()) return inject(Router).parseUrl(`/${slug}/clave`);
-  return auth.isAdmin() ? true : inject(Router).parseUrl(`/${slug}/mesero`);
+  return auth.isAdmin() ? true : inject(Router).parseUrl(auth.home());
+};
+
+/** Mesas: el bartender no entra (su pantalla es la barra). */
+export const waiterGuard: CanActivateFn = route => {
+  const auth = inject(Auth);
+  const slug = slugOf(route);
+  if (!auth.inVenue(slug)) return inject(Router).parseUrl(`/${slug}/ingresar`);
+  if (auth.mustChange()) return inject(Router).parseUrl(`/${slug}/clave`);
+  return auth.user()?.role === 'BARTENDER' ? inject(Router).parseUrl(`/${slug}/barra`) : true;
 };
 
 /** Pantalla de cambio de clave: solo con sesión en el bar. */

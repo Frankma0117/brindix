@@ -34,10 +34,10 @@ public final class OrderDtos {
     public record MoveInput(@NotNull Long tableId) {}
 
     public record ItemView(Long id, Long productId, String productName, BigDecimal unitPrice, int quantity,
-                           String note, boolean voided, String voidReason, BigDecimal lineTotal) {
+                           String note, boolean voided, String voidReason, BigDecimal lineTotal, PrepStatus prepStatus) {
         static ItemView of(RoundItem i) {
             return new ItemView(i.getId(), i.getProductId(), i.getProductName(), i.getUnitPrice(), i.getQuantity(),
-                    i.getNote(), i.isVoided(), i.getVoidReason(), i.lineTotal());
+                    i.getNote(), i.isVoided(), i.getVoidReason(), i.lineTotal(), i.getPrepStatus());
         }
     }
 

@@ -29,7 +29,8 @@ public final class CatalogDtos {
     public record ProductView(Long id, Long categoryId, String categoryName, String name, String description,
                               BigDecimal price, BigDecimal cost, BigDecimal profit, BigDecimal marginPct,
                               String imageUrl, String art, String unit, boolean trackStock, int stock, int minStock,
-                              boolean available, boolean featured, String tags, int sortOrder, boolean soldOut, boolean lowStock) {}
+                              boolean available, boolean featured, String tags, int sortOrder, boolean soldOut, boolean lowStock,
+                              boolean needsPrep) {}
 
     public record ProductInput(@NotNull Long categoryId,
                                @NotBlank @Size(max = 120) String name,
@@ -42,6 +43,7 @@ public final class CatalogDtos {
                                @Min(0) int minStock,
                                boolean available,
                                boolean featured,
+                               boolean needsPrep,
                                @Size(max = 200) String tags,
                                /** Solo al crear: existencias iniciales (se registran como ajuste). */
                                Integer initialStock) {}

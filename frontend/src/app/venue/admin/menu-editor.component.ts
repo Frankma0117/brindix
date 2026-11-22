@@ -11,7 +11,7 @@ import { RecipeEditorComponent } from './recipe-editor.component';
 
 interface ProductForm {
   id?: number; categoryId: number | null; name: string; description: string; price: number | null; cost: number | null;
-  imageUrl: string; unit: string; trackStock: boolean; minStock: number; available: boolean; featured: boolean;
+  imageUrl: string; unit: string; trackStock: boolean; minStock: number; available: boolean; featured: boolean; needsPrep: boolean;
   tags: string; initialStock: number | null;
 }
 interface CategoryForm { id?: number; name: string; icon: string; art: string; active: boolean; sortOrder: number; }
@@ -177,7 +177,7 @@ export class MenuEditorComponent implements OnInit {
   newProduct(categoryId?: number): void {
     this.form.set({
       categoryId: categoryId ?? this.sections()[0]?.category.id ?? null, name: '', description: '', price: null, cost: null,
-      imageUrl: '', unit: 'und', trackStock: true, minStock: 5, available: true, featured: false, tags: '', initialStock: null,
+      imageUrl: '', unit: 'und', trackStock: true, minStock: 5, available: true, featured: false, needsPrep: false, tags: '', initialStock: null,
     });
   }
 
@@ -185,7 +185,7 @@ export class MenuEditorComponent implements OnInit {
     this.form.set({
       id: p.id, categoryId: p.categoryId, name: p.name, description: p.description ?? '', price: p.price, cost: p.cost ?? null,
       imageUrl: p.imageUrl ?? '', unit: p.unit, trackStock: p.trackStock, minStock: p.minStock, available: p.available,
-      featured: p.featured, tags: p.tags ?? '', initialStock: null,
+      featured: p.featured, needsPrep: p.needsPrep, tags: p.tags ?? '', initialStock: null,
     });
   }
 

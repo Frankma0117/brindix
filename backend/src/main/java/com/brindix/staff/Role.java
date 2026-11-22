@@ -6,5 +6,7 @@ public enum Role {
     /** Administrador del bar: carta, inventario, caja, cobros, música, equipo. También puede atender mesas. */
     ADMIN,
     /** Mesero: ve la carta, carga productos a las mesas, entrega y (si el bar lo permite) cobra. */
-    WAITER
+    WAITER,
+    /** Bartender: ve la cola de preparación de la barra y marca los tragos listos. */
+    BARTENDER
 }

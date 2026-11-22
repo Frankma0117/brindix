@@ -126,6 +126,7 @@ public class CatalogService {
         p.setMinStock(in.minStock());
         p.setAvailable(in.available());
         p.setFeatured(in.featured());
+        p.setNeedsPrep(in.needsPrep());
         p.setTags(blank(in.tags()));
         p = products.save(p);
         if (isNew) {
@@ -206,7 +207,7 @@ public class CatalogService {
         return new CatalogDtos.ProductView(p.getId(), p.getCategoryId(), c == null ? null : c.getName(), p.getName(),
                 p.getDescription(), p.getPrice(), p.getCost(), profit, pct, p.getImageUrl(), c == null ? null : c.getArt(), p.getUnit(),
                 p.isTrackStock(), p.getStock(), p.getMinStock(), p.isAvailable(), p.isFeatured(), p.getTags(),
-                p.getSortOrder(), p.soldOut(), p.lowStock());
+                p.getSortOrder(), p.soldOut(), p.lowStock(), p.isNeedsPrep());
     }
 
     private static List<String> splitTags(String tags) {

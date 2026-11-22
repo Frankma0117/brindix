@@ -60,7 +60,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     .filter(u -> venues.findById(u.getVenueId()).map(v -> v.isActive()).orElse(false))
                                     .ifPresent(u -> authenticate(
                                             new StaffPrincipal(u.getId(), u.getVenueId(), u.getUsername(), "Soporte Brindix (" + p.getName() + ")", Role.ADMIN, true),
-                                            List.of(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_WAITER")))));
+                                            List.of(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_WAITER"), new SimpleGrantedAuthority("ROLE_BARTENDER")))));
                 } else {
                     staff.findById(sub.id()).filter(u -> u.isActive() && u.getTokenVersion() == sub.version())
                             .filter(u -> venues.findById(u.getVenueId()).map(v -> v.isActive()).orElse(false))
@@ -69,7 +69,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                 authenticate(
                                         new StaffPrincipal(u.getId(), u.getVenueId(), u.getUsername(), u.getName(), u.getRole(), false),
                                         u.getRole() == Role.ADMIN
-                                                ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_WAITER"))
+                                                ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_WAITER"), new SimpleGrantedAuthority("ROLE_BARTENDER"))
+                                                : u.getRole() == Role.BARTENDER
+                                                ? List.of(new SimpleGrantedAuthority("ROLE_BARTENDER"))
                                                 : List.of(new SimpleGrantedAuthority("ROLE_WAITER")));
                             });
                 }

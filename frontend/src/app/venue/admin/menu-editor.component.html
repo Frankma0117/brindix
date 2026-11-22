@@ -105,6 +105,7 @@
           </div>
           <label class="check"><input type="checkbox" [ngModel]="f.available"(ngModelChange)="setForm('available', $event)"> Visible en la carta</label>
           <label class="check"><input type="checkbox" [ngModel]="f.featured" (ngModelChange)="setForm('featured', $event)"> Recomendado de la casa</label>
+          <label class="check"><input type="checkbox" [ngModel]="f.needsPrep" (ngModelChange)="setForm('needsPrep', $event)"> Se prepara en barra</label>
         </div>
       </div>
       <div class="modal-foot">

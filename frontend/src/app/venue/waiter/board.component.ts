@@ -74,6 +74,8 @@ import { Dialogs } from '../../shared/dialogs';
             <div class="grow">
               <p class="strong">{{ r.tableName }} @if (auth.isAdmin()) { <span class="small" [class.muted]="!auth.isMe(r.assignedTo)" [class.strong]="auth.isMe(r.assignedTo)">· {{ auth.isMe(r.assignedTo) ? 'Tú' : r.assignedToName }}</span> }</p>
               <p class="small">@for (i of r.items; track i.id; let last = $last) { @if (!i.voided) { {{ i.quantity }}× {{ i.productName }}@if (!last) {, } } }</p>
+              @if (readyCount(r)) { <p class="small"><span class="badge green"><bx-icon name="circle-check" /> Listo en barra{{ pendingPrep(r) ? ' (faltan ' + pendingPrep(r) + ')' : '' }}</span></p> }
+              @else if (pendingPrep(r)) { <p class="tiny muted">En preparación en barra</p> }
             </div>
             <button class="btn sm success" (click)="deliver(r)">Entregada</button>
           </div>
@@ -231,6 +233,9 @@ export class BoardComponent implements OnInit {
       this.toasts.error(errorMessage(e));
     }
   }
+
+  readyCount(r: RoundView): number { return r.items.filter(i => !i.voided && i.prepStatus === 'READY').length; }
+  pendingPrep(r: RoundView): number { return r.items.filter(i => !i.voided && i.prepStatus === 'PENDING').length; }
 
   private apply(b: Board): void {
     const keys = [...b.pending.map(r => 'p' + r.id), ...b.inProgress.map(r => 'd' + r.id), ...b.calls.map(c => 'c' + c.id)];

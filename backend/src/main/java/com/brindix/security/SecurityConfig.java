@@ -35,6 +35,7 @@ public class SecurityConfig {
                                 "/api/spotify/callback", "/api/health").permitAll()
                         .requestMatchers("/api/platform/**").hasRole("SUPERADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/staff/bar/**").hasAnyRole("BARTENDER", "ADMIN")
                         .requestMatchers("/api/staff/**").hasRole("WAITER")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())

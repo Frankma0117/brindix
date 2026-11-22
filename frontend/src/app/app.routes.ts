@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard, passwordGuard, staffGuard } from './core/auth.service';
+import { adminGuard, passwordGuard, staffGuard, waiterGuard } from './core/auth.service';
 import { VenueShellComponent } from './core/venue-context';
 
 export const routes: Routes = [
@@ -27,12 +27,14 @@ export const routes: Routes = [
       // Pantalla del bar (TV). Con ?k=<llave> también reproduce YouTube.
       { path: 'pantalla', loadComponent: () => import('./venue/screen/screen.component').then(m => m.ScreenComponent), title: 'Pantalla' },
       {
-        path: 'mesero', canActivate: [staffGuard],
+        path: 'mesero', canActivate: [waiterGuard],
         children: [
           { path: '', loadComponent: () => import('./venue/waiter/board.component').then(m => m.BoardComponent), title: 'Mesas' },
           { path: 'cuenta/:id', loadComponent: () => import('./venue/waiter/tab.component').then(m => m.TabComponent), title: 'Cuenta' },
         ],
       },
+      // Barra: bartender o administrador.
+      { path: 'barra', canActivate: [staffGuard], loadComponent: () => import('./venue/bar/bar.component').then(m => m.BarComponent), title: 'Barra' },
       {
         path: 'admin', canActivate: [adminGuard],
         loadComponent: () => import('./venue/admin/admin-shell.component').then(m => m.AdminShellComponent),

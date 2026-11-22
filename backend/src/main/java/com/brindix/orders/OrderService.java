@@ -441,6 +441,7 @@ public class OrderService {
             item.setUnitCost(p.getCost());
             item.setQuantity(line.quantity());
             item.setNote(trim(line.note()));
+            if (p.isNeedsPrep()) item.setPrepStatus(PrepStatus.PENDING);
             round.addItem(item);
         }
         return round;
