@@ -4,6 +4,7 @@ import { Api, errorMessage } from '../../core/api.service';
 import { Banner, Product } from '../../core/models';
 import { MoneyPipe, Toasts } from '../../core/ui';
 import { Dialogs } from '../../shared/dialogs';
+import { IconComponent } from '../../shared/icon.component';
 
 interface BannerForm {
   id?: number; title: string; subtitle: string; imageUrl: string; theme: string; durationSeconds: number;
@@ -13,7 +14,7 @@ interface BannerForm {
 @Component({
   selector: 'bx-banners',
   standalone: true,
-  imports: [FormsModule, MoneyPipe],
+  imports: [FormsModule, MoneyPipe, IconComponent],
   template: `
   <div class="page-head">
     <div><h1>Publicidad</h1><p>Rotan en la pantalla del bar y arriba de la carta del cliente.</p></div>
@@ -37,7 +38,7 @@ interface BannerForm {
   @if (form(); as f) {
     <div class="backdrop" (click)="form.set(null)">
       <div class="modal wide" (click)="$event.stopPropagation()">
-        <div class="modal-head"><h2>{{ f.id ? 'Editar banner' : 'Nuevo banner' }}</h2><button class="btn icon sm" (click)="form.set(null)">✕</button></div>
+        <div class="modal-head"><h2>{{ f.id ? 'Editar banner' : 'Nuevo banner' }}</h2><button class="btn icon sm" (click)="form.set(null)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
         <div class="bprev big" [attr.data-theme]="f.theme">@if (f.imageUrl) { <img [src]="f.imageUrl" alt=""> }<div class="btext"><h3>{{ f.title || 'Título' }}</h3><p>{{ f.subtitle }}</p></div></div>
         <div class="form-grid" style="margin-top: 16px">
           <label class="field"><span>Título</span><input class="input" [(ngModel)]="f.title" maxlength="120"></label>

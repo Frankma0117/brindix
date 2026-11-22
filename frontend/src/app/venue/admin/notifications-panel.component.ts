@@ -145,7 +145,9 @@ export class NotificationsPanelComponent implements OnInit, OnDestroy {
 
   goTo(link: string): void {
     this.open.set(false);
-    this.router.navigate(link ? ['/', this.ctx.slug(), 'admin', link] : ['/', this.ctx.slug(), 'admin']);
+    // Un enlace que empieza con "/" es una ruta del bar fuera del admin (p. ej. "/mesero").
+    if (link.startsWith('/')) this.router.navigate(['/', this.ctx.slug(), link.slice(1)]);
+    else this.router.navigate(link ? ['/', this.ctx.slug(), 'admin', link] : ['/', this.ctx.slug(), 'admin']);
   }
 
   icon(type: string): IconName {

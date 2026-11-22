@@ -101,7 +101,7 @@
           <td class="nowrap muted">{{ h.closedAt ? (h.closedAt | date: 'h:mm a') : 'Abierta' }}</td>
           <td class="small muted">{{ h.openedByName }} @if (h.closedByName) { / {{ h.closedByName }} }</td>
           <td class="right num">{{ h.openingCash | money }}</td>
-          <td class="right num strong">{{ h.sales | money }}</td>
+          <td class="right num strong">{{ h.sales | money }}@if (h.creditTotal) { <br><span class="tiny muted">fiado {{ h.creditTotal | money }}</span> }</td>
           <td class="right num">{{ h.expectedCash !== undefined && h.expectedCash !== null ? (h.expectedCash | money) : '—' }}</td>
           <td class="right num">{{ h.countedCash !== undefined && h.countedCash !== null ? (h.countedCash | money) : '—' }}</td>
           <td class="right num" [class.neg]="(h.difference ?? 0) < 0" [class.pos]="(h.difference ?? 0) > 0">{{ h.difference !== undefined && h.difference !== null ? (h.difference | money) : '—' }}</td>

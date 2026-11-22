@@ -23,7 +23,7 @@ public final class CashDtos {
 
     public record ShiftRow(Long id, String status, Instant openedAt, Instant closedAt, String openedByName, String closedByName,
                            BigDecimal openingCash, BigDecimal expectedCash, BigDecimal countedCash, BigDecimal difference,
-                           BigDecimal sales) {}
+                           BigDecimal sales, BigDecimal creditTotal) {}
 
     /** Estado del turno abierto, para el tablero de caja. */
     public record ShiftStatus(Long id, Instant openedAt, String openedByName, BigDecimal openingCash,

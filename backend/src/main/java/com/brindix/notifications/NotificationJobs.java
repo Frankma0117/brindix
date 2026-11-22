@@ -11,6 +11,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import com.brindix.orders.Payment;
+import com.brindix.orders.PaymentRepository;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Objects;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -29,9 +35,11 @@ public class NotificationJobs {
     private final CashShiftRepository shifts;
     private final CustomerService customers;
     private final NotificationService notifications;
+    private final PaymentRepository payments;
 
     public NotificationJobs(VenueRepository venues, CashShiftRepository shifts, CustomerService customers,
-                            NotificationService notifications) {
+                            NotificationService notifications, PaymentRepository payments) {
+        this.payments = payments;
         this.venues = venues;
         this.shifts = shifts;
         this.customers = customers;
@@ -58,6 +66,12 @@ public class NotificationJobs {
             }
         });
         LocalDate today = LocalDate.now(ZoneId.of("America/Bogota"));
+        List<Payment> pending = payments.findByVenueIdAndSettledFalseAndVoidedFalseOrderByCollectedAtAsc(venueId);
+        if (!pending.isEmpty()) {
+            BigDecimal total = pending.stream().map(Payment::getTotal).filter(Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
+            notifications.push(venueId, "PAYMENTS_PENDING", pending.size() + " cobro(s) de meseros sin entregar en caja",
+                    "Total por recibir: " + total.stripTrailingZeros().toPlainString(), "caja", "payments-pending:" + today);
+        }
         String week = today.get(IsoFields.WEEK_BASED_YEAR) + "-" + today.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
         for (CustomerDtos.Row c : customers.staleDebtors(venueId, DEBT_DAYS)) {
             notifications.push(venueId, "DEBT_OLD", c.name() + " debe hace más de " + DEBT_DAYS + " días",

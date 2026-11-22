@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Api, errorMessage } from '../../core/api.service';
 import { MONEY_METHODS, MOVEMENT_LABELS, Movement, MovementType, PAYMENT_LABELS, PaymentMethod, Product, StockSummary } from '../../core/models';
 import { MoneyPipe, Toasts } from '../../core/ui';
+import { IconComponent } from '../../shared/icon.component';
 
 interface EntryLine { productId: number | null; quantity: number | null; unitCost: number | null; }
 
@@ -11,7 +12,7 @@ interface EntryLine { productId: number | null; quantity: number | null; unitCos
 @Component({
   selector: 'bx-inventory',
   standalone: true,
-  imports: [FormsModule, MoneyPipe, DatePipe],
+  imports: [FormsModule, MoneyPipe, DatePipe, IconComponent],
   template: `
   <div class="page-head">
     <div><h1>Inventario</h1><p>Lo que entra, lo que se vende y lo que se pierde. El costo se promedia solo con cada entrada.</p></div>
@@ -90,7 +91,7 @@ interface EntryLine { productId: number | null; quantity: number | null; unitCos
   @if (entryOpen()) {
     <div class="backdrop" (click)="entryOpen.set(false)">
       <div class="modal wide" (click)="$event.stopPropagation()">
-        <div class="modal-head"><h2>Entrada de mercancía</h2><button class="btn icon sm" (click)="entryOpen.set(false)">✕</button></div>
+        <div class="modal-head"><h2>Entrada de mercancía</h2><button class="btn icon sm" (click)="entryOpen.set(false)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
         <div class="form-grid">
           <label class="field"><span>Proveedor</span><input class="input" [(ngModel)]="supplier" placeholder="Ej: Bavaria"></label>
           <label class="field"><span>Factura / referencia</span><input class="input" [(ngModel)]="reference"></label>
@@ -105,7 +106,7 @@ interface EntryLine { productId: number | null; quantity: number | null; unitCos
               </select>
               <input class="input" type="number" min="1" [(ngModel)]="l.quantity" placeholder="0">
               <input class="input" type="number" min="0" step="100" [(ngModel)]="l.unitCost" placeholder="A cómo lo compraste">
-              <button class="btn icon sm ghost" (click)="removeLine(i)">✕</button>
+              <button class="btn icon sm ghost" (click)="removeLine(i)" aria-label="Quitar"><bx-icon name="x" /></button>
             </div>
           }
           <button class="btn sm" (click)="addLine()">＋ Otro producto</button>
@@ -129,7 +130,7 @@ interface EntryLine { productId: number | null; quantity: number | null; unitCos
   @if (adjustOpen()) {
     <div class="backdrop" (click)="adjustOpen.set(false)">
       <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal-head"><h2>Ajuste de inventario</h2><button class="btn icon sm" (click)="adjustOpen.set(false)">✕</button></div>
+        <div class="modal-head"><h2>Ajuste de inventario</h2><button class="btn icon sm" (click)="adjustOpen.set(false)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
         <div class="col">
           <div class="row wrap">
             <button class="chip" [class.active]="adjType === 'WASTE'" (click)="adjType = 'WASTE'">Merma (roto, vencido, cortesía)</button>

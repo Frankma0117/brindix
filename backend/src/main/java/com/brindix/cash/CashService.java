@@ -169,10 +169,13 @@ public class CashService {
             if (s.getClosedBy() != null) ids.add(s.getClosedBy());
         });
         Map<Long, String> names = names(ids, null);
-        return list.stream().map(s -> new CashDtos.ShiftRow(s.getId(), s.getStatus().name(), s.getOpenedAt(), s.getClosedAt(),
-                names.get(s.getOpenedBy()), names.get(s.getClosedBy()), s.getOpeningCash(), s.getExpectedCash(), s.getCountedCash(),
-                s.getDifference(), sum(payments.findByShiftIdOrderByCollectedAtAsc(s.getId()).stream().filter(p -> !p.isVoided())
-                .map(Payment::getTotal).toList()))).toList();
+        return list.stream().map(s -> {
+            List<Payment> ps = payments.findByShiftIdOrderByCollectedAtAsc(s.getId()).stream().filter(p -> !p.isVoided()).toList();
+            return new CashDtos.ShiftRow(s.getId(), s.getStatus().name(), s.getOpenedAt(), s.getClosedAt(),
+                    names.get(s.getOpenedBy()), names.get(s.getClosedBy()), s.getOpeningCash(), s.getExpectedCash(), s.getCountedCash(),
+                    s.getDifference(), sum(ps.stream().map(Payment::getTotal).toList()),
+                    sum(ps.stream().filter(p -> p.getMethod() == PaymentMethod.CREDIT).map(Payment::getTotal).toList()));
+        }).toList();
     }
 
     private Map<Long, String> names(Set<Long> ids, Long extra) {

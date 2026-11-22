@@ -313,7 +313,7 @@ public class OrderService {
         round.setNote(trim(in.note()));
         rounds.save(round);
         notifications.push(venue.getId(), "CLIENT_ORDER", "Pedido nuevo de " + table.getName(),
-                "Está pendiente de asignar a un mesero.", "", "client-round:" + round.getId());
+                "Está pendiente de asignar a un mesero.", "/mesero", "client-round:" + round.getId());
         return publicTab(table, tab);
     }
 

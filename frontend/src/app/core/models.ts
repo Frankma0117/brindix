@@ -156,7 +156,7 @@ export interface ShiftStatus {
 }
 export interface ShiftRow {
   id: number; status: string; openedAt: string; closedAt?: string; openedByName?: string; closedByName?: string;
-  openingCash: number; expectedCash?: number; countedCash?: number; difference?: number; sales: number;
+  openingCash: number; expectedCash?: number; countedCash?: number; difference?: number; sales: number; creditTotal?: number;
 }
 export interface AuditView { id: number; userName?: string; action: string; entity: string; entityId?: number; details?: string; createdAt: string; }
 export interface ShiftReport {
