@@ -1,6 +1,11 @@
 package com.brindix.videos;
 
 import com.brindix.common.ApiException;
+import com.brindix.uploads.StorageService;
+import com.brindix.videos.studio.VideoBridgeClient;
+import com.brindix.videos.studio.VideoSpecValidator;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotBlank;
@@ -36,12 +41,20 @@ public class PromoVideoService {
     private final PromoVideoRepository repo;
     private final StudioClient studio;
     private final ObjectMapper json;
+    private final VideoBridgeClient bridge;
+    private final StorageService storage;
 
-    public PromoVideoService(PromoVideoRepository repo, StudioClient studio, ObjectMapper json) {
+    public PromoVideoService(PromoVideoRepository repo, StudioClient studio, ObjectMapper json, VideoBridgeClient bridge, StorageService storage) {
         this.repo = repo;
         this.studio = studio;
         this.json = json;
+        this.bridge = bridge;
+        this.storage = storage;
     }
+
+    /** Tipo de video con recuadros y mascota de cuerpo entero: lo graba el taller Remotion del servidor (sin voz). */
+    public static final String KIND_CALLOUTS = "recuadros";
+    private static final Map<String, String> BRIDGE_FORMAT = Map.of("vertical", "9x16", "horizontal", "16x9", "cuadrado", "1x1");
 
     public record VideoRow(Long id, String jobId, String kind, String kindName, String format, String voice, String music, String idea,
                            PromoVideo.Status status, int progress, String detail, String title, String caption, JsonNode script,
@@ -54,11 +67,16 @@ public class PromoVideoService {
                               @Size(max = 600) String idea) {}
 
     public JsonNode options() {
-        return studio.options();
+        JsonNode o = studio.options();
+        if (bridge.disponible() && o instanceof ObjectNode on && on.path("kinds") instanceof ArrayNode kinds) {
+            kinds.addObject().put("key", KIND_CALLOUTS).put("name", "Con recuadros y mascota")
+                    .put("about", "Imágenes de la demo con recuadros que explican y la copa de cuerpo entero señalando. Sin voz.").put("seconds", 25);
+        }
+        return o;
     }
 
     public boolean enabled() {
-        return studio.enabled();
+        return studio.enabled() || bridge.disponible();
     }
 
     public JsonNode voiceSample(String key) {
@@ -79,6 +97,8 @@ public class PromoVideoService {
     public List<VideoRow> create(Long by, VideoCreate in) {
         List<String> formats = in.formats().stream().filter(FORMATS::contains).collect(Collectors.toCollection(LinkedHashSet::new)).stream().toList();
         if (formats.isEmpty()) throw ApiException.badRequest("Elige al menos un formato");
+        boolean callouts = KIND_CALLOUTS.equals(in.kind());
+        if (callouts && !bridge.disponible()) throw ApiException.badRequest("El taller de video no está disponible en este servidor.");
         long jobs = active().stream().map(PromoVideo::getJobId).distinct().count();
         if (jobs >= MAX_ACTIVE_JOBS) throw ApiException.conflict("Ya hay " + MAX_ACTIVE_JOBS + " pedidos en proceso. Espera a que terminen.");
         PromoVideo first = null;
@@ -102,14 +122,69 @@ public class PromoVideoService {
             rows.add(repo.save(v));
         }
         repo.flush();
-        studio.submit(first.getJobId(), first, formats);
+        if (callouts) {
+            for (PromoVideo v : rows) submitBridge(v);
+        } else {
+            studio.submit(first.getJobId(), first, formats);
+        }
         return rows.stream().map(this::row).toList();
+    }
+
+    /** Arma el guion (plantilla de marca; la idea es el subtítulo de la intro) y lo manda a grabar al puente. */
+    private void submitBridge(PromoVideo v) {
+        ObjectNode spec = VideoSpecValidator.brindixTemplate();
+        spec.put("format", BRIDGE_FORMAT.get(v.getFormat()));
+        if (v.getIdea() != null) spec.with("intro").put("sub", v.getIdea().length() > 90 ? v.getIdea().substring(0, 90) : v.getIdea());
+        try {
+            bridge.render(v.getId(), VideoSpecValidator.parse(spec).toString());
+            v.setStatus(PromoVideo.Status.RUNNING);
+            v.setDetail("Grabando con recuadros y mascota");
+        } catch (RuntimeException e) {
+            fail(List.of(v), e.getMessage() == null ? "El grabador no respondió" : e.getMessage());
+        }
+        repo.save(v);
+    }
+
+    /** Consulta al puente; al terminar sube el MP4 a Spaces y lo borra del servidor. */
+    private void pollBridge(PromoVideo v) {
+        try {
+            JsonNode st = bridge.status(v.getId());
+            String state = st.path("state").asText("");
+            if ("error".equals(state)) {
+                fail(List.of(v), st.path("detail").asText("No se pudo grabar el video"));
+            } else if ("done".equals(state)) {
+                java.nio.file.Path tmp = java.nio.file.Files.createTempFile("brindix-video-", ".mp4");
+                try {
+                    bridge.downloadFile(v.getId(), tmp);
+                    v.setVideoUrl(storage.saveVideo("videos", "video-" + v.getId() + "-" + System.currentTimeMillis() + ".mp4", tmp));
+                } finally {
+                    java.nio.file.Files.deleteIfExists(tmp);
+                }
+                try { bridge.deleteFile(v.getId()); } catch (RuntimeException ignored) { }
+                v.setStatus(PromoVideo.Status.DONE);
+                v.setProgress(100);
+                v.setDetail("Listo");
+                v.setTitle("Brindix con recuadros");
+                v.setKindName("Con recuadros y mascota");
+                v.setFinishedAt(Instant.now());
+                repo.save(v);
+            } else if (v.getCreatedAt().plus(MAX_RUN).isBefore(Instant.now())) {
+                fail(List.of(v), "Tardó demasiado y se canceló.");
+            }
+        } catch (Exception e) {
+            log.warn("Video {}: no se pudo consultar el grabador: {}", v.getId(), e.getMessage());
+            if (v.getCreatedAt().plus(MAX_RUN).isBefore(Instant.now())) fail(List.of(v), "El grabador no respondió. Vuelve a intentarlo.");
+        }
     }
 
     @Transactional
     public void delete(Long id) {
         PromoVideo v = repo.findById(id).orElseThrow(() -> ApiException.notFound("Ese video no existe"));
-        if (v.getJobId() != null) studio.delete(v.getJobId(), v.getFormat());
+        if (KIND_CALLOUTS.equals(v.getKind())) {
+            if (bridge.disponible() && v.getStatus() != PromoVideo.Status.DONE) {
+                try { bridge.deleteFile(v.getId()); } catch (RuntimeException ignored) { }
+            }
+        } else if (v.getJobId() != null) studio.delete(v.getJobId(), v.getFormat());
         repo.delete(v);
     }
 
@@ -127,8 +202,9 @@ public class PromoVideoService {
     @Scheduled(fixedDelay = 8000, initialDelay = 15000)
     @Transactional
     public void poll() {
+        for (PromoVideo v : active()) if (KIND_CALLOUTS.equals(v.getKind()) && bridge.disponible()) pollBridge(v);
         if (!studio.enabled()) return;
-        Map<String, List<PromoVideo>> byJob = active().stream().collect(Collectors.groupingBy(v -> v.getJobId() == null ? String.valueOf(v.getId()) : v.getJobId()));
+        Map<String, List<PromoVideo>> byJob = active().stream().filter(v -> !KIND_CALLOUTS.equals(v.getKind())).collect(Collectors.groupingBy(v -> v.getJobId() == null ? String.valueOf(v.getId()) : v.getJobId()));
         for (Map.Entry<String, List<PromoVideo>> e : byJob.entrySet()) {
             List<PromoVideo> rows = e.getValue();
             Instant created = rows.get(0).getCreatedAt();

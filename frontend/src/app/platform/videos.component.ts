@@ -101,6 +101,7 @@ const MUSIC_NAMES: Record<string, string> = {
             </div>
           </li>
 
+          @if (kind() !== 'recuadros') {
           <li class="step">
             <div class="step-head"><span class="num">3</span><h3>Música</h3><span class="hint">{{ musicName(music()) }}</span></div>
             <div class="mgroups">
@@ -169,6 +170,7 @@ const MUSIC_NAMES: Record<string, string> = {
               @if (isSaved(pr)) { <button type="button" class="chip" (click)="cancelEdit(pr)">Cancelar</button> }</p>
             }
           </li>
+          }
 
           <li class="step">
             <div class="step-head"><span class="num">5</span><h3>Idea o enfoque</h3><span class="hint">Opcional</span></div>
@@ -182,7 +184,7 @@ const MUSIC_NAMES: Record<string, string> = {
             <span>{{ summaryLine() }}</span>
             <span class="faint">{{ activeJobs() }} pedidos en proceso · máximo 3 a la vez</span>
           </div>
-          <button class="btn primary lg" [disabled]="busy() || !o.voiceReady || activeJobs() >= 3 || !formats().length" (click)="create()">
+          <button class="btn primary lg" [disabled]="busy() || (!o.voiceReady && kind() !== 'recuadros') || activeJobs() >= 3 || !formats().length" (click)="create()">
             <bx-icon name="sparkles" [size]="18" /> {{ busy() ? 'Enviando…' : (formats().length > 1 ? 'Crear ' + formats().length + ' videos' : 'Crear el video') }}
           </button>
         </div>
@@ -404,7 +406,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
     return `${kind} · ${n === 1 ? '1 video' : n + ' videos'}`;
   });
   summaryLine = computed(() =>
-    [this.formats().map(f => this.fmtName(f).name).join(', ') || 'Elige al menos un formato', this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : '']
+    [this.formats().map(f => this.fmtName(f).name).join(', ') || 'Elige al menos un formato', ...(this.kind() === 'recuadros' ? ['recuadros y mascota, sin voz'] : [this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : ''])]
       .filter(Boolean).join(' · '));
   music = signal('fiesta');
   idea = '';
@@ -516,6 +518,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   ideaHint(): string {
     switch (this.kind()) {
       case 'anuncio': return 'Ej.: para bares de Bogotá que todavía anotan en papel; resalta las rondas por tandas y la caja cuadrada';
+      case 'recuadros': return 'Ej.: el subtítulo de la intro, p. ej. «Tu bar, en el celular» (máx. 90 letras)';
       case 'funcion': return 'Ej.: la música a pedido: el cliente pone su canción desde la mesa y el TV muestra lo que suena';
       default: return 'Ej.: paso a paso, con calma, para alguien que nunca ha usado un sistema';
     }
