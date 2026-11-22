@@ -205,3 +205,7 @@ export interface CustomerEntry {
 }
 export interface CustomerDetail { customer: CustomerRow; entries: CustomerEntry[]; }
 export interface CustomerOverview { totalOwed: number; debtors: number; customers: CustomerRow[]; }
+
+export interface AppNotification { id: number; type: string; title: string; body?: string; link?: string; createdAt: string; read: boolean; }
+export interface NotificationFeed { unread: number; items: AppNotification[]; }
+export interface SetupItem { key: string; title: string; hint: string; link: string; done: boolean; }

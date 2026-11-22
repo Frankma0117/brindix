@@ -8,11 +8,12 @@ import { AlertToggleComponent } from '../../core/staff-alerts';
 import { IconComponent } from '../../shared/icon.component';
 import { IconName } from '../../shared/icons';
 import { BarSwitcherComponent } from '../../shared/bar-switcher.component';
+import { NotificationsPanelComponent } from './notifications-panel.component';
 
 @Component({
   selector: 'bx-admin-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MascotComponent, ThemeToggleComponent, IconComponent, AlertToggleComponent, BarSwitcherComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MascotComponent, ThemeToggleComponent, IconComponent, AlertToggleComponent, BarSwitcherComponent, NotificationsPanelComponent],
   template: `
   @if (auth.isSupport()) {
     <div class="support-bar"><bx-icon name="life-buoy" /> Modo soporte: estás dentro de <b>{{ ctx.name() }}</b> como administrador. Todo queda en la bitácora.
@@ -47,6 +48,7 @@ import { BarSwitcherComponent } from '../../shared/bar-switcher.component';
         <a [href]="'/' + ctx.slug() + '/pantalla'" target="_blank" class="btn block sm"><bx-icon name="tv" /> Ver pantalla</a>
         <div class="me">
           <div class="grow"><p class="strong small ellipsis">{{ auth.user()?.name }}</p><p class="tiny muted">{{ auth.isSupport() ? 'Soporte Brindix' : 'Administrador' }}</p></div>
+          <bx-notifications-panel />
           <bx-alert-toggle />
           <bx-theme-toggle />
         </div>
@@ -58,7 +60,7 @@ import { BarSwitcherComponent } from '../../shared/bar-switcher.component';
       <header class="mobile-top">
         <button class="btn icon sm" (click)="menu.set(true)" aria-label="Menú"><bx-icon name="menu" /></button>
         <span class="strong ellipsis">{{ ctx.name() }}</span>
-        <div class="row"><bx-alert-toggle /><bx-theme-toggle /><a [routerLink]="'/' + ctx.slug() + '/mesero'" class="btn sm">Mesas</a></div>
+        <div class="row"><bx-notifications-panel /><bx-alert-toggle /><bx-theme-toggle /><a [routerLink]="'/' + ctx.slug() + '/mesero'" class="btn sm">Mesas</a></div>
       </header>
       <div class="content"><router-outlet /></div>
     </div>

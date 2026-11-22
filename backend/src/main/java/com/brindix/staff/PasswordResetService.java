@@ -49,10 +49,13 @@ public class PasswordResetService {
     private final AuditService audit;
     private final MailService mail;
     private final com.brindix.common.AppProperties props;
+    private final com.brindix.notifications.NotificationService notifications;
 
     public PasswordResetService(PasswordResetRepository resets, StaffUserRepository users, VenueService venues,
                                 VenueRepository venueRepo, PasswordEncoder encoder, LoginGuard guard, AuditService audit,
-                                MailService mail, com.brindix.common.AppProperties props) {
+                                MailService mail, com.brindix.common.AppProperties props,
+                                com.brindix.notifications.NotificationService notifications) {
+        this.notifications = notifications;
         this.resets = resets;
         this.users = users;
         this.venues = venues;
@@ -107,6 +110,8 @@ public class PasswordResetService {
             return;
         }
         audit.log(as(u), venue.getId(), "Pidió recuperar su contraseña", "user", u.getId(), "Desde " + ip);
+        notifications.push(venue.getId(), "PASSWORD_RESET", u.getName() + " pide recuperar su clave",
+                "Apruébala en Equipo si confirmas que es esa persona.", "equipo", "pwd-reset:" + r.getId());
         // Sin correo: avisar a quienes pueden aprobar (otros administradores del bar y Brindix).
         List<String> to = new java.util.ArrayList<>(users.findByVenueIdAndRoleOrderByIdAsc(venue.getId(), Role.ADMIN).stream()
                 .filter(a -> a.isActive() && !a.getId().equals(u.getId()) && a.getEmail() != null).map(StaffUser::getEmail).toList());

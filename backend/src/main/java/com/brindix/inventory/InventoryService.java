@@ -29,9 +29,11 @@ public class InventoryService {
     private final StaffUserRepository users;
     private final CashService cash;
     private final AuditService audit;
+    private final com.brindix.notifications.NotificationService notifications;
 
     public InventoryService(StockMovementRepository movements, ProductRepository products, StaffUserRepository users,
-                            CashService cash, AuditService audit) {
+                            CashService cash, AuditService audit, com.brindix.notifications.NotificationService notifications) {
+        this.notifications = notifications;
         this.movements = movements;
         this.products = products;
         this.users = users;
@@ -44,7 +46,13 @@ public class InventoryService {
     public void move(Product p, MovementType type, int quantity, BigDecimal unitCost, String supplier,
                      String reference, String note, Long userId, Long tabId) {
         if (!p.isTrackStock() || quantity == 0) return;
+        boolean wasOk = p.getStock() > p.getMinStock();
         p.setStock(p.getStock() + quantity);
+        if (wasOk && p.getStock() <= p.getMinStock()) {
+            notifications.push(p.getVenueId(), "LOW_STOCK", p.getName() + " bajó del stock mínimo",
+                    "Quedan " + p.getStock() + " (mínimo " + p.getMinStock() + ").", "inventario",
+                    "low-stock:" + p.getId() + ":" + System.currentTimeMillis());
+        }
         StockMovement m = new StockMovement();
         m.setVenueId(p.getVenueId());
         m.setProductId(p.getId());

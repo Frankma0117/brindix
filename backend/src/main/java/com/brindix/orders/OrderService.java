@@ -49,11 +49,14 @@ public class OrderService {
     private final VenueService venues;
     private final CashService cash;
     private final AuditService audit;
+    private final com.brindix.notifications.NotificationService notifications;
 
     public OrderService(TabRepository tabs, RoundRepository rounds, RoundItemRepository items, PaymentRepository payments,
                         ServiceCallRepository calls, ProductRepository products, BarTableRepository tables,
                         StaffUserRepository users, TableService tableService, InventoryService inventory,
-                        VenueService venues, CashService cash, AuditService audit) {
+                        VenueService venues, CashService cash, AuditService audit,
+                        com.brindix.notifications.NotificationService notifications) {
+        this.notifications = notifications;
         this.tabs = tabs;
         this.rounds = rounds;
         this.items = items;
@@ -309,6 +312,8 @@ public class OrderService {
         round.setClientName(trim(in.clientName()));
         round.setNote(trim(in.note()));
         rounds.save(round);
+        notifications.push(venue.getId(), "CLIENT_ORDER", "Pedido nuevo de " + table.getName(),
+                "Está pendiente de asignar a un mesero.", "", "client-round:" + round.getId());
         return publicTab(table, tab);
     }
 

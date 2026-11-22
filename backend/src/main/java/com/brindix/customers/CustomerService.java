@@ -55,6 +55,14 @@ public class CustomerService {
         return new CustomerDtos.Overview(total, debtors, rows);
     }
 
+    /** Clientes con saldo pendiente cuyo último movimiento (fiado o abono) fue hace más de {@code days} días. */
+    @Transactional(readOnly = true)
+    public List<CustomerDtos.Row> staleDebtors(Long venueId, int days) {
+        Instant cutoff = Instant.now().minus(java.time.Duration.ofDays(days));
+        return rows(venueId).stream().filter(r -> r.balance().signum() > 0
+                && r.lastMovementAt() != null && r.lastMovementAt().isBefore(cutoff)).toList();
+    }
+
     @Transactional(readOnly = true)
     public List<CustomerDtos.Option> options(Long venueId) {
         return rows(venueId).stream().map(r -> new CustomerDtos.Option(r.id(), r.name(), r.phone(), r.balance())).toList();
