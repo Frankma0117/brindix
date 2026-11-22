@@ -50,12 +50,15 @@ public class OrderService {
     private final CashService cash;
     private final AuditService audit;
     private final com.brindix.notifications.NotificationService notifications;
+    private final com.brindix.recipes.IngredientService recipes;
 
     public OrderService(TabRepository tabs, RoundRepository rounds, RoundItemRepository items, PaymentRepository payments,
                         ServiceCallRepository calls, ProductRepository products, BarTableRepository tables,
                         StaffUserRepository users, TableService tableService, InventoryService inventory,
                         VenueService venues, CashService cash, AuditService audit,
-                        com.brindix.notifications.NotificationService notifications) {
+                        com.brindix.notifications.NotificationService notifications,
+                        com.brindix.recipes.IngredientService recipes) {
+        this.recipes = recipes;
         this.notifications = notifications;
         this.tabs = tabs;
         this.rounds = rounds;
@@ -217,6 +220,7 @@ public class OrderService {
         if (round.getStatus().counts()) {
             products.findById(item.getProductId()).ifPresent(p -> inventory.move(p, delta > 0 ? MovementType.SALE : MovementType.RETURN,
                     -delta, p.getCost(), null, "Cuenta #" + tab.getId(), "Cambio de cantidad: " + in.reason(), me.id(), tab.getId()));
+            recipes.consumeForProduct(item.getProductId(), delta, tab.getId(), me.id(), "Cambio de cantidad · cuenta #" + tab.getId());
         }
         audit.log(me, me.venueId(), "Cambió cantidad", "round", round.getId(),
                 "Mesa " + tableName(tab) + " · " + item.getProductName() + ": " + item.getQuantity() + " → " + in.quantity() + " · " + in.reason());
@@ -237,6 +241,7 @@ public class OrderService {
             products.findById(item.getProductId()).ifPresent(p ->
                     inventory.move(p, MovementType.RETURN, item.getQuantity(), p.getCost(), null,
                             "Cuenta #" + tab.getId(), "Anulado: " + trim(reason), me.id(), tab.getId()));
+            recipes.consumeForProduct(item.getProductId(), -item.getQuantity(), tab.getId(), me.id(), "Anulado · cuenta #" + tab.getId());
         }
         audit.log(me, me.venueId(), "Anuló producto", "round", round.getId(),
                 "Mesa " + tableName(tab) + " · " + item.getQuantity() + " × " + item.getProductName() + " · " + reason);
@@ -450,6 +455,7 @@ public class OrderService {
             if (p == null) continue;
             if (i.getUnitCost() == null) i.setUnitCost(p.getCost());
             inventory.move(p, MovementType.SALE, -i.getQuantity(), p.getCost(), null, "Cuenta #" + tab.getId(), null, userId, tab.getId());
+            recipes.consumeForProduct(p.getId(), i.getQuantity(), tab.getId(), userId, "Cuenta #" + tab.getId());
         }
     }
 

@@ -137,6 +137,10 @@ public final class VideoSpecValidator {
         return "proyectos/brindix/imagenes/frontend_public_demo-assets_" + name;
     }
 
+    private static String cap(String name) {
+        return "proyectos/brindix/capturas/" + name + ".jpg";
+    }
+
     private static ObjectNode scene(String image, String title, String sub, int[][] pos, String[] texts, String pose, String side) {
         ObjectNode o = MAPPER.createObjectNode();
         o.put("image", image);
@@ -158,24 +162,32 @@ public final class VideoSpecValidator {
         t.put("guide", true);
         t.putObject("intro").put("title", "Brindix").put("sub", "Carta, pedidos y cuenta de tu bar en el celular");
         ArrayNode s = t.putArray("scenes");
-        s.add(scene(img("michelada-m.jpg"), "Tu carta digital, con un QR", "El cliente la abre sin descargar nada",
-                new int[][]{{50, 22}, {50, 55}, {50, 82}},
-                new String[]{"Escanea el QR de la mesa", "Fotos que antojan", "Precios siempre al día"}, "wave", "right"));
-        s.add(scene(img("barra.jpg"), "Pide directo a la barra", "Sin filas ni gritos",
-                new int[][]{{50, 35}, {50, 70}},
-                new String[]{"Elige y agrega a tu pedido", "Llega a la barra al instante"}, "point", "left"));
-        s.add(scene(img("mojito-s.jpg"), "El mesero recibe todo", "Cada mesa, su pedido en pantalla",
-                new int[][]{{50, 30}, {50, 60}, {50, 85}},
-                new String[]{"Aviso en su celular", "Sabe qué mesa pidió", "Menos errores, más rapidez"}, "celebrate", "right"));
-        s.add(scene(img("shots-m.jpg"), "Cuenta y propina claras", "Todo queda registrado",
-                new int[][]{{50, 30}, {50, 70}},
-                new String[]{"Cuenta por mesa al día", "Propina sugerida en un toque"}, "wave", "left"));
-        s.add(scene(img("picada-s.jpg"), "Combos y promos que venden", "Destaca lo que más quieres vender",
-                new int[][]{{50, 35}, {50, 75}},
-                new String[]{"Resalta tus mejores platos", "Cambia la carta en segundos"}, "point", "right"));
-        s.add(scene(img("club-dorada-s.jpg"), "Tu panel de dueño", "Controla el bar desde donde estés",
-                new int[][]{{50, 25}, {50, 55}, {50, 82}},
-                new String[]{"Ventas del día en vivo", "Pedidos y propinas por mesero", "Todo desde tu celular"}, "celebrate", "left"));
+        // Capturas reales de la app demo (candela brava); viven en el taller: proyectos/brindix/capturas/
+        // (las genera video-bridge/taller-src/capturas-brindix.mjs). Los (x, y) son % del recuadro del teléfono.
+        s.add(scene(cap("cliente-carta"), "Escanea el QR y ve la carta", "Sin descargar nada",
+                new int[][]{{50, 20}, {50, 37}, {50, 66}},
+                new String[]{"Promos del día en la portada", "Busca por nombre o categoría", "Recomendados de la casa"}, "wave", "right"));
+        s.add(scene(cap("cliente-carrito"), "Arma y envía el pedido", "Desde la mesa, sin esperar",
+                new int[][]{{81, 38}, {82, 84}, {50, 91}},
+                new String[]{"Ajusta cantidades con + y -", "El total se actualiza al instante", "Envía: el bar lo confirma"}, "point", "left"));
+        s.add(scene(cap("mesero-mesas"), "El mesero ve todas las mesas", "Ocupadas y libres de un vistazo",
+                new int[][]{{87, 11}, {18, 23}, {18, 41}},
+                new String[]{"Cuántas mesas hay ocupadas", "Cada mesa muestra su consumo", "Abre una mesa libre con +"}, "point", "right"));
+        s.add(scene(cap("mesero-cuenta"), "La cuenta por mesa, clara", "Rondas, pagos y lo que falta",
+                new int[][]{{50, 19}, {77, 43}, {50, 95}},
+                new String[]{"Consumo, pagado y por cobrar", "Cobra cada ronda entregada", "Suma pedidos o cobra la mesa"}, "celebrate", "left"));
+        s.add(scene(cap("admin-resumen"), "Tu panel de dueño", "El bar de un vistazo",
+                new int[][]{{25, 20}, {50, 33}, {50, 46}},
+                new String[]{"Atiende las mesas desde aquí", "Mesas abiertas y pedidos pendientes", "Efectivo esperado en caja"}, "wave", "right"));
+        s.add(scene(cap("admin-carta"), "Edita tu carta en segundos", "Precios, costos y fotos",
+                new int[][]{{55, 25}, {50, 36}, {50, 78}},
+                new String[]{"Agrega productos y categorías", "Margen promedio de tu carta", "Precio y existencias por producto"}, "point", "left"));
+        s.add(scene(cap("admin-ventas"), "Ventas y ganancia reales", "Calculadas con el costo de cada producto",
+                new int[][]{{50, 35}, {25, 59}, {50, 82}},
+                new String[]{"Filtra por hoy, 7 o 30 días", "Ganancia y margen del periodo", "Ventas por día en una gráfica"}, "celebrate", "right"));
+        s.add(scene(cap("admin-mesas-qr"), "Un QR para cada mesa", "Imprímelos y listo",
+                new int[][]{{25, 22}, {25, 37}, {75, 40}},
+                new String[]{"Imprime todos los QR de una vez", "El cliente escanea y ve la carta", "Genera un código nuevo si lo necesitas"}, "wave", "left"));
         t.putObject("outro").put("title", "Lleva tu bar al siguiente nivel").put("cta", "Pruébalo en tu bar");
         return t;
     }

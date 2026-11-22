@@ -11,7 +11,7 @@ class VideoSpecValidatorTest {
     @Test
     void templateIsValid() {
         ObjectNode spec = VideoSpecValidator.parse(VideoSpecValidator.brindixTemplate());
-        assertEquals(6, spec.path("scenes").size());
+        assertEquals(8, spec.path("scenes").size());
         assertTrue(spec.path("guide").asBoolean());
         ObjectNode off = VideoSpecValidator.brindixTemplate();
         off.remove("guide");
