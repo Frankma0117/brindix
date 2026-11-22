@@ -47,6 +47,11 @@ public class PlatformController {
         return Map.of("token", service.changePassword(CurrentUser.get(), in));
     }
 
+    @PostMapping("/api/platform/username")
+    public Map<String, String> changeUsername(@Valid @RequestBody StaffDtos.UsernameChange in) {
+        return Map.of("username", service.changeUsername(CurrentUser.get(), in));
+    }
+
     /** Estado del correo saliente (para el panel de la plataforma). */
     @GetMapping("/api/platform/mail")
     public Map<String, Object> mailStatus() {

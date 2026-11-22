@@ -9,7 +9,7 @@ import { IconComponent } from '../../shared/icon.component';
 import { ResetRequestsComponent } from '../../shared/reset-requests.component';
 import { Dialogs } from '../../shared/dialogs';
 
-interface UserForm { id?: number; name: string; username: string; password: string; role: Role; active: boolean; email: string; }
+interface UserForm { id?: number; name: string; username: string; password: string; role: Role; active: boolean; email: string; temporary: boolean; }
 
 @Component({
   selector: 'bx-users',
@@ -48,9 +48,10 @@ interface UserForm { id?: number; name: string; username: string; password: stri
         <div class="modal-head"><h2>{{ f.id ? 'Editar usuario' : 'Nuevo usuario' }}</h2><button class="btn icon sm" (click)="form.set(null)" aria-label="Cerrar"><bx-icon name="x" /></button></div>
         <div class="form-grid">
           <label class="field full"><span>Nombre</span><input class="input" [(ngModel)]="f.name"></label>
-          <label class="field"><span>Usuario</span><input class="input" [(ngModel)]="f.username" [disabled]="!!f.id" autocapitalize="none"></label>
+          <label class="field"><span>Usuario</span><input class="input" [(ngModel)]="f.username" autocapitalize="none"></label>
           <label class="field full"><span>Correo (opcional: si lo tiene, el código de recuperación le llega directo)</span><input class="input" type="email" [(ngModel)]="f.email" autocomplete="off" placeholder="nombre@correo.com"></label>
           <label class="field"><span>{{ f.id ? 'Nueva contraseña (opcional)' : 'Contraseña' }}</span><input class="input" type="password" [(ngModel)]="f.password" placeholder="Mínimo 8 caracteres"></label>
+          <label class="check full"><input type="checkbox" [(ngModel)]="f.temporary"> Clave temporal (la cambia al entrar)</label>
           <div class="field full"><span>Perfil</span>
             <div class="row"><button class="chip" [class.active]="f.role === 'WAITER'" (click)="f.role = 'WAITER'">Mesero</button><button class="chip" [class.active]="f.role === 'ADMIN'" (click)="f.role = 'ADMIN'">Administrador</button></div>
           </div>
@@ -86,8 +87,8 @@ export class UsersComponent implements OnInit {
   }
 
   edit(u?: User): void {
-    this.form.set(u ? { id: u.id, name: u.name, username: u.username, password: '', role: u.role, active: u.active, email: u.email ?? '' }
-      : { name: '', username: '', password: '', role: 'WAITER', active: true, email: '' });
+    this.form.set(u ? { id: u.id, name: u.name, username: u.username, password: '', role: u.role, active: u.active, email: u.email ?? '', temporary: true }
+      : { name: '', username: '', password: '', role: 'WAITER', active: true, email: '', temporary: true });
   }
 
   async remove(): Promise<void> {
@@ -108,8 +109,8 @@ export class UsersComponent implements OnInit {
     const f = this.form();
     if (!f) return;
     try {
-      if (f.id) await this.api.run(this.api.put(`/admin/users/${f.id}`, { name: f.name, role: f.role, active: f.active, password: f.password || null, email: f.email.trim() || null }));
-      else await this.api.run(this.api.post('/admin/users', { name: f.name, username: f.username, password: f.password, role: f.role, email: f.email.trim() || null }));
+      if (f.id) await this.api.run(this.api.put(`/admin/users/${f.id}`, { name: f.name, role: f.role, active: f.active, password: f.password || null, email: f.email.trim() || null, username: f.username.trim() || null, temporary: f.temporary }));
+      else await this.api.run(this.api.post('/admin/users', { name: f.name, username: f.username, password: f.password, role: f.role, email: f.email.trim() || null, temporary: f.temporary }));
       this.toasts.ok('Usuario guardado');
       this.form.set(null);
       this.load();

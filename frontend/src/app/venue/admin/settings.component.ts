@@ -165,6 +165,20 @@ export class SettingsComponent implements OnInit {
     await this.run(() => this.api.run(this.api.post<AdminVenue>('/admin/venue/screen-key')), 'Enlace nuevo listo');
   }
 
+  newUsername = '';
+  usernamePassword = '';
+
+  async changeUsername(): Promise<void> {
+    try {
+      await this.auth.changeUsername(this.newUsername.trim(), this.usernamePassword);
+      this.newUsername = '';
+      this.usernamePassword = '';
+      this.toasts.ok('Usuario cambiado');
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    }
+  }
+
   async changePassword(): Promise<void> {
     try {
       await this.auth.changePassword(this.current, this.next);

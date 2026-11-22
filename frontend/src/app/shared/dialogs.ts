@@ -27,6 +27,8 @@ export interface DialogOptions {
   tone?: 'default' | 'danger';
   icon?: IconName;
   input?: DialogInput;
+  /** Casilla opcional (marcada por defecto); su valor queda en `Dialogs.lastChecked` al aceptar. */
+  check?: string;
 }
 
 interface Open { opts: DialogOptions; resolve: (v: string | boolean | null) => void; }
@@ -38,6 +40,7 @@ interface Open { opts: DialogOptions; resolve: (v: string | boolean | null) => v
 @Injectable({ providedIn: 'root' })
 export class Dialogs {
   readonly current = signal<Open | null>(null);
+  lastChecked = true;
 
   confirm(opts: DialogOptions): Promise<boolean> {
     return new Promise(resolve => this.current.set({ opts, resolve: v => resolve(v === true) }));
@@ -73,6 +76,9 @@ export class Dialogs {
             @if (i.hint) { <small class="hint">{{ i.hint }}</small> }
           </label>
         }
+        @if (d.opts.check) {
+          <label class="chk"><input type="checkbox" name="chk" [(ngModel)]="checked"> {{ d.opts.check }}</label>
+        }
         <div class="actions">
           <button type="button" class="btn" (click)="close(false)">{{ d.opts.cancel ?? 'Cancelar' }}</button>
           <button type="submit" class="btn" [class.primary]="d.opts.tone !== 'danger'" [class.danger-solid]="d.opts.tone === 'danger'" [disabled]="!valid()">
@@ -98,6 +104,8 @@ export class Dialogs {
     .ico.danger { background: rgba(255,107,91,.14); color: var(--c-red); }
     .msg { color: var(--muted); line-height: 1.55; }
     .hint { color: var(--faint); font-size: 12.5px; }
+    .chk { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .chk input { width: 18px; height: 18px; accent-color: var(--pink); }
     .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
     .danger-solid { background: #c8372a; border-color: transparent; color: #fff; font-weight: 800; }
     @media (hover: hover) and (pointer: fine) { .danger-solid:hover { filter: brightness(1.08); background: #c8372a; } }
@@ -117,6 +125,7 @@ export class DialogHostComponent {
   private field = viewChild<ElementRef<HTMLInputElement>>('field');
   o = this.dialogs.current;
   value = '';
+  checked = true;
 
   constructor() {
     effect(() => {
@@ -124,6 +133,7 @@ export class DialogHostComponent {
       const el = this.dlg().nativeElement;
       if (d && !el.open) {
         this.value = d.opts.input?.value ?? '';
+        this.checked = true;
         el.showModal();
         setTimeout(() => {
           const f = this.field()?.nativeElement;
@@ -150,6 +160,7 @@ export class DialogHostComponent {
   accept(): void {
     if (!this.valid()) return;
     const d = this.o();
+    this.dialogs.lastChecked = this.checked;
     this.dialogs.current.set(null);
     d?.resolve(d.opts.input ? this.value.trim() : true);
   }

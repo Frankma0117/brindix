@@ -87,7 +87,7 @@ interface VenueForm {
     <header class="top">
       <div class="container row between">
         <div class="row"><bx-mascot [size]="38" [animate]="false" /><b class="brand">Brindix · Plataforma</b></div>
-        <div class="row"><span class="muted small who">{{ auth.session()!.name }}</span><bx-theme-toggle /><button class="btn ghost sm" (click)="changing.set(true)">Mi contraseña</button><button class="btn ghost sm" (click)="auth.logout()">Salir</button></div>
+        <div class="row"><span class="muted small who">{{ auth.session()!.name }}</span><bx-theme-toggle /><button class="btn ghost sm" (click)="changeUsername()">Mi usuario</button><button class="btn ghost sm" (click)="changing.set(true)">Mi contraseña</button><button class="btn ghost sm" (click)="auth.logout()">Salir</button></div>
       </div>
     </header>
     <main class="container wrap-p">
@@ -334,13 +334,31 @@ export class PlatformComponent implements OnInit {
     }
   }
 
+  async changeUsername(): Promise<void> {
+    const username = await this.dialogs.prompt({ title: 'Cambiar mi usuario', icon: 'user', confirm: 'Continuar',
+      message: 'Con este nombre entras a la plataforma. Tu sesión sigue abierta.',
+      input: { label: 'Usuario nuevo', minLength: 3, hint: 'Letras, números, punto, guion y guion bajo.' } });
+    if (!username) return;
+    const password = await this.dialogs.prompt({ title: 'Confirma con tu contraseña', icon: 'lock', confirm: 'Guardar usuario',
+      input: { label: 'Contraseña actual', type: 'password', required: true } });
+    if (!password) return;
+    try {
+      await this.auth.changeUsername(username, password);
+      this.toasts.ok('Usuario cambiado');
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    }
+  }
+
   async resetAdmin(v: PlatformVenue): Promise<void> {
     const password = await this.dialogs.prompt({ title: `Contraseña temporal para ${v.name}`, icon: 'lock',
       message: 'El administrador del bar deberá cambiarla al entrar. Se cierran sus sesiones abiertas.', confirm: 'Guardar contraseña',
-      input: { label: 'Contraseña temporal', type: 'password', minLength: 8, hint: 'Mínimo 8 caracteres.' } });
+      check: 'Clave temporal (la cambia al entrar)',
+      input: { label: 'Contraseña', type: 'password', minLength: 8, hint: 'Mínimo 8 caracteres.' } });
     if (!password) return;
+    const temporary = this.dialogs.lastChecked;
     try {
-      await this.api.run(this.api.post(`/platform/venues/${v.id}/reset-admin`, { password }));
+      await this.api.run(this.api.post(`/platform/venues/${v.id}/reset-admin`, { password, temporary }));
       this.toasts.ok('Contraseña cambiada');
     } catch (e) {
       this.toasts.error(errorMessage(e));

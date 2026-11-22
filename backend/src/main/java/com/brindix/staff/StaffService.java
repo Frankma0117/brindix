@@ -75,6 +75,7 @@ public class StaffService {
             throw ApiException.conflict("Ese usuario ya existe en este bar");
         }
         StaffUser u = newUser(venueId, in.name(), in.username(), in.password(), in.role());
+        u.setMustChangePassword(in.temporary() == null || in.temporary());
         u.setEmail(cleanEmail(in.email()));
         audit.log(me, venueId, "Creó usuario", "user", u.getId(), u.getName() + " (" + u.getRole() + ")");
         return StaffDtos.UserView.of(u);
@@ -133,11 +134,37 @@ public class StaffService {
         u.setEmail(cleanEmail(in.email()));
         if (in.password() != null && !in.password().isBlank()) {
             u.setPasswordHash(encoder.encode(in.password()));
-            u.setMustChangePassword(true);
+            u.setMustChangePassword(in.temporary() == null || in.temporary());
             u.setTokenVersion(u.getTokenVersion() + 1); // cierra sus sesiones abiertas
         }
+        String oldUsername = u.getUsername();
+        if (in.username() != null && !in.username().isBlank()) {
+            String nu = in.username().trim().toLowerCase();
+            if (!nu.equals(oldUsername)) {
+                if (users.existsByVenueIdAndUsernameIgnoreCase(me.venueId(), nu)) {
+                    throw ApiException.conflict("Ese usuario ya existe en este bar");
+                }
+                u.setUsername(nu);
+            }
+        }
         audit.log(me, me.venueId(), "Editó usuario", "user", u.getId(),
-                u.getName() + " · " + u.getRole() + (u.isActive() ? "" : " · desactivado") + (in.password() != null && !in.password().isBlank() ? " · nueva contraseña" : ""));
+                u.getName() + (oldUsername.equals(u.getUsername()) ? "" : " · usuario " + oldUsername + " → " + u.getUsername()) + " · " + u.getRole() + (u.isActive() ? "" : " · desactivado") + (in.password() != null && !in.password().isBlank() ? " · nueva contraseña" : ""));
+        return StaffDtos.UserView.of(u);
+    }
+
+    /** Cambia el propio usuario (pide la clave actual); no cierra la sesión. */
+    @Transactional
+    public StaffDtos.UserView changeUsername(StaffPrincipal me, StaffDtos.UsernameChange in) {
+        if (me.support()) throw ApiException.forbidden("En modo soporte no se cambia el usuario del administrador");
+        StaffUser u = get(me.id());
+        if (!encoder.matches(in.password(), u.getPasswordHash())) throw ApiException.badRequest("La contraseña actual no coincide");
+        String nu = in.username().trim().toLowerCase();
+        if (!nu.equals(u.getUsername())) {
+            if (users.existsByVenueIdAndUsernameIgnoreCase(u.getVenueId(), nu)) throw ApiException.conflict("Ese usuario ya existe en este bar");
+            String old = u.getUsername();
+            u.setUsername(nu);
+            audit.log(me, me.venueId(), "Cambió su usuario", "user", u.getId(), old + " → " + nu);
+        }
         return StaffDtos.UserView.of(u);
     }
 

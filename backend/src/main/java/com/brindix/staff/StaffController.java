@@ -38,6 +38,11 @@ public class StaffController {
         return Map.of("token", service.changePassword(CurrentUser.get(), in));
     }
 
+    @PostMapping("/api/auth/username")
+    public StaffDtos.UserView changeUsername(@Valid @RequestBody StaffDtos.UsernameChange in) {
+        return service.changeUsername(CurrentUser.get(), in);
+    }
+
     @GetMapping("/api/staff/waiters")
     public List<StaffDtos.WaiterOption> waiters() {
         return service.waiters(CurrentUser.venueId());

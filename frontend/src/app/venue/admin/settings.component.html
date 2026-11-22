@@ -131,6 +131,17 @@
     <p class="tiny faint" style="margin-top: 8px">Consejo: abre el enlace en el navegador del TV y haz doble clic para pantalla completa.</p>
   </section>
 
+  <!-- Usuario -->
+  <section class="card pad-lg">
+    <h2><bx-icon name="user" /> Mi usuario</h2>
+    <p class="small muted">Con este nombre entras. Tu sesión sigue abierta.</p>
+    <div class="form-grid" style="max-width: 640px; margin-top: 12px">
+      <label class="field"><span>Usuario</span><input class="input" [(ngModel)]="newUsername" autocapitalize="none" autocomplete="off" placeholder="Nuevo usuario"></label>
+      <label class="field"><span>Contraseña actual</span><input class="input" type="password" [(ngModel)]="usernamePassword" autocomplete="current-password"></label>
+    </div>
+    <button class="btn" style="margin-top: 12px" [disabled]="newUsername.trim().length < 3 || !usernamePassword" (click)="changeUsername()">Guardar usuario</button>
+  </section>
+
   <!-- Contraseña -->
   <section class="card pad-lg" id="cuenta">
     <h2><bx-icon name="lock" /> Mi contraseña</h2>

@@ -76,7 +76,21 @@ public class PlatformService {
     public record VenueUpdate(@NotBlank @Size(max = 120) String name, boolean active,
                               @Size(max = 120) String contactName, @Size(max = 40) String contactPhone) {}
 
-    public record ResetPassword(@NotBlank @Size(min = 8, max = 100) String password) {}
+    public record ResetPassword(@NotBlank @Size(min = 8, max = 100) String password, Boolean temporary) {}
+
+    /** Cambia el usuario del súper administrador (pide la clave actual); no cierra la sesión. */
+    @Transactional
+    public String changeUsername(StaffPrincipal me, StaffDtos.UsernameChange in) {
+        PlatformUser u = platformUsers.findById(me.id()).orElseThrow(() -> ApiException.notFound("Usuario no encontrado"));
+        if (!encoder.matches(in.password(), u.getPasswordHash())) throw ApiException.badRequest("La contraseña actual no coincide");
+        String nu = in.username().trim().toLowerCase();
+        if (!nu.equals(u.getUsername())) {
+            var other = platformUsers.findByUsernameIgnoreCase(nu);
+            if (other.isPresent() && !other.get().getId().equals(u.getId())) throw ApiException.conflict("Ese usuario ya existe");
+            u.setUsername(nu);
+        }
+        return u.getUsername();
+    }
 
     @Transactional
     public LoginResponse login(LoginRequest in) {
@@ -242,7 +256,7 @@ public class PlatformService {
                 .orElseThrow(() -> ApiException.notFound("El bar no tiene administrador"));
         admin.setPasswordHash(encoder.encode(in.password()));
         admin.setActive(true);
-        admin.setMustChangePassword(true);
+        admin.setMustChangePassword(in.temporary() == null || in.temporary());
         admin.setTokenVersion(admin.getTokenVersion() + 1);
     }
 

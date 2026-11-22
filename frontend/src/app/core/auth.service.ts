@@ -70,6 +70,13 @@ export class Auth {
     if (s) this.use({ ...s, token: r.token, user: { ...s.user, mustChangePassword: false } });
   }
 
+  /** Cambia el propio usuario (pide la clave actual); la sesión sigue abierta. */
+  async changeUsername(username: string, password: string): Promise<void> {
+    const u = await firstValueFrom(this.api.post<User>('/auth/username', { username, password }));
+    const s = this.session();
+    if (s) this.use({ ...s, user: { ...s.user, username: u.username } });
+  }
+
   logout(redirect = true): void {
     const slug = this.venue();
     this.session.set(null);
@@ -145,6 +152,11 @@ export class PlatformAuth {
   logout(): void {
     this.session.set(null);
     try { localStorage.removeItem(PLATFORM_KEY); } catch { /* */ }
+  }
+
+  async changeUsername(username: string, password: string): Promise<string> {
+    const r = await firstValueFrom(this.api.post<{ username: string }>('/platform/username', { username, password }));
+    return r.username;
   }
 
   async changePassword(current: string, next: string): Promise<void> {
