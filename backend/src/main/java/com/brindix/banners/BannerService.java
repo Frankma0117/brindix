@@ -101,7 +101,7 @@ public class BannerService {
     private String whatsapp(Long venueId) {
         String raw = venues.findById(venueId).map(Venue::getContactPhone).orElse(null);
         if (raw == null) return null;
-        String d = raw.replaceAll("\D", "");
+        String d = raw.replaceAll("\\D", "");
         if (d.length() < 7) return null;
         return d.length() == 10 ? "57" + d : d;
     }
