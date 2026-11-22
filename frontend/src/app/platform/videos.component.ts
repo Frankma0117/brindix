@@ -106,7 +106,7 @@ const MUSIC_NAMES: Record<string, string> = {
               @for (v of visibleVoices(); track v.key) {
                 <div class="voice" [class.on]="voice() === v.key">
                   <button type="button" class="pick-voice" (click)="voice.set(v.key)" [attr.aria-pressed]="voice() === v.key">
-                    <b>{{ v.name }}</b><span>{{ v.style }}</span>
+                    <b>{{ recommended.has(v.key) ? '★ ' : '' }}{{ v.name }}{{ v.key === defaultVoice() ? ' · por defecto' : '' }}</b><span>{{ v.style }}</span>
                   </button>
                   <button type="button" class="hear" (click)="hear(v.key)" [disabled]="!o.voiceReady"
                           [attr.aria-label]="(playingVoice() === v.key ? 'Detener ' : 'Escuchar a ') + v.name" [title]="playingVoice() === v.key ? 'Detener' : 'Escuchar'">
@@ -116,6 +116,8 @@ const MUSIC_NAMES: Record<string, string> = {
                 </div>
               }
             </div>
+            <p class="small muted" style="margin-top: 8px">★ = recomendadas para la línea de marca (narradora clara y cálida, locutor ágil).
+              <button type="button" class="chip" (click)="setDefaultVoice()" [disabled]="voice() === defaultVoice()">Usar esta voz siempre</button></p>
           </div>
         </div>
 
@@ -275,9 +277,14 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   videos = signal<PromoVideo[]>([]);
   kind = signal('anuncio');
   formats = signal<string[]>(['vertical', 'horizontal', 'cuadrado']);
-  voice = signal('H3');
+  /** Voces de la línea de marca (las mismas que recomienda el panel de Canix): narradora cálida y locutor ágil. */
+  recommended = new Set(['M5', 'M3', 'M8', 'M6', 'H14', 'H4', 'H12', 'H19']);
+  defaultVoice = signal(this.storedVoice());
+  voice = signal(this.defaultVoice());
   voiceFilter = signal<'all' | 'male' | 'female'>('all');
-  visibleVoices = computed(() => (this.options()?.voices ?? []).filter(v => this.voiceFilter() === 'all' || v.gender === this.voiceFilter()));
+  visibleVoices = computed(() => (this.options()?.voices ?? [])
+    .filter(v => this.voiceFilter() === 'all' || v.gender === this.voiceFilter())
+    .sort((a, b) => Number(this.recommended.has(b.key)) - Number(this.recommended.has(a.key))));
   music = signal('fiesta');
   idea = '';
   busy = signal(false);
@@ -291,6 +298,16 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   private audio: HTMLAudioElement | null = null;
   private samples = new Map<string, string>();
   private timer: ReturnType<typeof setInterval> | null = null;
+
+  private storedVoice(): string {
+    try { return localStorage.getItem('brindix.studio.voice') || 'M5'; } catch { return 'M5'; }
+  }
+
+  setDefaultVoice(): void {
+    try { localStorage.setItem('brindix.studio.voice', this.voice()); } catch { /* sin almacenamiento: queda solo en esta pantalla */ }
+    this.defaultVoice.set(this.voice());
+    this.toasts.show('Esta será la voz por defecto de los videos nuevos.');
+  }
 
   ngOnInit(): void {
     this.api.get<Options>('/platform/videos/options').subscribe({
