@@ -4,6 +4,7 @@ import com.brindix.audit.AuditService;
 import com.brindix.common.ApiException;
 import com.brindix.inventory.InventoryService;
 import com.brindix.inventory.MovementType;
+import com.brindix.recipes.IngredientService;
 import com.brindix.security.StaffPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,12 +22,15 @@ public class CatalogService {
     private final ProductRepository products;
     private final InventoryService inventory;
     private final AuditService audit;
+    private final IngredientService recipes;
 
-    public CatalogService(CategoryRepository categories, ProductRepository products, InventoryService inventory, AuditService audit) {
+    public CatalogService(CategoryRepository categories, ProductRepository products, InventoryService inventory, AuditService audit,
+                          IngredientService recipes) {
         this.categories = categories;
         this.products = products;
         this.inventory = inventory;
         this.audit = audit;
+        this.recipes = recipes;
     }
 
     // ---------- Carta (cliente y mesero) ----------
@@ -101,9 +105,11 @@ public class CatalogService {
         Map<Long, Category> byId = cats.stream().collect(Collectors.toMap(Category::getId, Function.identity()));
         Map<Long, Integer> rank = new HashMap<>();
         for (int i = 0; i < cats.size(); i++) rank.put(cats.get(i).getId(), i);
-        return products.findByVenueIdAndArchivedFalseOrderBySortOrderAscNameAsc(venueId).stream()
+        List<Product> all = products.findByVenueIdAndArchivedFalseOrderBySortOrderAscNameAsc(venueId);
+        Map<Long, BigDecimal> rc = recipes.recipeCosts(all.stream().map(Product::getId).toList());
+        return all.stream()
                 .sorted(Comparator.comparing((Product p) -> rank.getOrDefault(p.getCategoryId(), 999)))
-                .map(p -> view(p, byId.get(p.getCategoryId())))
+                .map(p -> view(p, byId.get(p.getCategoryId()), rc.get(p.getId())))
                 .toList();
     }
 
@@ -138,7 +144,7 @@ public class CatalogService {
             audit.log(me, me.venueId(), "Cambió precio/costo", "product", p.getId(),
                     p.getName() + ": venta " + oldPrice + " → " + p.getPrice() + " · costo " + oldCost + " → " + p.getCost());
         }
-        return view(p, c);
+        return view(p, c, recipes.recipeCosts(List.of(p.getId())).get(p.getId()));
     }
 
     @Transactional
@@ -157,7 +163,7 @@ public class CatalogService {
                         p.getName() + ": venta " + oldPrice + " → " + p.getPrice() + " · costo " + oldCost + " → " + p.getCost());
             }
         }
-        return view(p, categories.findById(p.getCategoryId()).orElse(null));
+        return view(p, categories.findById(p.getCategoryId()).orElse(null), recipes.recipeCosts(List.of(p.getId())).get(p.getId()));
     }
 
     /** Orden dentro de una categoría; si un producto viene de otra categoría, se mueve. */
@@ -200,14 +206,16 @@ public class CatalogService {
                 .orElseThrow(() -> ApiException.notFound("Categoría no encontrada"));
     }
 
-    static CatalogDtos.ProductView view(Product p, Category c) {
-        BigDecimal profit = p.getCost() == null ? null : p.getPrice().subtract(p.getCost());
+    /** recipeCost != null: el producto tiene receta y su costo es el de la receta. */
+    static CatalogDtos.ProductView view(Product p, Category c, BigDecimal recipeCost) {
+        BigDecimal cost = recipeCost != null ? recipeCost : p.getCost();
+        BigDecimal profit = cost == null ? null : p.getPrice().subtract(cost);
         BigDecimal pct = profit == null || p.getPrice().signum() == 0 ? null
                 : profit.multiply(BigDecimal.valueOf(100)).divide(p.getPrice(), 1, RoundingMode.HALF_UP);
         return new CatalogDtos.ProductView(p.getId(), p.getCategoryId(), c == null ? null : c.getName(), p.getName(),
-                p.getDescription(), p.getPrice(), p.getCost(), profit, pct, p.getImageUrl(), c == null ? null : c.getArt(), p.getUnit(),
+                p.getDescription(), p.getPrice(), cost, profit, pct, p.getImageUrl(), c == null ? null : c.getArt(), p.getUnit(),
                 p.isTrackStock(), p.getStock(), p.getMinStock(), p.isAvailable(), p.isFeatured(), p.getTags(),
-                p.getSortOrder(), p.soldOut(), p.lowStock(), p.isNeedsPrep());
+                p.getSortOrder(), p.soldOut(), p.lowStock(), p.isNeedsPrep(), recipeCost != null);
     }
 
     private static List<String> splitTags(String tags) {

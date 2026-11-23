@@ -46,6 +46,10 @@ class RecipeConsumptionTest {
         });
         RecipeLineRepository lines = mock(RecipeLineRepository.class);
         when(lines.findByProductId(anyLong())).thenAnswer(i -> recipe.stream().filter(l -> l.getProductId().equals(i.getArgument(0))).toList());
+        when(lines.findByProductIdIn(anyCollection())).thenAnswer(i -> {
+            Collection<Long> ids = i.getArgument(0);
+            return recipe.stream().filter(l -> ids.contains(l.getProductId())).toList();
+        });
 
         notifications = mock(NotificationService.class);
         service = new IngredientService(ingredients, movements, lines, mock(ProductRepository.class), mock(AuditService.class), notifications);
@@ -86,6 +90,21 @@ class RecipeConsumptionTest {
         assertNum("910", jugo.getStock());
         assertEquals(2, moves.size());
         assertEquals(IngredientMovementType.SALE, moves.get(0).getType());
+    }
+
+    @Test
+    void costoPorRecetaEsSumaDeInsumos() {
+        ron.setAvgCost(new BigDecimal("1500"));
+        jugo.setAvgCost(new BigDecimal("2.5"));
+        Map<Long, BigDecimal> costs = service.recipeCosts(List.of(1L, 99L));
+        assertNum("3075", costs.get(1L));          // 2 x 1500 + 30 x 2.5
+        assertEquals(false, costs.containsKey(99L)); // sin receta: no aparece, se usa el costo del producto
+    }
+
+    @Test
+    void insumoSinCostoCuentaCero() {
+        ron.setAvgCost(new BigDecimal("1500"));
+        assertNum("3000", service.recipeCosts(List.of(1L)).get(1L));
     }
 
     @Test

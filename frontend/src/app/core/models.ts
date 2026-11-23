@@ -49,7 +49,7 @@ export interface Category { id: number; name: string; icon?: string; art?: strin
 export interface Product {
   id: number; categoryId: number; categoryName?: string; name: string; description?: string;
   price: number; cost?: number; profit?: number; marginPct?: number; imageUrl?: string; art?: string; unit: string;
-  trackStock: boolean; stock: number; minStock: number; available: boolean; featured: boolean; needsPrep: boolean; tags?: string;
+  trackStock: boolean; stock: number; minStock: number; available: boolean; featured: boolean; needsPrep: boolean; costFromRecipe?: boolean; tags?: string;
   sortOrder: number; soldOut: boolean; lowStock: boolean;
 }
 

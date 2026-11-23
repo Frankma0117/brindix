@@ -43,7 +43,11 @@
               <p class="tiny muted ellipsis">{{ p.description || 'Sin descripción' }}</p>
             </div>
             <input class="input mini r" type="number" min="0" step="500" [value]="p.price" (change)="savePrice(p, 'price', $any($event.target).value)" title="Precio de venta">
-            <input class="input mini r" type="number" min="0" step="100" [value]="p.cost ?? ''" placeholder="—" (change)="savePrice(p, 'cost', $any($event.target).value)" title="Costo de compra">
+            @if (p.costFromRecipe) {
+              <span class="r num muted" title="Costo por receta: suma de los insumos">{{ p.cost | money }} <small>receta</small></span>
+            } @else {
+              <input class="input mini r" type="number" min="0" step="100" [value]="p.cost ?? ''" placeholder="—" (change)="savePrice(p, 'cost', $any($event.target).value)" title="Costo de compra">
+            }
             <span class="r profit" [class.low]="(p.marginPct ?? 100) < 30">
               @if (p.profit != null) { {{ p.profit | money }} <small>{{ p.marginPct }} %</small> } @else { <span class="faint">—</span> }
             </span>

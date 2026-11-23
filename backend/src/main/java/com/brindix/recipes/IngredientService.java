@@ -166,6 +166,27 @@ public class IngredientService {
         }
     }
 
+    /**
+     * Costo por receta de cada producto que tenga receta (suma cantidad x costo promedio vigente).
+     * Los productos sin receta no aparecen en el mapa.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, BigDecimal> recipeCosts(Collection<Long> productIds) {
+        if (productIds.isEmpty()) return Map.of();
+        List<RecipeLine> all = lines.findByProductIdIn(productIds);
+        if (all.isEmpty()) return Map.of();
+        Map<Long, Ingredient> byId = ingredients.findAllById(all.stream().map(RecipeLine::getIngredientId).collect(Collectors.toSet()))
+                .stream().collect(Collectors.toMap(Ingredient::getId, Function.identity()));
+        Map<Long, BigDecimal> out = new HashMap<>();
+        for (RecipeLine l : all) {
+            Ingredient i = byId.get(l.getIngredientId());
+            BigDecimal c = i == null || i.getAvgCost() == null ? BigDecimal.ZERO : i.getAvgCost().multiply(l.getQuantity());
+            out.merge(l.getProductId(), c, BigDecimal::add);
+        }
+        out.replaceAll((k, v) -> v.setScale(2, RoundingMode.HALF_UP));
+        return out;
+    }
+
     // ---------- Receta ----------
 
     @Transactional(readOnly = true)

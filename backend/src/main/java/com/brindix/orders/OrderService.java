@@ -425,6 +425,7 @@ public class OrderService {
                 .collect(Collectors.toMap(Product::getId, Function.identity()));
         Round round = new Round();
         round.setTabId(tab.getId());
+        Map<Long, BigDecimal> recipeCost = recipes.recipeCosts(byId.keySet());
         for (OrderDtos.ItemInput line : lines) {
             Product p = byId.get(line.productId());
             if (p == null) throw ApiException.notFound("Un producto del pedido ya no existe");
@@ -438,7 +439,7 @@ public class OrderService {
             item.setProductId(p.getId());
             item.setProductName(p.getName());
             item.setUnitPrice(p.getPrice());
-            item.setUnitCost(p.getCost());
+            item.setUnitCost(recipeCost.getOrDefault(p.getId(), p.getCost()));
             item.setQuantity(line.quantity());
             item.setNote(trim(line.note()));
             if (p.isNeedsPrep()) item.setPrepStatus(PrepStatus.PENDING);
@@ -450,11 +451,14 @@ public class OrderService {
     private void discountStock(Round round, Tab tab, Long userId) {
         Map<Long, Product> byId = products.findAllById(round.getItems().stream().map(RoundItem::getProductId).collect(Collectors.toSet()))
                 .stream().collect(Collectors.toMap(Product::getId, Function.identity()));
+        Map<Long, BigDecimal> recipeCost = recipes.recipeCosts(byId.keySet());
         for (RoundItem i : round.getItems()) {
             if (i.isVoided()) continue;
             Product p = byId.get(i.getProductId());
             if (p == null) continue;
-            if (i.getUnitCost() == null) i.setUnitCost(p.getCost());
+            // El costo se congela al vender: con receta, el de los insumos en este momento.
+            if (recipeCost.containsKey(p.getId())) i.setUnitCost(recipeCost.get(p.getId()));
+            else if (i.getUnitCost() == null) i.setUnitCost(p.getCost());
             inventory.move(p, MovementType.SALE, -i.getQuantity(), p.getCost(), null, "Cuenta #" + tab.getId(), null, userId, tab.getId());
             recipes.consumeForProduct(p.getId(), i.getQuantity(), tab.getId(), userId, "Cuenta #" + tab.getId());
         }

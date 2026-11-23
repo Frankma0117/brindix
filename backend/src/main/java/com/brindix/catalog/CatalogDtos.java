@@ -30,7 +30,7 @@ public final class CatalogDtos {
                               BigDecimal price, BigDecimal cost, BigDecimal profit, BigDecimal marginPct,
                               String imageUrl, String art, String unit, boolean trackStock, int stock, int minStock,
                               boolean available, boolean featured, String tags, int sortOrder, boolean soldOut, boolean lowStock,
-                              boolean needsPrep) {}
+                              boolean needsPrep, boolean costFromRecipe) {}
 
     public record ProductInput(@NotNull Long categoryId,
                                @NotBlank @Size(max = 120) String name,
