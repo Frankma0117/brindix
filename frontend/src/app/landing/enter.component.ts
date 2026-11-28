@@ -62,9 +62,9 @@ interface VenueHit { slug: string; name: string; logoUrl?: string; }
       <button class="btn primary lg block" [disabled]="busy() || !venue() || !username.trim() || !password">{{ busy() ? 'Entrando…' : 'Entrar' }}</button>
       <div class="links">
         @if (venue()) { <a [routerLink]="'/' + venue()!.slug + '/recuperar'">¿Olvidaste tu contraseña?</a> }
-        <a routerLink="/plataforma">Administración de Brindix</a>
       </div>
     </form>
+    <footer class="foot"><a routerLink="/plataforma" aria-label="Acceso de plataforma">Brindix · plataforma</a></footer>
   </main>`,
   styles: [`
     .wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
@@ -84,6 +84,10 @@ interface VenueHit { slug: string; name: string; logoUrl?: string; }
     .err { color: var(--ink-red); font-weight: 600; font-size: 14px; }
     .links { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13.5px; }
     .links a { color: var(--muted); padding: 6px 0; }
+    .wrap { position: relative; }
+    .foot { position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; font-size: 11.5px; }
+    .foot a { color: var(--faint); opacity: .55; padding: 8px 12px; }
+    @media (hover: hover) and (pointer: fine) { .foot a:hover { opacity: 1; } }
   `],
 })
 export class EnterComponent {

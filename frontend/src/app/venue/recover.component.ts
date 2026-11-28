@@ -25,7 +25,6 @@ import { IconComponent } from '../shared/icon.component';
         <h2>Recuperar tu contraseña</h2>
         <p class="muted small">{{ ctx.name() }}</p>
       </div>
-      <p class="tiny muted">¿Eres el administrador de Brindix (no de un bar)? <a routerLink="/plataforma">Recupera tu acceso en la plataforma</a>.</p>
       <div class="tabs" role="tablist">
         <button role="tab" [class.on]="step() === 'ask'" (click)="step.set('ask')">Pedir código</button>
         <button role="tab" [class.on]="step() === 'code'" (click)="step.set('code')">Ya tengo un código</button>
