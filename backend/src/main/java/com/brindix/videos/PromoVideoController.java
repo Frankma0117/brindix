@@ -55,6 +55,17 @@ public class PromoVideoController {
         return service.voiceSample(key);
     }
 
+    /** Voces de fal.ai (Kokoro, MiniMax, ElevenLabs) para audicionar. */
+    @GetMapping("/fal-voices")
+    public JsonNode falVoices() {
+        return service.falVoices();
+    }
+
+    @GetMapping("/fal-voices/{model}/{voice}/sample")
+    public JsonNode falVoiceSample(@PathVariable String model, @PathVariable String voice) {
+        return service.falVoiceSample(model, voice);
+    }
+
     /** Imágenes del taller disponibles para las escenas: [{path}]. */
     @GetMapping("/studio-assets")
     public JsonNode studioAssets() {

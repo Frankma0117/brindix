@@ -233,14 +233,14 @@
       }
     }
     const lv = levelAt(cur, t);
-    const bob = Math.sin(t * 2.1) * .018 * box.w;
-    const tilt = Math.sin(t * 1.3) * 2.2 + lv * 2.5 * Math.sin(t * 9);
-    const squash = 1 + lv * .035;
+    const bob = 0; // quieta: solo se mueve la boca
+    const tilt = 0;
+    const squash = 1;
     // Entrada de la copa en el primer segundo: sube con un pequeño rebote.
     const enter = easeOut(t / .9);
     const scale = box.w / L.hero.w;
     mascot.style.opacity = clamp(t / .35);
-    mascot.style.transform = `translate(${box.x}px, ${box.y + bob - lv * .03 * box.w + (1 - enter) * box.w * .5}px) scale(${scale * squash}, ${scale / squash}) rotate(${tilt}deg)`;
+    mascot.style.transform = `translate(${box.x}px, ${box.y + bob + (1 - enter) * box.w * .5}px) scale(${scale * squash}, ${scale / squash}) rotate(${tilt}deg)`;
 
     const blinkPhase = (t + 1.3) % 3.6;
     const blink = blinkPhase < .14 ? 1 - Math.sin(blinkPhase / .14 * Math.PI) * .9 : 1;

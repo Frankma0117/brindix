@@ -101,6 +101,15 @@ public class PromoVideoService {
         return studio.voiceSample(key);
     }
 
+    public JsonNode falVoices() {
+        return studio.falVoices();
+    }
+
+    public JsonNode falVoiceSample(String model, String voice) {
+        if (!model.matches("[a-z]{3,10}") || !voice.matches("[A-Za-z0-9_]{2,40}")) throw ApiException.badRequest("Esa voz no existe");
+        return studio.falVoiceSample(model, voice);
+    }
+
     public List<VideoRow> list() {
         return repo.findAllByOrderByIdDesc().stream().map(this::row).toList();
     }

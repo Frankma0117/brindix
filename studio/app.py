@@ -18,6 +18,7 @@ import traceback
 
 from fastapi import FastAPI, Header, HTTPException
 
+import falvoices
 import media
 import narrate
 import pipeline
@@ -115,6 +116,24 @@ def voice_sample(key: str, x_studio_token: str | None = Header(None)):
     if not url:
         raise HTTPException(503, "No se pudo grabar la muestra (revisa FISH_API_KEY)")
     return {"url": url, "name": v["name"], "style": v["style"]}
+
+
+@app.get("/fal-voices")
+def fal_voices(x_studio_token: str | None = Header(None)):
+    _auth(x_studio_token)
+    return falvoices.catalog()
+
+
+@app.get("/fal-voices/{model}/{voice}/sample")
+def fal_voice_sample(model: str, voice: str, x_studio_token: str | None = Header(None)):
+    _auth(x_studio_token)
+    try:
+        return {"url": falvoices.sample(model, voice)}
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    except Exception as e:  # noqa: BLE001
+        log.warning("muestra fal %s/%s: %s", model, voice, e)
+        raise HTTPException(502, "No se pudo grabar la muestra con fal.ai")
 
 
 def worker() -> None:

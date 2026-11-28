@@ -120,4 +120,24 @@ public class StudioClient {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "No se pudo traer la muestra de esa voz. Intenta en un momento.");
         }
     }
+
+    /** Catálogo de voces de fal.ai para audicionar. */
+    public JsonNode falVoices() {
+        requireEnabled();
+        try {
+            return auth(http.get().uri(url("/fal-voices"))).retrieve().body(JsonNode.class);
+        } catch (RestClientException e) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "No se pudo traer las voces de fal.ai.");
+        }
+    }
+
+    /** Muestra (mp3 público) de una voz de fal.ai; el estudio la graba la primera vez. */
+    public JsonNode falVoiceSample(String model, String voice) {
+        requireEnabled();
+        try {
+            return auth(http.get().uri(url("/fal-voices/" + model + "/" + voice + "/sample"))).retrieve().body(JsonNode.class);
+        } catch (RestClientException e) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "No se pudo grabar la muestra de esa voz. Intenta en un momento.");
+        }
+    }
 }

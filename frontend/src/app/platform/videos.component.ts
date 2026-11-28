@@ -6,6 +6,7 @@ import { Toasts } from '../core/ui';
 import { Dialogs } from '../shared/dialogs';
 import { IconComponent } from '../shared/icon.component';
 import { MascotComponent } from '../shared/mascot.component';
+import { FalVoicesComponent } from './fal-voices.component';
 import { VideoDraftEditorComponent } from './video-draft-editor.component';
 
 type Role = 'mascot' | 'tutorial';
@@ -58,11 +59,13 @@ const MUSIC_NAMES: Record<string, string> = {
 @Component({
   selector: 'bx-platform-videos',
   standalone: true,
-  imports: [FormsModule, DatePipe, IconComponent, MascotComponent, VideoDraftEditorComponent],
+  imports: [FormsModule, DatePipe, IconComponent, MascotComponent, VideoDraftEditorComponent, FalVoicesComponent],
   template: `
   <div class="page-head">
     <div><h1>Videos y publicidad</h1><p>La copa de Brindix explica el producto sobre pantallas reales de la demo. Listos para redes, WhatsApp o una reunión.</p></div>
   </div>
+
+  <bx-fal-voices />
 
   @if (options(); as o) {
     @if (!o.enabled) {
