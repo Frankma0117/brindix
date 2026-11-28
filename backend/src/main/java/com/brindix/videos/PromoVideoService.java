@@ -68,7 +68,11 @@ public class PromoVideoService {
 
     /** Tipo de video con recuadros y mascota de cuerpo entero: lo graba el taller Remotion del servidor (sin voz). */
     public static final String KIND_CALLOUTS = "recuadros";
-    private static final Map<String, String> CALLOUT_NAME = Map.of("vertical", "Reel", "cuadrado", "Instagram", "horizontal", "Tutorial guiado");
+    private static final Map<String, String> CALLOUT_NAME = Map.of("vertical", "Reel de publicidad", "cuadrado", "Instagram", "horizontal", "Tutorial completo");
+    public static final String KIND_REEL = "reel";
+    public static final String KIND_TUTORIAL = "tutorial";
+    /** La voz ya está elegida: Chris narra y Matilda es la copa (ver studio/narrate.py). */
+    public static final String FIXED_VOICE = "eleven2:Chris";
     private static final Map<String, String> BRIDGE_FORMAT = Map.of("vertical", "9x16", "horizontal", "16x9", "cuadrado", "1x1");
 
     public record VideoRow(Long id, String jobId, String kind, String kindName, String format, String voice, String music, String idea,
@@ -85,9 +89,15 @@ public class PromoVideoService {
 
     public JsonNode options() {
         JsonNode o = studio.options();
-        if (bridge.disponible() && o instanceof ObjectNode on && on.path("kinds") instanceof ArrayNode kinds) {
-            kinds.addObject().put("key", KIND_CALLOUTS).put("name", "Con recuadros y mascota")
-                    .put("about", "Imágenes de la demo con recuadros que explican y la copa de cuerpo entero señalando. La versión final lleva voz y música.").put("seconds", 25);
+        if (o instanceof ObjectNode on) {
+            ArrayNode kinds = on.putArray("kinds");
+            if (bridge.disponible()) {
+                kinds.addObject().put("key", KIND_REEL).put("name", "Reel de publicidad")
+                        .put("about", "Corto y vertical: plantea el problema del bar y muestra cómo lo resuelve Brindix, con recuadros y la copa.").put("seconds", 35);
+                kinds.addObject().put("key", KIND_TUTORIAL).put("name", "Tutorial completo")
+                        .put("about", "Horizontal y pausado: recorre cada pantalla de la app con recuadros que explican cada parte, problema por problema.").put("seconds", 120);
+            }
+            on.put("voiceReady", true);
         }
         return o;
     }
@@ -121,14 +131,15 @@ public class PromoVideoService {
     /** Un pedido: un registro por formato, todos con el mismo jobId, y un solo trabajo en el estudio. */
     @Transactional
     public List<VideoRow> create(Long by, VideoCreate in) {
-        boolean callouts = KIND_CALLOUTS.equals(in.kind());
-        String voice = blankToNull(in.voice());
+        boolean callouts = KIND_REEL.equals(in.kind()) || KIND_TUTORIAL.equals(in.kind());
+        if (!callouts) throw ApiException.badRequest("Ese tipo de video ya no existe.");
+        String voice = FIXED_VOICE;
         String music = blankToNull(in.music());
         // los videos del estudio siempre llevan voz y música; con recuadros son opcionales (se eligen al editar el borrador)
         if (!callouts && (voice == null || music == null)) throw ApiException.badRequest("Elige una voz y una música.");
         if (callouts) checkMusic(music);
         // con recuadros siempre salen los 3 tipos (Reel, Instagram, Tutorial guiado), sin importar lo que pida el request
-        List<String> formats = callouts ? List.of("vertical", "cuadrado", "horizontal")
+        List<String> formats = callouts ? List.of(KIND_REEL.equals(in.kind()) ? "vertical" : "horizontal")
                 : in.formats().stream().filter(FORMATS::contains).collect(Collectors.toCollection(LinkedHashSet::new)).stream().toList();
         if (formats.isEmpty()) throw ApiException.badRequest("Elige al menos un formato");
         if (callouts && !bridge.disponible()) throw ApiException.badRequest("El taller de video no está disponible en este servidor.");
@@ -140,7 +151,7 @@ public class PromoVideoService {
         for (String fmt : formats) {
             PromoVideo v = new PromoVideo();
             v.setCreatedBy(by);
-            v.setKind(in.kind());
+            v.setKind(KIND_CALLOUTS);
             v.setFormat(fmt);
             v.setVoice(voice);
             v.setMusic(music);
@@ -184,14 +195,14 @@ public class PromoVideoService {
             throw ApiException.conflict("Solo se cambia la voz y la música del borrador o la previa lista.");
         String music = blankToNull(in.music());
         checkMusic(music);
-        v.setVoice(blankToNull(in.voice()));
+        v.setVoice(FIXED_VOICE);
         v.setMusic(music);
         return row(repo.save(v));
     }
 
     /** Deja el video como borrador con el guion de la plantilla (la idea es el subtítulo de la intro). */
     private void draft(PromoVideo v) {
-        ObjectNode spec = VideoSpecValidator.brindixTemplate();
+        ObjectNode spec = "vertical".equals(v.getFormat()) ? VideoSpecValidator.reelTemplate() : VideoSpecValidator.brindixTemplate();
         spec.put("format", BRIDGE_FORMAT.get(v.getFormat()));
         if (v.getIdea() != null) spec.with("intro").put("sub", v.getIdea().length() > 90 ? v.getIdea().substring(0, 90) : v.getIdea());
         v.setSpec(spec.toString());

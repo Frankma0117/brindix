@@ -224,4 +224,29 @@ public final class VideoSpecValidator {
                 .put("seconds", 6);
         return t;
     }
+
+    /** Reel de publicidad: corto, plantea el problema y muestra tres pantallas. */
+    public static ObjectNode reelTemplate() {
+        ObjectNode t = brindixTemplate();
+        ArrayNode all = (ArrayNode) t.get("scenes");
+        ArrayNode keep = MAPPER.createArrayNode();
+        String[] say = {
+            "¿Tus clientes esperan la carta y los pedidos se pierden? Con Brindix escanean el QR de la mesa, ven la carta en su celular y envían su pedido sin descargar nada.",
+            "¿La cuenta de la mesa nunca cuadra? Aquí ves lo consumido, lo pagado y lo que falta por cobrar, ronda por ronda.",
+            "¿Vendes mucho pero no sabes cuánto ganas? Brindix descuenta el costo de cada producto y te muestra tu ganancia real."};
+        int[] idx = {0, 3, 6};
+        for (int i = 0; i < idx.length; i++) {
+            ObjectNode sc = ((ObjectNode) all.get(idx[i])).deepCopy();
+            sc.put("say", say[i]);
+            sc.remove("seconds");
+            keep.add(sc);
+        }
+        t.set("scenes", keep);
+        ObjectNode intro = (ObjectNode) t.get("intro");
+        intro.put("say", "Hola, soy la copa de Brindix. Te muestro cómo dejar de perder pedidos y cuentas en tu bar.").put("seconds", 4);
+        ObjectNode outro = (ObjectNode) t.get("outro");
+        outro.put("say", "Brindix: tu bar, en el celular. Pruébalo hoy.").put("seconds", 4);
+        t.put("guide", false);
+        return t;
+    }
 }

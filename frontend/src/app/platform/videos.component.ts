@@ -6,7 +6,6 @@ import { Toasts } from '../core/ui';
 import { Dialogs } from '../shared/dialogs';
 import { IconComponent } from '../shared/icon.component';
 import { MascotComponent } from '../shared/mascot.component';
-import { FalVoicesComponent } from './fal-voices.component';
 import { VideoDraftEditorComponent } from './video-draft-editor.component';
 
 type Role = 'mascot' | 'tutorial';
@@ -59,13 +58,11 @@ const MUSIC_NAMES: Record<string, string> = {
 @Component({
   selector: 'bx-platform-videos',
   standalone: true,
-  imports: [FormsModule, DatePipe, IconComponent, MascotComponent, VideoDraftEditorComponent, FalVoicesComponent],
+  imports: [FormsModule, DatePipe, IconComponent, MascotComponent, VideoDraftEditorComponent],
   template: `
   <div class="page-head">
     <div><h1>Videos y publicidad</h1><p>La copa de Brindix explica el producto sobre pantallas reales de la demo. Listos para redes, WhatsApp o una reunión.</p></div>
   </div>
-
-  <bx-fal-voices />
 
   @if (options(); as o) {
     @if (!o.enabled) {
@@ -95,20 +92,8 @@ const MUSIC_NAMES: Record<string, string> = {
           </li>
 
           <li class="step">
-            <div class="step-head"><span class="num">2</span><h3>Formatos</h3><span class="hint">{{ kind() === 'recuadros' ? 'Automático' : 'Sale un video por cada uno' }}</span></div>
-            @if (kind() === 'recuadros') {
-              <p class="small muted">Se crean 3 videos: Reel (vertical), Instagram (cuadrado) y Tutorial guiado (horizontal)</p>
-            } @else {
-            <div class="formats" role="group" aria-label="Formatos">
-              @for (f of o.formats; track f.key) {
-                <button type="button" role="checkbox" class="fmt" [attr.aria-checked]="hasFormat(f.key)" [class.on]="hasFormat(f.key)" (click)="toggleFormat(f.key)">
-                  <i [class]="'shape ' + f.key"></i>
-                  <b>{{ fmtName(f.key).name }}</b><span>{{ fmtName(f.key).where }}</span>
-                  <bx-icon class="tick" name="check" [size]="14" />
-                </button>
-              }
-            </div>
-            }
+            <div class="step-head"><span class="num">2</span><h3>Formato</h3><span class="hint">Automático</span></div>
+            <p class="small muted">{{ kind() === 'reel' ? 'Un video vertical (9:16) para Instagram, TikTok y WhatsApp.' : 'Un video horizontal (16:9) para YouTube o una reunión.' }} Siempre con recuadros, rótulos y la copa; la voz de Chris narra y Matilda es la voz de la copa.</p>
           </li>
 
           <li class="step">
@@ -127,64 +112,9 @@ const MUSIC_NAMES: Record<string, string> = {
             </div>
           </li>
 
-          <li class="step">
-            <div class="step-head"><span class="num">4</span><h3>Voces</h3><span class="hint">Se usa la de {{ role() === 'tutorial' ? 'tutorial' : 'la mascota' }}</span></div>
-            <div class="vroles">
-              @for (r of roles; track r) {
-                <div class="vrole" [class.on]="role() === r">
-                  <div class="vrole-text">
-                    <span class="tiny muted">{{ roleLabel(r) }}</span>
-                    <b>{{ voiceName(roleVoice(r)) }}</b>
-                  </div>
-                  @if (role() === r) { <span class="badge">En este video</span> }
-                  @if (pickerRole() !== r) {
-                    <button type="button" class="chip" (click)="startEdit(r)">Cambiar</button>
-                  }
-                </div>
-              }
-            </div>
-            @if (pickerRole(); as pr) {
-            <p class="small muted vcount">Elige la voz {{ pr === 'tutorial' ? 'de los tutoriales' : 'de la mascota (anuncios y funciones)' }}.</p>
-            <div class="vtools">
-              <label class="vsearch">
-                <bx-icon name="search" [size]="16" />
-                <input class="input" type="search" placeholder="Buscar: paisa, locutor, narradora, mexicana…" aria-label="Buscar voz"
-                       [ngModel]="voiceQuery()" (ngModelChange)="voiceQuery.set($event)" />
-              </label>
-              <div class="seg" role="group" aria-label="Filtrar voces">
-                <button type="button" [attr.aria-pressed]="voiceFilter() === 'all'" [class.on]="voiceFilter() === 'all'" (click)="voiceFilter.set('all')">Todas</button>
-                <button type="button" [attr.aria-pressed]="voiceFilter() === 'male'" [class.on]="voiceFilter() === 'male'" (click)="voiceFilter.set('male')">Hombres</button>
-                <button type="button" [attr.aria-pressed]="voiceFilter() === 'female'" [class.on]="voiceFilter() === 'female'" (click)="voiceFilter.set('female')">Mujeres</button>
-              </div>
-            </div>
-            <div class="voices" role="radiogroup" aria-label="Voces">
-              @for (v of visibleVoices(); track v.key) {
-                <div class="voice" [class.on]="roleVoice(pr) === v.key">
-                  <button type="button" role="radio" class="pick-voice" (click)="pickVoice(pr, v.key)" [attr.aria-checked]="roleVoice(pr) === v.key">
-                    <b>@if (recommended.has(v.key)) { <bx-icon name="star" [size]="13" /> }{{ v.name }}</b><span>{{ v.style }}</span>
-                  </button>
-                  <button type="button" class="hear" (click)="hear(v.key)" [disabled]="!o.voiceReady"
-                          [attr.aria-label]="(playingVoice() === v.key ? 'Detener ' : 'Escuchar a ') + v.name" [title]="playingVoice() === v.key ? 'Detener' : 'Escuchar'">
-                    @if (loadingVoice() === v.key) { <span class="dotty"></span> }
-                    @else { <bx-icon [name]="playingVoice() === v.key ? 'pause' : 'play'" [size]="15" /> }
-                  </button>
-                </div>
-              } @empty {
-                <p class="small muted vnone">Ninguna voz coincide. Prueba con otra palabra o quita el filtro.</p>
-              }
-            </div>
-            <p class="small muted vcount">{{ visibleVoices().length }} de {{ o.voices?.length ?? 0 }} voces · toca ▶ para escuchar una muestra</p>
-            <p class="small muted vcount"><bx-icon name="star" [size]="13" /> = recomendadas para la línea de marca (narradora clara y cálida, locutor ágil).
-              <button type="button" class="chip" (click)="saveVoice(pr)">Usar esta voz siempre</button>
-              @if (isSaved(pr)) { <button type="button" class="chip" (click)="cancelEdit(pr)">Cancelar</button> }</p>
-            }
-            @if (kind() === 'recuadros' && !o.voiceReady) {
-              <p class="small muted vcount">Sin voz: el video final llevará solo música.</p>
-            }
-          </li>
 
           <li class="step">
-            <div class="step-head"><span class="num">5</span><h3>Idea o enfoque</h3><span class="hint">Opcional</span></div>
+            <div class="step-head"><span class="num">4</span><h3>Idea o enfoque</h3><span class="hint">Opcional</span></div>
             <textarea class="input idea" rows="2" maxlength="600" aria-label="Idea o enfoque" [(ngModel)]="idea" [placeholder]="ideaHint()"></textarea>
           </li>
         </ol>
@@ -195,8 +125,8 @@ const MUSIC_NAMES: Record<string, string> = {
             <span>{{ summaryLine() }}</span>
             <span class="faint">{{ activeJobs() }} pedidos en proceso · máximo 3 a la vez</span>
           </div>
-          <button class="btn primary lg" [disabled]="busy() || (!o.voiceReady && kind() !== 'recuadros') || activeJobs() >= 3 || (!formats().length && kind() !== 'recuadros')" (click)="create()">
-            <bx-icon name="sparkles" [size]="18" /> {{ busy() ? 'Enviando…' : (kind() === 'recuadros' ? 'Crear 3 borradores' : (formats().length > 1 ? 'Crear ' + formats().length + ' videos' : 'Crear el video')) }}
+          <button class="btn primary lg" [disabled]="busy() || activeJobs() >= 3" (click)="create()">
+            <bx-icon name="sparkles" [size]="18" /> {{ busy() ? 'Enviando…' : 'Crear borrador' }}
           </button>
         </div>
       </section>
@@ -388,7 +318,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   private dialogs = inject(Dialogs);
   options = signal<Options | null>(null);
   videos = signal<PromoVideo[]>([]);
-  kind = signal('anuncio');
+  kind = signal('reel');
   formats = signal<string[]>(['vertical', 'horizontal', 'cuadrado']);
   /** Voces de la línea de marca (las mismas que recomienda el panel de Canix): narradora cálida y locutor ágil. */
   recommended = new Set(['M5', 'M3', 'M8', 'M6', 'H14', 'H4', 'H12', 'H19']);
@@ -420,12 +350,12 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
     return rest.length ? [...groups, { name: 'Otras', keys: rest }] : groups;
   });
   summaryTitle = computed(() => {
-    const n = this.kind() === 'recuadros' ? 3 : this.formats().length;
+    const n = 1;
     const kind = this.options()?.kinds?.find(k => k.key === this.kind())?.name ?? 'Video';
     return `${kind} · ${n === 1 ? '1 video' : n + ' videos'}`;
   });
   summaryLine = computed(() =>
-    [(this.kind() === 'recuadros' ? 'Reel, Instagram y Tutorial guiado' : this.formats().map(f => this.fmtName(f).name).join(', ')) || 'Elige al menos un formato', ...(this.kind() === 'recuadros' ? ['recuadros, guía y mascota', this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : 'solo música'] : [this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : ''])]
+    [(this.kind() === 'reel' ? 'Vertical' : 'Horizontal') || 'Elige al menos un formato', ...(true ? ['recuadros, guía y mascota', this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : 'solo música'] : [this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : ''])]
       .filter(Boolean).join(' · '));
   music = signal('fiesta');
   idea = '';
@@ -569,6 +499,8 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
 
   ideaHint(): string {
     switch (this.kind()) {
+      case 'reel':
+      case 'tutorial': return 'Ej.: el subtítulo de la intro, p. ej. «Tu bar, en el celular» (máx. 90 letras)';
       case 'anuncio': return 'Ej.: para bares de Bogotá que todavía anotan en papel; resalta las rondas por tandas y la caja cuadrada';
       case 'recuadros': return 'Ej.: el subtítulo de la intro, p. ej. «Tu bar, en el celular» (máx. 90 letras)';
       case 'funcion': return 'Ej.: la música a pedido: el cliente pone su canción desde la mesa y el TV muestra lo que suena';
@@ -577,7 +509,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   }
 
   kindIcon(key: string): 'megaphone' | 'qr-code' | 'hand' | 'chart-column' | 'calculator' | 'music' | 'sparkles' {
-    return ({ anuncio: 'megaphone', tutorial_cliente: 'qr-code', tutorial_mesero: 'hand', tutorial_admin: 'chart-column',
+    return ({ reel: 'megaphone', tutorial: 'qr-code', anuncio: 'megaphone', tutorial_cliente: 'qr-code', tutorial_mesero: 'hand', tutorial_admin: 'chart-column',
       tutorial_caja: 'calculator', tutorial_musica: 'music' } as const)[key] ?? 'sparkles';
   }
 
@@ -610,16 +542,12 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
     this.busy.set(true);
     try {
       const made = await this.api.run(this.api.post<PromoVideo[]>('/platform/videos', {
-        kind: this.kind(), formats: this.formats(), voice: this.options()?.voiceReady ? this.voice() : (this.kind() === 'recuadros' ? '' : this.voice()), music: this.music(), idea: this.idea.trim() || null,
+        kind: this.kind(), formats: [this.kind() === 'reel' ? 'vertical' : 'horizontal'], voice: 'eleven2:Chris', music: this.music(), idea: this.idea.trim() || null,
       }));
       this.videos.update(list => [...made, ...list]);
       this.idea = '';
-      if (this.kind() === 'recuadros') {
-        this.toasts.ok('3 borradores creados: corrígelos y graba la versión previa de cada uno.');
-        if (!this.assetsLoaded) this.loadAssets();
-        return;
-      }
-      this.toasts.ok(made.length > 1 ? `El estudio empezó a armar ${made.length} videos. Tardan unos minutos.` : 'El estudio empezó a armar el video. Tarda unos minutos.');
+      this.toasts.ok('Borrador creado: corrígelo y graba la versión previa.');
+      if (!this.assetsLoaded) this.loadAssets();
     } catch (e) {
       this.toasts.error(errorMessage(e));
     } finally {
