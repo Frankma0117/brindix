@@ -88,6 +88,11 @@ public class PromoVideoController {
         return service.preview(id);
     }
 
+    @PostMapping("/{id}/guide")
+    public PromoVideoService.VideoRow guide(@PathVariable Long id) {
+        return service.generateGuide(id);
+    }
+
     @PostMapping("/{id}/approve")
     public PromoVideoService.VideoRow approve(@PathVariable Long id) {
         return service.approve(id);

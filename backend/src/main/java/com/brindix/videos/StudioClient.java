@@ -70,6 +70,29 @@ public class StudioClient {
         }
     }
 
+    /** PDF de la guía: manda el guion y las capturas (base64) y devuelve los bytes del PDF. */
+    public byte[] guide(String specJson, JsonNode images) {
+        if (!enabled()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "El estudio de videos no está configurado en el servidor");
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.node.ObjectNode body = om.createObjectNode();
+            body.set("spec", om.readTree(specJson));
+            body.set("images", images);
+            JsonNode out = auth(narrateHttp.post().uri(url("/guide")).contentType(MediaType.APPLICATION_JSON).body(body.toString()))
+                    .retrieve().body(JsonNode.class);
+            return java.util.Base64.getDecoder().decode(out.path("pdf").asText(""));
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            String why = "No se pudo armar el PDF.";
+            try {
+                why = new com.fasterxml.jackson.databind.ObjectMapper().readTree(e.getResponseBodyAsString()).path("detail").asText(why);
+            } catch (Exception ignored) {
+            }
+            throw new ApiException(HttpStatus.BAD_GATEWAY, why);
+        } catch (RestClientException | java.io.IOException | IllegalArgumentException e) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "El estudio no respondió al armar el PDF.");
+        }
+    }
+
     /** Audio de la versión final: {seconds:{intro,scenes[],outro}, audio:base64 mp3}. Tarda (una voz por escena). */
     public JsonNode narrate(String specJson, String voice, String music) {
         if (!enabled()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "El estudio de videos no está configurado en el servidor");

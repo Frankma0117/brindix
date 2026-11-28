@@ -101,11 +101,15 @@ public class StorageService {
 
     /** Sube un archivo de video (MP4) a Spaces y devuelve su URL pública. Exige Spaces configurado. */
     public String saveVideo(String folder, String name, Path file) {
+        return saveFile(folder, name, file, "video/mp4");
+    }
+
+    public String saveFile(String folder, String name, Path file, String contentType) {
         if (s3 == null) throw ApiException.badRequest("Para aprobar videos hay que configurar DigitalOcean Spaces (SPACES_KEY y SPACES_SECRET).");
         String key = (cfg.prefix() == null || cfg.prefix().isBlank() ? "" : cfg.prefix().replaceAll("/+$", "") + "/")
                 + safe(folder) + "/" + name.replaceAll("[^A-Za-z0-9._-]", "");
         s3.putObject(PutObjectRequest.builder().bucket(cfg.bucket()).key(key).acl(ObjectCannedACL.PUBLIC_READ)
-                .contentType("video/mp4").cacheControl("public, max-age=31536000, immutable").build(), RequestBody.fromFile(file));
+                .contentType(contentType).cacheControl("public, max-age=31536000, immutable").build(), RequestBody.fromFile(file));
         return publicBase() + "/" + key;
     }
 

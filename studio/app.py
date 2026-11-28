@@ -19,6 +19,7 @@ import traceback
 from fastapi import FastAPI, Header, HTTPException
 
 import falvoices
+import guide
 import media
 import narrate
 import pipeline
@@ -88,6 +89,21 @@ def narrate_video(body: dict, x_studio_token: str | None = Header(None)):
     finally:
         shutil.rmtree(work, ignore_errors=True)
     return {"seconds": seconds, "audio": audio}
+
+
+@app.post("/guide")
+def guide_pdf(body: dict, x_studio_token: str | None = Header(None)):
+    """Guía en PDF: {spec, images:{ruta: jpg en base64}} → {pdf: base64}."""
+    _auth(x_studio_token)
+    spec, images = body.get("spec"), body.get("images") or {}
+    if not isinstance(spec, dict) or not isinstance(images, dict):
+        raise HTTPException(400, "falta el guion (spec)")
+    try:
+        pdf = guide.build(spec, images)
+    except Exception as e:  # noqa: BLE001
+        log.error("guía falló: %s | %s", type(e).__name__, traceback.format_exc())
+        raise HTTPException(502, "No se pudo armar el PDF. Intenta de nuevo.")
+    return {"pdf": base64.b64encode(pdf).decode()}
 
 
 @app.get("/jobs/{jid}")

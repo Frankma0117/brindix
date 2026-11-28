@@ -12,7 +12,7 @@ type Role = 'mascot' | 'tutorial';
 type Status = 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED' | 'DRAFT' | 'PREVIEWING' | 'REVIEW';
 
 export interface PromoVideo {
-  id: number; jobId?: string; kind: string; kindName?: string; format: 'vertical' | 'horizontal' | 'cuadrado'; voice: string; music: string; idea?: string;
+  id: number; jobId?: string; kind: string; kindName?: string; format: 'vertical' | 'horizontal' | 'cuadrado' | 'guia'; voice: string; music: string; idea?: string;
   status: Status; progress: number; detail?: string; title?: string; caption?: string;
   script?: { shot: string; headline: string; say: string }[]; videoUrl?: string; posterUrl?: string; seconds?: number;
   createdAt: string; finishedAt?: string;
@@ -34,6 +34,7 @@ const FORMAT_NAMES: Record<string, { name: string; where: string }> = {
   vertical: { name: 'Vertical', where: 'Reels, TikTok, estados' },
   horizontal: { name: 'Horizontal', where: 'YouTube, TV, computador' },
   cuadrado: { name: 'Cuadrado', where: 'Feed de Instagram y Facebook' },
+  guia: { name: 'PDF', where: 'Para imprimir o enviar por WhatsApp' },
 };
 /** Lowercase without accents, to search "Andrés" with "andres". */
 const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -93,9 +94,10 @@ const MUSIC_NAMES: Record<string, string> = {
 
           <li class="step">
             <div class="step-head"><span class="num">2</span><h3>Formato</h3><span class="hint">Automático</span></div>
-            <p class="small muted">{{ kind() === 'reel' ? 'Un video vertical (9:16) para Instagram, TikTok y WhatsApp.' : 'Un video horizontal (16:9) para YouTube o una reunión.' }} Siempre con recuadros, rótulos y la copa; la voz de Chris narra y Matilda es la voz de la copa.</p>
+            <p class="small muted">{{ kind() === 'guia' ? 'Un PDF paso a paso: una página por pantalla, con la captura, los recuadros numerados y su explicación. Sin voz ni música.' : (kind() === 'reel' ? 'Un video vertical (9:16) para Instagram, TikTok y WhatsApp.' : 'Un video horizontal (16:9) para YouTube o una reunión.') + ' Siempre con recuadros, rótulos y la copa; la voz de Chris narra y Matilda es la voz de la copa.' }}</p>
           </li>
 
+          @if (kind() !== 'guia') {
           <li class="step">
             <div class="step-head"><span class="num">3</span><h3>Música</h3><span class="hint">{{ musicName(music()) }}</span></div>
             <div class="mgroups">
@@ -111,7 +113,7 @@ const MUSIC_NAMES: Record<string, string> = {
               }
             </div>
           </li>
-
+          }
 
           <li class="step">
             <div class="step-head"><span class="num">4</span><h3>Idea o enfoque</h3><span class="hint">Opcional</span></div>
@@ -137,7 +139,12 @@ const MUSIC_NAMES: Record<string, string> = {
     @for (v of videos(); track v.id) {
       <article class="vcard" [class.done]="v.status === 'DONE'" [class.failed]="v.status === 'FAILED'">
         <div class="poster" [class]="'poster ' + v.format">
-          @if (v.status === 'DONE' && v.videoUrl) {
+          @if (v.status === 'DONE' && v.videoUrl && v.format === 'guia') {
+            <a class="state working" [href]="v.videoUrl" target="_blank" rel="noopener">
+              <bx-icon name="sticky-note" [size]="32" />
+              <p>Guía en PDF lista · abrir</p>
+            </a>
+          } @else if (v.status === 'DONE' && v.videoUrl) {
             @if (playing() === v.id) {
               <video [src]="v.videoUrl" [poster]="v.posterUrl" controls autoplay playsinline (ended)="playing.set(null)"></video>
             } @else {
@@ -155,7 +162,7 @@ const MUSIC_NAMES: Record<string, string> = {
           } @else if (v.status === 'DRAFT' || v.status === 'REVIEW') {
             <div class="state working">
               <bx-mascot [size]="64" mood="happy" />
-              <p>{{ v.status === 'DRAFT' ? 'Borrador: revisa el guion y graba la previa' : 'Previa lista: revísala y apruébala' }}</p>
+              <p>{{ v.status === 'DRAFT' ? (v.format === 'guia' ? 'Borrador: revisa los textos y genera el PDF' : 'Borrador: revisa el guion y graba la previa') : 'Previa lista: revísala y apruébala' }}</p>
             </div>
           } @else {
             <div class="state working">
@@ -167,7 +174,7 @@ const MUSIC_NAMES: Record<string, string> = {
         </div>
         <div class="vbody">
           <h3>{{ v.title || v.kindName || kindName(v.kind) }} @if (stage(v); as st) { <span class="badge">{{ st }}</span> }</h3>
-          <p class="meta tiny muted">{{ v.kindName || kindName(v.kind) }} · {{ fmtName(v.format).name }} · {{ voiceName(v.voice) }} · {{ musicName(v.music) }} · {{ v.createdAt | date: 'd MMM, HH:mm' }}</p>
+          <p class="meta tiny muted">{{ v.kindName || kindName(v.kind) }} · {{ fmtName(v.format).name }} @if (v.format !== 'guia') { · {{ voiceName(v.voice) }} · {{ musicName(v.music) }} } · {{ v.createdAt | date: 'd MMM, HH:mm' }}</p>
           @if (v.idea) { <p class="idea small">{{ v.idea }}</p> }
           <div class="actions">
             @if (v.status === 'DONE') {
@@ -355,7 +362,8 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
     return `${kind} · ${n === 1 ? '1 video' : n + ' videos'}`;
   });
   summaryLine = computed(() =>
-    [(this.kind() === 'reel' ? 'Vertical' : 'Horizontal'), 'recuadros y mascota', 'voz de Chris y Matilda', this.musicName(this.music())]
+    (this.kind() === 'guia' ? ['PDF', 'capturas con recuadros numerados', 'sin voz ni música']
+      : [(this.kind() === 'reel' ? 'Vertical' : 'Horizontal'), 'recuadros y mascota', 'voz de Chris y Matilda', this.musicName(this.music())])
       .filter(Boolean).join(' · '));
   music = signal('fiesta');
   idea = '';
@@ -500,6 +508,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   ideaHint(): string {
     switch (this.kind()) {
       case 'reel':
+      case 'guia':
       case 'tutorial': return 'Ej.: el subtítulo de la intro, p. ej. «Tu bar, en el celular» (máx. 90 letras)';
       case 'anuncio': return 'Ej.: para bares de Bogotá que todavía anotan en papel; resalta las rondas por tandas y la caja cuadrada';
       case 'recuadros': return 'Ej.: el subtítulo de la intro, p. ej. «Tu bar, en el celular» (máx. 90 letras)';
@@ -508,8 +517,8 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
     }
   }
 
-  kindIcon(key: string): 'megaphone' | 'qr-code' | 'hand' | 'chart-column' | 'calculator' | 'music' | 'sparkles' {
-    return ({ reel: 'megaphone', tutorial: 'qr-code', anuncio: 'megaphone', tutorial_cliente: 'qr-code', tutorial_mesero: 'hand', tutorial_admin: 'chart-column',
+  kindIcon(key: string): 'megaphone' | 'qr-code' | 'hand' | 'chart-column' | 'calculator' | 'music' | 'sparkles' | 'sticky-note' {
+    return ({ reel: 'megaphone', tutorial: 'qr-code', guia: 'sticky-note', anuncio: 'megaphone', tutorial_cliente: 'qr-code', tutorial_mesero: 'hand', tutorial_admin: 'chart-column',
       tutorial_caja: 'calculator', tutorial_musica: 'music' } as const)[key] ?? 'sparkles';
   }
 
@@ -542,7 +551,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
     this.busy.set(true);
     try {
       const made = await this.api.run(this.api.post<PromoVideo[]>('/platform/videos', {
-        kind: this.kind(), formats: [this.kind() === 'reel' ? 'vertical' : 'horizontal'], voice: 'eleven2:Chris', music: this.music(), idea: this.idea.trim() || null,
+        kind: this.kind(), formats: [this.kind() === 'guia' ? 'guia' : this.kind() === 'reel' ? 'vertical' : 'horizontal'], voice: 'eleven2:Chris', music: this.kind() === 'guia' ? '' : this.music(), idea: this.idea.trim() || null,
       }));
       this.videos.update(list => [...made, ...list]);
       this.idea = '';

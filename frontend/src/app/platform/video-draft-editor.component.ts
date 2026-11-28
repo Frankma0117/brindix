@@ -61,6 +61,7 @@ interface Spec {
               <label>Lo que dice la mascota<textarea rows="2" maxlength="300" [(ngModel)]="draft.intro.say" [placeholder]="introSay()"></textarea></label>
             </fieldset>
 
+            @if (video.format !== 'guia') {
             <fieldset>
               <legend>Voz y música de la versión final</legend>
               <label>Voz
@@ -77,6 +78,7 @@ interface Spec {
               </label>
               <p class="small muted">Se guardan al guardar o grabar. La previa siempre va muda.</p>
             </fieldset>
+            }
 
             <label class="guide-opt"><input type="checkbox" [(ngModel)]="draft.guide"> Guía paso a paso (insignia «Paso N de M» y barra de progreso)</label>
 
@@ -145,7 +147,9 @@ interface Spec {
           @if (open()) {
             <button type="button" class="btn sm" [disabled]="busy()" (click)="save()">Guardar cambios</button>
           }
-          @if (video.status === 'DRAFT') {
+          @if (video.status === 'DRAFT' && video.format === 'guia') {
+            <button type="button" class="btn sm primary" [disabled]="busy()" (click)="makeGuide()"><bx-icon name="check" [size]="16" /> Generar PDF</button>
+          } @else if (video.status === 'DRAFT') {
             <button type="button" class="btn sm primary" [disabled]="busy()" (click)="preview()"><bx-icon name="play" [size]="16" /> Grabar versión previa</button>
           }
           @if (video.status === 'REVIEW') {
@@ -304,6 +308,21 @@ export class VideoDraftEditorComponent implements OnChanges, OnDestroy {
       this.changed.emit(v);
       this.open.set(false);
       this.toasts.ok('Grabando la versión previa. Te aviso aquí cuando esté lista.');
+    } catch (e) {
+      this.toasts.error(errorMessage(e));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async makeGuide(): Promise<void> {
+    this.busy.set(true);
+    try {
+      if (this.open() && !(await this.persist())) return;
+      const v = await this.api.run(this.api.post<PromoVideo>(`/platform/videos/${this.video.id}/guide`, {}));
+      this.changed.emit(v);
+      this.open.set(false);
+      this.toasts.ok('Armando el PDF. Aparece en la galería en un momento.');
     } catch (e) {
       this.toasts.error(errorMessage(e));
     } finally {

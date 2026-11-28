@@ -68,12 +68,13 @@ public class PromoVideoService {
 
     /** Tipo de video con recuadros y mascota de cuerpo entero: lo graba el taller Remotion del servidor (sin voz). */
     public static final String KIND_CALLOUTS = "recuadros";
-    private static final Map<String, String> CALLOUT_NAME = Map.of("vertical", "Reel de publicidad", "cuadrado", "Instagram", "horizontal", "Tutorial completo");
+    private static final Map<String, String> CALLOUT_NAME = Map.of("vertical", "Reel de publicidad", "cuadrado", "Instagram", "horizontal", "Tutorial completo", "guia", "Guía en PDF");
     public static final String KIND_REEL = "reel";
     public static final String KIND_TUTORIAL = "tutorial";
     /** La voz ya está elegida: Chris narra y Matilda es la copa (ver studio/narrate.py). */
+    public static final String KIND_GUIDE = "guia";
     public static final String FIXED_VOICE = "eleven2:Chris";
-    private static final Map<String, String> BRIDGE_FORMAT = Map.of("vertical", "9x16", "horizontal", "16x9", "cuadrado", "1x1");
+    private static final Map<String, String> BRIDGE_FORMAT = Map.of("vertical", "9x16", "horizontal", "16x9", "cuadrado", "1x1", "guia", "16x9");
 
     public record VideoRow(Long id, String jobId, String kind, String kindName, String format, String voice, String music, String idea,
                            PromoVideo.Status status, int progress, String detail, String title, String caption, JsonNode script,
@@ -82,7 +83,7 @@ public class PromoVideoService {
     public record AudioIn(@Pattern(regexp = "(" + VOICE_KEY + ")?") String voice, @Pattern(regexp = "[a-z]*") String music) {}
 
     public record VideoCreate(@NotBlank @Pattern(regexp = "[a-z_]+") String kind,
-                              @NotEmpty List<@Pattern(regexp = "vertical|horizontal|cuadrado") String> formats,
+                              @NotEmpty List<@Pattern(regexp = "vertical|horizontal|cuadrado|guia") String> formats,
                               @Pattern(regexp = "(" + VOICE_KEY + ")?") String voice,
                               @Pattern(regexp = "[a-z]*") String music,
                               @Size(max = 600) String idea) {}
@@ -96,6 +97,8 @@ public class PromoVideoService {
                         .put("about", "Corto y vertical: plantea el problema del bar y muestra cómo lo resuelve Brindix, con recuadros y la copa.").put("seconds", 35);
                 kinds.addObject().put("key", KIND_TUTORIAL).put("name", "Tutorial completo")
                         .put("about", "Horizontal y pausado: recorre cada pantalla de la app con recuadros que explican cada parte, problema por problema.").put("seconds", 120);
+                kinds.addObject().put("key", KIND_GUIDE).put("name", "Guía en PDF")
+                        .put("about", "Documento paso a paso con las mismas capturas, recuadros numerados y textos del tutorial. Sin voz ni música.").put("seconds", 0);
             }
             on.put("voiceReady", true);
         }
@@ -131,15 +134,16 @@ public class PromoVideoService {
     /** Un pedido: un registro por formato, todos con el mismo jobId, y un solo trabajo en el estudio. */
     @Transactional
     public List<VideoRow> create(Long by, VideoCreate in) {
-        boolean callouts = KIND_REEL.equals(in.kind()) || KIND_TUTORIAL.equals(in.kind());
+        boolean guide = KIND_GUIDE.equals(in.kind());
+        boolean callouts = guide || KIND_REEL.equals(in.kind()) || KIND_TUTORIAL.equals(in.kind());
         if (!callouts) throw ApiException.badRequest("Ese tipo de video ya no existe.");
-        String voice = FIXED_VOICE;
-        String music = blankToNull(in.music());
+        String voice = guide ? null : FIXED_VOICE;
+        String music = guide ? null : blankToNull(in.music());
         // los videos del estudio siempre llevan voz y música; con recuadros son opcionales (se eligen al editar el borrador)
         if (!callouts && (voice == null || music == null)) throw ApiException.badRequest("Elige una voz y una música.");
         if (callouts) checkMusic(music);
         // con recuadros siempre salen los 3 tipos (Reel, Instagram, Tutorial guiado), sin importar lo que pida el request
-        List<String> formats = callouts ? List.of(KIND_REEL.equals(in.kind()) ? "vertical" : "horizontal")
+        List<String> formats = callouts ? List.of(guide ? "guia" : KIND_REEL.equals(in.kind()) ? "vertical" : "horizontal")
                 : in.formats().stream().filter(FORMATS::contains).collect(Collectors.toCollection(LinkedHashSet::new)).stream().toList();
         if (formats.isEmpty()) throw ApiException.badRequest("Elige al menos un formato");
         if (callouts && !bridge.disponible()) throw ApiException.badRequest("El taller de video no está disponible en este servidor.");
@@ -203,12 +207,13 @@ public class PromoVideoService {
     /** Deja el video como borrador con el guion de la plantilla (la idea es el subtítulo de la intro). */
     private void draft(PromoVideo v) {
         ObjectNode spec = "vertical".equals(v.getFormat()) ? VideoSpecValidator.reelTemplate() : VideoSpecValidator.brindixTemplate();
+        if ("guia".equals(v.getFormat())) spec.put("guide", true);
         spec.put("format", BRIDGE_FORMAT.get(v.getFormat()));
         if (v.getIdea() != null) spec.with("intro").put("sub", v.getIdea().length() > 90 ? v.getIdea().substring(0, 90) : v.getIdea());
         v.setSpec(spec.toString());
         v.setStatus(PromoVideo.Status.DRAFT);
         v.setTitle("Brindix · " + CALLOUT_NAME.get(v.getFormat()));
-        v.setKindName(CALLOUT_NAME.get(v.getFormat()) + " · Con recuadros y mascota");
+        v.setKindName(CALLOUT_NAME.get(v.getFormat()) + " · " + ("guia".equals(v.getFormat()) ? "Paso a paso" : "Con recuadros y mascota"));
         v.setDetail("Borrador: revisa y corrige");
         repo.save(v);
     }
@@ -281,6 +286,77 @@ public class PromoVideoService {
             go.run();
         }
         return res;
+    }
+
+    /** Guía en PDF: desde el borrador, arma el documento en el estudio con las capturas del taller y lo sube a Spaces. */
+    @Transactional
+    public VideoRow generateGuide(Long id) {
+        PromoVideo v = callouts(id);
+        if (!"guia".equals(v.getFormat())) throw ApiException.badRequest("Este video no es una guía.");
+        if (v.getStatus() != PromoVideo.Status.DRAFT) throw ApiException.conflict("La guía se genera desde el borrador.");
+        if (v.getSpec() == null) throw ApiException.badRequest("Esta guía no tiene guion.");
+        if (!bridge.disponible()) throw ApiException.badRequest("El taller de video no está disponible en este servidor.");
+        if (!studio.enabled()) throw ApiException.badRequest("El estudio no está disponible en este servidor.");
+        v.setStatus(PromoVideo.Status.RUNNING);
+        v.setDetail("Armando el PDF…");
+        VideoRow res = row(repo.save(v));
+        long vid = v.getId();
+        narrating.add(vid);
+        Runnable go = () -> narrator.execute(() -> buildGuide(vid));
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override public void afterCommit() { go.run(); }
+                    });
+        } else {
+            go.run();
+        }
+        return res;
+    }
+
+    private void buildGuide(long id) {
+        try {
+            PromoVideo v = repo.findById(id).orElse(null);
+            if (v == null || v.getStatus() != PromoVideo.Status.RUNNING || v.getSpec() == null) return;
+            JsonNode spec = json.readTree(v.getSpec());
+            ObjectNode images = json.createObjectNode();
+            for (JsonNode sc : spec.path("scenes")) {
+                String img = sc.path("image").asText("");
+                if (img.isEmpty() || images.has(img)) continue;
+                try (var in = bridge.openAsset(img).body()) {
+                    images.put(img, Base64.getEncoder().encodeToString(in.readAllBytes()));
+                }
+            }
+            byte[] pdf = studio.guide(spec.toString(), images);
+            if (pdf.length < 1000) throw ApiException.badRequest("El estudio devolvió un PDF vacío.");
+            if (!repo.existsById(id)) return;
+            java.nio.file.Path tmp = java.nio.file.Files.createTempFile("brindix-guia-", ".pdf");
+            String url;
+            try {
+                java.nio.file.Files.write(tmp, pdf);
+                url = storage.saveFile("videos", "guia-" + id + "-" + System.currentTimeMillis() + ".pdf", tmp, "application/pdf");
+            } finally {
+                java.nio.file.Files.deleteIfExists(tmp);
+            }
+            repo.findById(id).ifPresent(x -> {
+                x.setVideoUrl(url);
+                x.setStatus(PromoVideo.Status.DONE);
+                x.setProgress(100);
+                x.setDetail("Listo");
+                x.setTitle("Brindix · Guía en PDF");
+                x.setKindName("Guía en PDF · Paso a paso");
+                x.setFinishedAt(Instant.now());
+                repo.save(x);
+            });
+        } catch (Exception e) {
+            String why = e instanceof ApiException ? e.getMessage() : "No se pudo armar el PDF. Intenta de nuevo.";
+            log.warn("Guía {}: {}", id, e.getMessage());
+            repo.findById(id).ifPresent(x -> {
+                if (x.getStatus() == PromoVideo.Status.RUNNING) fail(List.of(x), why);
+            });
+        } finally {
+            narrating.remove(id);
+        }
     }
 
     /** Hilo aparte: voz Fish + música en el estudio, sube el mp3 al puente y manda a grabar el video final con audio. */
@@ -376,7 +452,7 @@ public class PromoVideoService {
                 v.setProgress(100);
                 v.setDetail("Listo");
                 v.setTitle("Brindix · " + CALLOUT_NAME.get(v.getFormat()));
-                v.setKindName(CALLOUT_NAME.get(v.getFormat()) + " · Con recuadros y mascota");
+                v.setKindName(CALLOUT_NAME.get(v.getFormat()) + " · " + ("guia".equals(v.getFormat()) ? "Paso a paso" : "Con recuadros y mascota"));
                 v.setFinishedAt(Instant.now());
                 repo.save(v);
             } else if (v.getCreatedAt().plus(MAX_RUN).isBefore(Instant.now())) {
@@ -415,7 +491,7 @@ public class PromoVideoService {
     public void poll() {
         List<PromoVideo> bridged = new java.util.ArrayList<>(active());
         bridged.addAll(repo.findByStatusIn(List.of(PromoVideo.Status.PREVIEWING)));
-        for (PromoVideo v : bridged) if (KIND_CALLOUTS.equals(v.getKind()) && bridge.disponible() && !narrating.contains(v.getId())) pollBridge(v);
+        for (PromoVideo v : bridged) if (KIND_CALLOUTS.equals(v.getKind()) && bridge.disponible() && !"guia".equals(v.getFormat()) && !narrating.contains(v.getId())) pollBridge(v);
         if (!studio.enabled()) return;
         Map<String, List<PromoVideo>> byJob = active().stream().filter(v -> !KIND_CALLOUTS.equals(v.getKind())).collect(Collectors.groupingBy(v -> v.getJobId() == null ? String.valueOf(v.getId()) : v.getJobId()));
         for (Map.Entry<String, List<PromoVideo>> e : byJob.entrySet()) {
