@@ -355,7 +355,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
     return `${kind} · ${n === 1 ? '1 video' : n + ' videos'}`;
   });
   summaryLine = computed(() =>
-    [(this.kind() === 'reel' ? 'Vertical' : 'Horizontal') || 'Elige al menos un formato', ...(true ? ['recuadros, guía y mascota', this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : 'solo música'] : [this.musicName(this.music()), this.selectedVoice() ? 'voz de ' + this.selectedVoice()!.name : ''])]
+    [(this.kind() === 'reel' ? 'Vertical' : 'Horizontal'), 'recuadros y mascota', 'voz de Chris y Matilda', this.musicName(this.music())]
       .filter(Boolean).join(' · '));
   music = signal('fiesta');
   idea = '';
