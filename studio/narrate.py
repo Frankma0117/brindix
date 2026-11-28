@@ -6,12 +6,14 @@ quepa, y devuelve esos segundos junto con el mp3 ya mezclado y colocado en el ti
 import hashlib
 import logging
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 
 import requests
 
+import falvoices
 import media
 from catalog import MUSIC, VOICES
 
@@ -70,10 +72,15 @@ def _cache_url(h: str) -> str:
     return media.public_url(f"{prefix}/studio/voicecache/{h}.mp3" if prefix else f"studio/voicecache/{h}.mp3")
 
 
+COPA_VOICE = ("eleven2", "Matilda")  # la copa habla en la intro y el cierre; la narración informativa usa la voz elegida
+FAL_VOICE = re.compile(r"^([a-z0-9]{3,10}):([A-Za-z0-9_-]{2,40})$")
+
+
 def _voice(text: str, voice: dict, path: str) -> None:
-    """Voz de un trozo: primero la caché por hash (Spaces); si no está, Fish y se guarda."""
-    model = os.environ.get("FISH_MODEL", "s2-pro")
-    h = hashlib.sha256(f"{model}|{voice['id']}|{text}".encode()).hexdigest()[:40]
+    """Voz de un trozo: primero la caché por hash (Spaces); si no está, Fish o fal y se guarda."""
+    fal = voice.get("fal")
+    model = f"fal-{fal[0]}" if fal else os.environ.get("FISH_MODEL", "s2-pro")
+    h = hashlib.sha256(f"{model}|{fal[1] if fal else voice['id']}|{text}".encode()).hexdigest()[:40]
     try:
         r = requests.get(_cache_url(h), timeout=20)
         if r.ok and r.content:
@@ -82,7 +89,13 @@ def _voice(text: str, voice: dict, path: str) -> None:
             return
     except Exception:  # noqa: BLE001 — sin caché se pide a Fish
         pass
-    if not media.voice(text, voice["id"], path):
+    if fal:
+        try:
+            falvoices.speak(fal[0], fal[1], text, path)
+        except Exception as e:  # noqa: BLE001
+            log.warning("fal tts: %s", e)
+            raise NarrateError("No se pudo grabar la voz (revisa FAL_KEY o el saldo de fal.ai).") from e
+    elif not media.voice(text, voice["id"], path):
         raise NarrateError("No se pudo grabar la voz (revisa FISH_API_KEY o el saldo de Fish Audio).")
     try:
         with open(path, "rb") as f:
@@ -119,9 +132,14 @@ def _mix(clips: list[tuple[str, float]], music_path: str | None, total: float, o
 
 def narrate(spec: dict, voice_key: str | None, music_key: str | None) -> tuple[dict, str, str]:
     """Devuelve ({intro, scenes, outro} en segundos, ruta del mp3, carpeta de trabajo que quien llama debe borrar)."""
-    voice = next((v for v in VOICES if v["key"] == voice_key), None)
+    m = FAL_VOICE.match(voice_key or "")
+    if m and m.group(1) in falvoices.MODELS and m.group(2) in falvoices.MODELS[m.group(1)]["voices"]:
+        voice = {"key": voice_key, "fal": (m.group(1), m.group(2))}
+        use_voice = bool(os.environ.get("FAL_KEY"))
+    else:
+        voice = next((v for v in VOICES if v["key"] == voice_key), None)
+        use_voice = bool(voice) and bool(os.environ.get("FISH_API_KEY"))
     style = music_key if music_key in MUSIC else None
-    use_voice = bool(voice) and bool(os.environ.get("FISH_API_KEY"))
     if not use_voice and not style:
         raise NarrateError("Elige una voz (con Fish configurado) o una música: sin ninguna no hay audio que generar.")
     work = tempfile.mkdtemp(prefix="narrate-")
@@ -133,7 +151,8 @@ def narrate(spec: dict, voice_key: str | None, music_key: str | None) -> tuple[d
                 if not b["text"]:
                     continue
                 path = os.path.join(work, f"voz-{i}.mp3")
-                _voice(b["text"], voice, path)
+                # la copa (intro y cierre) habla con su propia voz cuando la narración es de fal
+                _voice(b["text"], {"key": "copa", "fal": COPA_VOICE} if voice.get("fal") and b["kind"] != "scene" else voice, path)
                 voices[i] = (path, media.duration(path))
         # segundos finales: lo que ya tenía el bloque, o lo que pida la voz (+0.8 s)
         secs = [max(b["base"], (v[1] + VOICE_OFFSET + VOICE_TAIL) if v else 0) for b, v in zip(items, voices)]

@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Service
 public class PromoVideoService {
     /** Claves de voz del estudio: H1–H35 y M1–M39 (studio/catalog.py). La muestra y el pedido usan la misma regla. */
-    public static final String VOICE_KEY = "[HM][0-9]{1,2}";
+    public static final String VOICE_KEY = "[HM][0-9]{1,2}|eleven2:(Chris|Matilda)";
 
 
     private static final Logger log = LoggerFactory.getLogger(PromoVideoService.class);

@@ -67,7 +67,7 @@ public final class VideoSpecValidator {
 
     /** Lo que dice la mascota (opcional, máx. 300). El campo "audio" nunca se copia: solo lo pone el backend. */
     private static void putSay(ObjectNode o, JsonNode src, String where) {
-        String say = text(src.path("say"), 300, "Lo que dice la mascota en " + where, false);
+        String say = text(src.path("say"), 700, "Lo que dice la mascota en " + where, false);
         if (!say.isEmpty()) o.put("say", say);
     }
 
@@ -150,7 +150,7 @@ public final class VideoSpecValidator {
         return "proyectos/brindix/capturas/" + name + ".jpg";
     }
 
-    private static ObjectNode scene(String image, String title, String sub, int[][] pos, String[] texts, String pose, String side) {
+    private static ObjectNode scene(String image, String title, String sub, int[][] pos, String[] texts, String pose, String side, String say) {
         ObjectNode o = MAPPER.createObjectNode();
         o.put("image", image);
         o.put("title", title);
@@ -158,6 +158,7 @@ public final class VideoSpecValidator {
         ArrayNode a = o.putArray("callouts");
         for (int i = 0; i < pos.length; i++) a.addObject().put("x", pos[i][0]).put("y", pos[i][1]).put("text", texts[i]);
         o.putObject("mascot").put("pose", pose).put("side", side);
+        o.put("say", say);
         return o;
     }
 
@@ -169,35 +170,58 @@ public final class VideoSpecValidator {
                 .put("logo", "proyectos/brindix/marca/frontend_public_demo-assets_candela-logo.png").put("mascot", "brindix");
         t.put("format", "9x16");
         t.put("guide", true);
-        t.putObject("intro").put("title", "Brindix").put("sub", "Carta, pedidos y cuenta de tu bar en el celular");
+        t.putObject("intro").put("title", "Brindix").put("sub", "El bar sin papel, sin gritos y sin cuentas perdidas")
+                .put("say", "Hola, soy la copa de Brindix. ¿Te pasa que los pedidos se pierden, que la cuenta de la mesa no cuadra, "
+                        + "o que al cerrar la caja nunca sabes cuánto ganaste de verdad? Te muestro, paso a paso, cómo se resuelve desde el celular.")
+                .put("seconds", 6);
         ArrayNode s = t.putArray("scenes");
-        // Capturas reales de la app demo (candela brava); viven en el taller: proyectos/brindix/capturas/
-        // (las genera video-bridge/taller-src/capturas-brindix.mjs). Los (x, y) son % del recuadro del teléfono.
-        s.add(scene(cap("cliente-carta"), "Escanea el QR y ve la carta", "Sin descargar nada",
+        // Capturas reales de la app demo (candela brava) tomadas en celular (390x844); viven en el taller:
+        // proyectos/brindix/capturas/ (las genera video-bridge/taller-src/capturas-brindix.mjs).
+        // Los (x, y) son % del recuadro del teléfono. Cada escena: un problema del bar y cómo lo resuelve la app.
+        s.add(scene(cap("cliente-carta"), "Problema: el cliente espera la carta", "Escanea el QR de la mesa y listo",
                 new int[][]{{50, 20}, {50, 37}, {50, 66}},
-                new String[]{"Promos del día en la portada", "Busca por nombre o categoría", "Recomendados de la casa"}, "wave", "right"));
-        s.add(scene(cap("cliente-carrito"), "Arma y envía el pedido", "Desde la mesa, sin esperar",
+                new String[]{"Promos del día en la portada", "Busca por nombre o categoría", "Recomendados de la casa"}, "wave", "right",
+                "Primer problema: el cliente se sienta y espera a que alguien le traiga la carta. Con Brindix escanea el código QR de su mesa y la carta se abre en su celular, sin descargar nada. "
+                        + "Arriba están las promociones del día. Debajo, un buscador por nombre o categoría. Y más abajo, los productos recomendados de la casa."));
+        s.add(scene(cap("cliente-carrito"), "Problema: pedidos que se pierden", "El cliente arma su pedido y lo envía",
                 new int[][]{{81, 38}, {82, 84}, {50, 91}},
-                new String[]{"Ajusta cantidades con + y -", "El total se actualiza al instante", "Envía: el bar lo confirma"}, "point", "left"));
-        s.add(scene(cap("mesero-mesas"), "El mesero ve todas las mesas", "Ocupadas y libres de un vistazo",
+                new String[]{"Ajusta cantidades con + y -", "El total se actualiza al instante", "Envía: el bar lo confirma"}, "point", "left",
+                "Segundo problema: pedidos anotados a mano que se pierden o se entienden mal. Aquí el cliente arma su pedido. "
+                        + "Con los botones más y menos ajusta cada cantidad. El total se actualiza al instante, así no hay sorpresas al pagar. "
+                        + "Cuando está listo lo envía, y el bar lo recibe tal cual, sin errores de letra."));
+        s.add(scene(cap("mesero-mesas"), "Problema: no saber qué mesa está libre", "El mesero ve todas las mesas de un vistazo",
                 new int[][]{{87, 11}, {18, 23}, {18, 41}},
-                new String[]{"Cuántas mesas hay ocupadas", "Cada mesa muestra su consumo", "Abre una mesa libre con +"}, "point", "right"));
-        s.add(scene(cap("mesero-cuenta"), "La cuenta por mesa, clara", "Rondas, pagos y lo que falta",
+                new String[]{"Cuántas mesas hay ocupadas", "Cada mesa muestra su consumo", "Abre una mesa libre con +"}, "point", "right",
+                "Tercer problema: el mesero no sabe qué mesas están libres ni cuánto consume cada una. En su pantalla ve todas las mesas. "
+                        + "Arriba, cuántas están ocupadas. En cada mesa, su consumo actual. Y si llega un cliente, abre una mesa libre con el botón más."));
+        s.add(scene(cap("mesero-cuenta"), "Problema: la cuenta que no cuadra", "Rondas, pagos y lo que falta por cobrar",
                 new int[][]{{50, 19}, {77, 43}, {50, 95}},
-                new String[]{"Consumo, pagado y por cobrar", "Cobra cada ronda entregada", "Suma pedidos o cobra la mesa"}, "celebrate", "left"));
-        s.add(scene(cap("admin-resumen"), "Tu panel de dueño", "El bar de un vistazo",
+                new String[]{"Consumo, pagado y por cobrar", "Cobra cada ronda entregada", "Suma pedidos o cobra la mesa"}, "celebrate", "left",
+                "Cuarto problema: la cuenta de la mesa que nunca cuadra. Al abrir una mesa ves tres datos claros: lo consumido, lo ya pagado y lo que falta por cobrar. "
+                        + "Cada ronda se cobra cuando se entrega, y abajo puedes sumar más pedidos o cobrar la mesa completa."));
+        s.add(scene(cap("admin-resumen"), "Problema: no saber cómo va el bar", "Tu panel de dueño, de un vistazo",
                 new int[][]{{25, 20}, {50, 33}, {50, 46}},
-                new String[]{"Atiende las mesas desde aquí", "Mesas abiertas y pedidos pendientes", "Efectivo esperado en caja"}, "wave", "right"));
-        s.add(scene(cap("admin-carta"), "Edita tu carta en segundos", "Precios, costos y fotos",
+                new String[]{"Atiende las mesas desde aquí", "Mesas abiertas y pedidos pendientes", "Efectivo esperado en caja"}, "wave", "right",
+                "Quinto problema: el dueño no sabe cómo va el bar mientras está ocupado. En el resumen ves, en una sola pantalla, "
+                        + "cuántas mesas están abiertas, cuántos pedidos esperan y cuánto efectivo debería haber en la caja. Y si el bar es pequeño, desde aquí mismo puedes atender las mesas."));
+        s.add(scene(cap("admin-carta"), "Problema: cambiar precios es un lío", "Edita tu carta en segundos",
                 new int[][]{{55, 25}, {50, 36}, {50, 78}},
-                new String[]{"Agrega productos y categorías", "Margen promedio de tu carta", "Precio y existencias por producto"}, "point", "left"));
-        s.add(scene(cap("admin-ventas"), "Ventas y ganancia reales", "Calculadas con el costo de cada producto",
+                new String[]{"Agrega productos y categorías", "Margen promedio de tu carta", "Precio y existencias por producto"}, "point", "left",
+                "Sexto problema: cambiar un precio implica reimprimir cartas. En la sección de carta agregas productos y categorías cuando quieras. "
+                        + "Ves el margen promedio de tu carta, y en cada producto, su precio y sus existencias. El cambio le llega al cliente al instante."));
+        s.add(scene(cap("admin-ventas"), "Problema: ¿cuánto gané de verdad?", "Ventas y ganancia calculadas con tu costo",
                 new int[][]{{50, 35}, {25, 59}, {50, 82}},
-                new String[]{"Filtra por hoy, 7 o 30 días", "Ganancia y margen del periodo", "Ventas por día en una gráfica"}, "celebrate", "right"));
-        s.add(scene(cap("admin-mesas-qr"), "Un QR para cada mesa", "Imprímelos y listo",
+                new String[]{"Filtra por hoy, 7 o 30 días", "Ganancia y margen del periodo", "Ventas por día en una gráfica"}, "celebrate", "right",
+                "Séptimo problema: vender mucho no es lo mismo que ganar mucho. En ventas eliges el periodo: hoy, siete o treinta días. "
+                        + "Brindix descuenta el costo de cada producto y te muestra tu ganancia y tu margen reales. Abajo, una gráfica con las ventas de cada día."));
+        s.add(scene(cap("admin-mesas-qr"), "Solución: un QR para cada mesa", "Imprímelos y listo",
                 new int[][]{{25, 22}, {25, 37}, {75, 40}},
-                new String[]{"Imprime todos los QR de una vez", "El cliente escanea y ve la carta", "Genera un código nuevo si lo necesitas"}, "wave", "left"));
-        t.putObject("outro").put("title", "Lleva tu bar al siguiente nivel").put("cta", "Pruébalo en tu bar");
+                new String[]{"Imprime todos los QR de una vez", "El cliente escanea y ve la carta", "Genera un código nuevo si lo necesitas"}, "wave", "left",
+                "Y para empezar solo necesitas esto: un código QR por cada mesa. Los imprimes todos de una vez, el cliente escanea y ve la carta. "
+                        + "Si un código se daña o se pierde, generas uno nuevo desde aquí en un momento."));
+        t.putObject("outro").put("title", "Lleva tu bar al siguiente nivel").put("cta", "Pruébalo en tu bar")
+                .put("say", "Eso es Brindix: la carta, los pedidos, la cuenta y tus ganancias en un solo lugar, desde el celular. Pruébalo en tu bar y cuéntanos cómo te va.")
+                .put("seconds", 6);
         return t;
     }
 }

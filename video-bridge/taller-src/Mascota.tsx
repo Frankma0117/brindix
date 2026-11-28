@@ -8,7 +8,7 @@ import type {Pose} from './spec';
  */
 export const CanixBody: React.FC<{pose: Pose; height: number; colors: {from: string; mid: string; to: string}}> = ({pose, height, colors}) => {
   const f = useCurrentFrame();
-  const bob = Math.sin(f / 9) * (pose === 'celebrate' ? 7 : 3);
+  const bob = 0; // la mascota queda quieta: solo se mueve la boca
   const wiggle = Math.sin(f / 3.2) * 12;
   let left = 8;
   let right = -8;
@@ -84,7 +84,7 @@ export const BrindixBody: React.FC<{pose: Pose; height: number; talking?: boolea
   const mouthD = talking
     ? `M52 74 Q60 ${74 - o * 1.5} 68 74 Q60 ${74 + 5 + o * 15} 52 74 Z`
     : 'M52 75 Q60 84 68 75';
-  const bob = Math.sin(f / 9) * (pose === 'celebrate' ? 7 : 3);
+  const bob = 0; // la mascota queda quieta: solo se mueve la boca
   return (
     <svg width={(height * 200) / 200} height={height} viewBox="0 0 200 200" style={{transform: `translateY(${bob}px)`, overflow: 'visible'}}>
       <defs>
@@ -137,7 +137,7 @@ export const Mascota: React.FC<{
   return (
     <Img
       src={staticFile(kind)}
-      style={{height, width: 'auto', transform: `translateY(${Math.sin(f / 9) * 6}px)`, filter: 'drop-shadow(0 20px 30px rgba(0,0,0,.4))'}}
+      style={{height, width: 'auto', transform: `translateY(0px)`, filter: 'drop-shadow(0 20px 30px rgba(0,0,0,.4))'}}
     />
   );
 };

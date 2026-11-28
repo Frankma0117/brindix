@@ -29,12 +29,43 @@ def catalog() -> list[dict]:
     return [{"key": k, "name": m["name"], "price": m["price"], "voices": m["voices"]} for k, m in MODELS.items()]
 
 
-def _body(model: str, voice: str) -> dict:
+def _body(model: str, voice: str, text: str = TEXT) -> dict:
     if model == "kokoro":
-        return {"prompt": TEXT, "voice": voice}
+        return {"prompt": text, "voice": voice}
     if model == "minimax":
-        return {"text": TEXT, "voice_setting": {"voice_id": voice}, "language_boost": "Spanish", "output_format": "url"}
-    return {"text": TEXT, "voice": voice, "language_code": "es"}
+        return {"text": text, "voice_setting": {"voice_id": voice}, "language_boost": "Spanish", "output_format": "url"}
+    return {"text": text, "voice": voice, "language_code": "es"}
+
+
+def _fal_url(model: str, voice: str, text: str) -> str:
+    m = MODELS[model]
+    fal_key = os.environ.get("FAL_KEY")
+    if not fal_key:
+        raise RuntimeError("Falta FAL_KEY")
+    r = requests.post(f"https://fal.run/{m['endpoint']}", timeout=180,
+                      headers={"Authorization": f"Key {fal_key}", "Content-Type": "application/json"},
+                      json=_body(model, voice, text))
+    r.raise_for_status()
+    j = r.json()
+    audio_url = (j.get("audio") or j.get("audio_file") or {}).get("url")
+    if not audio_url or not (urlparse(audio_url).hostname or "").endswith(("fal.media", "fal.ai")):
+        raise RuntimeError("respuesta inesperada de fal")
+    return audio_url
+
+
+def speak(model: str, voice: str, text: str, out_path: str) -> None:
+    """Graba `text` con una voz de fal y lo deja como mp3 mono en out_path."""
+    if model not in MODELS or voice not in MODELS[model]["voices"]:
+        raise ValueError("esa voz no existe")
+    url = _fal_url(model, voice, text)
+    tmp = tempfile.mkdtemp(prefix="falspeak-")
+    try:
+        raw = os.path.join(tmp, "raw")
+        with open(raw, "wb") as f:
+            f.write(requests.get(url, timeout=60).content)
+        subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", raw, "-ac", "1", "-b:a", "128k", out_path], check=True)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def sample(model: str, voice: str) -> str:
@@ -49,17 +80,7 @@ def sample(model: str, voice: str) -> str:
             return url
     except requests.RequestException:
         pass
-    fal_key = os.environ.get("FAL_KEY")
-    if not fal_key:
-        raise RuntimeError("Falta FAL_KEY")
-    r = requests.post(f"https://fal.run/{m['endpoint']}", timeout=120,
-                      headers={"Authorization": f"Key {fal_key}", "Content-Type": "application/json"},
-                      json=_body(model, voice))
-    r.raise_for_status()
-    j = r.json()
-    audio_url = (j.get("audio") or j.get("audio_file") or {}).get("url")
-    if not audio_url or not (urlparse(audio_url).hostname or "").endswith(("fal.media", "fal.ai")):
-        raise RuntimeError("respuesta inesperada de fal")
+    audio_url = _fal_url(model, voice, TEXT)
     tmp = tempfile.mkdtemp(prefix="falvoice-")
     try:
         raw, out = os.path.join(tmp, "raw"), os.path.join(tmp, "s.mp3")

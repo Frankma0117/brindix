@@ -42,14 +42,19 @@ def health():
     return {"ok": True, "queue": pending.qsize()}
 
 
+# Chris narra la información y Matilda es la voz de la copa (intro y cierre): ver narrate.COPA_VOICE
+FAL_OPTION = {"key": "eleven2:Chris", "gender": "male", "name": "Chris + Matilda (ElevenLabs)",
+              "style": "Chris narra la información y Matilda es la voz de la copa"}
+
+
 @app.get("/options")
 def options(x_studio_token: str | None = Header(None)):
     _auth(x_studio_token)
     return {"kinds": [{"key": k, "name": v["name"], "about": v["about"], "seconds": v["seconds"]} for k, v in KINDS.items()],
             "formats": [{"key": k, "width": w, "height": h} for k, (w, h) in FORMATS.items()],
-            "voices": [{k: v[k] for k in ("key", "name", "style", "gender")} for v in VOICES],
+            "voices": ([FAL_OPTION] if os.environ.get("FAL_KEY") else []) + [{k: v[k] for k in ("key", "name", "style", "gender")} for v in VOICES],
             "music": list(MUSIC.keys()),
-            "voiceReady": bool(os.environ.get("FISH_API_KEY")), "aiReady": bool(os.environ.get("AI_API_KEY"))}
+            "voiceReady": bool(os.environ.get("FISH_API_KEY") or os.environ.get("FAL_KEY")), "aiReady": bool(os.environ.get("AI_API_KEY"))}
 
 
 @app.post("/jobs")
@@ -109,6 +114,11 @@ SAMPLE_TEXT = "¡Hola! Soy la copa de Brindix. Con esta voz le cuento a tu bar c
 def voice_sample(key: str, x_studio_token: str | None = Header(None)):
     """Muestra de una voz (se graba una sola vez y queda en Spaces)."""
     _auth(x_studio_token)
+    if key == FAL_OPTION["key"]:
+        try:
+            return {"url": falvoices.sample("eleven2", "Chris"), "name": FAL_OPTION["name"], "style": FAL_OPTION["style"]}
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(503, "No se pudo grabar la muestra (revisa FAL_KEY)") from e
     v = next((x for x in VOICES if x["key"] == key), None)
     if not v:
         raise HTTPException(404, "esa voz no existe")

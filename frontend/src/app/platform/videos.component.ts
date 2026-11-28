@@ -75,7 +75,7 @@ const MUSIC_NAMES: Record<string, string> = {
         <div class="studio-head">
           <bx-mascot [size]="56" mood="party" />
           <div class="grow"><h2>Nuevo video</h2><p class="small muted">Entre 2 y 6 minutos por video. Guion por IA, voz de Fish Audio y capturas de brindix.cania.app/demo.</p></div>
-          @if (!o.voiceReady) { <span class="badge red">Sin voz (FISH_API_KEY)</span> }
+          @if (!o.voiceReady) { <span class="badge red">Sin voz (FAL_KEY o FISH_API_KEY)</span> }
           @else if (!o.aiReady) { <span class="badge amber">Guion de plantilla (sin IA)</span> }
         </div>
 
@@ -450,7 +450,7 @@ export class PlatformVideosComponent implements OnInit, OnDestroy {
   }
 
   private storedVoice(r: Role): string {
-    const fallback = r === 'mascot' ? 'M5' : 'H4';
+    const fallback = 'eleven2:Chris';
     try { return localStorage.getItem(this.storageKey(r)) || fallback; } catch { return fallback; }
   }
 
