@@ -106,7 +106,7 @@ public class PromoVideoService {
     }
 
     public JsonNode falVoiceSample(String model, String voice) {
-        if (!model.matches("[a-z]{3,10}") || !voice.matches("[A-Za-z0-9_]{2,40}")) throw ApiException.badRequest("Esa voz no existe");
+        if (!model.matches("[a-z0-9]{3,10}") || !voice.matches("[A-Za-z0-9_-]{2,40}")) throw ApiException.badRequest("Esa voz no existe");
         return studio.falVoiceSample(model, voice);
     }
 
